@@ -1,0 +1,21 @@
+{
+  "name": "TestingWithZombieJS",
+  "version": "0.0.0",
+  "description": "Testing using headless browser",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": "",
+  "keywords": [
+    "testing",
+    "headless",
+    "browser"
+  ],
+  "dependencies": {
+    "zombie": "latest",
+    "jasmine-node": "latest"
+  },
+  "author": "Krasimir Tsonev",
+  "license": "BSD"
+}
