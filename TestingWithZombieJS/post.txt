@@ -1,0 +1,3 @@
+I was planning to post this article few weeks ago, but today I finally finished the examples and I can't wait to share it. We all know that the testing is a big part of our daily tasks and we should use every existing tool to make our lives easier. I really like <a href="http://en.wikipedia.org/wiki/Test-driven_development" class="external">test driven development</a> and once I found the concept of the <a href="http://blog.arhg.net/2009/10/what-is-headless-browser.html" class="external">headless browsing</a> I started to think that we can automate every single aspect of the testing. In this post I'll show you how to use <a href="http://nodejs.org/" class="external">nodejs</a> to test a simple php site.[STOP]
+
+First of all, let's see how our site looks like.
