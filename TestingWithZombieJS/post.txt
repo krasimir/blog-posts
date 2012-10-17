@@ -2,7 +2,7 @@ I was planning to post this article a few weeks ago, but today I finally finishe
 
 All the source files in this post could be found here <a href="https://github.com/krasimir/blog-posts/tree/master/TestingWithZombieJS" class="external">https://github.com/krasimir/blog-posts/tree/master/TestingWithZombieJS</a>.
 
-First of all, let's see how our test site looks like (feel free to browse it <a href="http://work.krasimirtsonev.com/git/blog-posts/TestingWithZombieJS/site/" class="external">here</a>).
+First of all, let's see how our test site looks like (feel free to browse it <a href="http://work.krasimirtsonev.com/git/blog-posts/TestingWithZombieJS/site/" class="external">here</a>. Username: admin, password: 1234).
 
 The site's content is protected with a password. So initially a login form is shown:
 
@@ -17,7 +17,7 @@ The second page of the site:
 
 [3]
 
-It is really simple web site, but it is enough to illustrate the idea. The topic of the article is to show the process of testing I'm not going to spend time in explaining how the site works. If you are interested in this part please check the <a href="https://github.com/krasimir/blog-posts/tree/master/TestingWithZombieJS" target="_blank">source code</a>. Here is what we will probably want to test in a real environment:
+It is really simple web site, but it is enough to illustrate the idea. The topic of the article is to show the process of testing, so I'm not going to spend time in explaining how the site works. If you are interested in this part please check the <a href="https://github.com/krasimir/blog-posts/tree/master/TestingWithZombieJS" target="_blank">source code</a>. Here is what we will probably want to test in a real environment:
 <ul>
     <li>Can we actually access the site</li>
     <li>We are not logged in the beginning, so we should see the login form</li>
