@@ -1,40 +1,24 @@
-var app = require('http').createServer(handler)
-  , io = require('socket.io').listen(app)
-  , fs = require('fs')
-  , Moniker = require('moniker')
-  , port = 3250;
-
-// reading page's html
-var getHTMLCode = function(callback) {
-	fs.readFile('./site/page.html', function (err, data) {
-	    if (err) {
-	    	callback(err);
-	    } else {
-	    	callback(err, data);
-		}
+var handler = function(req, res) {
+	fs.readFile('./page.html', function (err, data) {
+	    if(err) throw err;
+	    res.writeHead(200);
+		res.end(data);
 	});
 }
-
-// starting http server
-
+var app = require('http').createServer(handler);
+var io = require('socket.io').listen(app);
+var fs = require('fs');
+var Moniker = require('moniker');
+var port = 3250;
 
 app.listen(port);
 
-function handler (req, res) {
-	getHTMLCode(function(err, data) {
-		if(err) throw err;
-		res.writeHead(200);
-		res.end(data);
-	})
-}
-
-// launching socket.io
+// socket.io
 io.sockets.on('connection', function (socket) {
 	var user = addUser();
-	updateWidth(user);
+	updateWidth();
 	socket.emit("welcome", user);
 	socket.on('disconnect', function () {
-		totalPlayers -= 1;
 		removeUser(user);
   	});
   	socket.on("click", function() {
@@ -50,8 +34,7 @@ io.sockets.on('connection', function (socket) {
 });
 
 // game logic
-var totalPlayers = 0;
-var initialWidth = 22;
+var initialWidth = 20;
 var currentWidth = initialWidth;
 var winWidth = 150;
 var users = [];
