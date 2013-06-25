@@ -1,0 +1,29 @@
+1. New tab
+2. Console
+	2.1. How to open
+	2.2. Usability (field focus, Ctrl + F12)
+	2.3. Command architecture (exec, execl)
+	2.4. clear, message commands, date
+	2.5. man
+	2.6. history
+	2.7. storage
+	2.8. profile
+	2.9. alias
+	2.10. forms
+	2.11. tetris
+	2.12. browser related
+		2.12.1. tabs (load, newtab, refresh, screenshot)
+		2.12.2. page
+	2.13. testing front-end (formtextarea + execl + test-github.search.spec.aux) (testing github search feature)
+	2.14. inject (same as 2.13, but load the file)
+	2.15. compare, diff
+	2.16. delay,
+	2.17. execjs (test.current.month.js, test.is.html.link.js)
+	2.18. marker
+	2.19. request
+	2.20. stringify
+	2.21. OS
+		2.21.1. shell (github info support)
+		2.22.2. cd hint, two modes - only file autocomplete
+		2.23.3. tree
+		2.24.4. watch
