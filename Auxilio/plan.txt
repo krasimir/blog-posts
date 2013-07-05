@@ -8,13 +8,21 @@
 	2.6. history
 	2.7. storage
 	2.8. profile
-	2.9. alias
+	2.9. alias, var
 	2.10. forms
 	2.11. tetris
 	2.12. browser related
 		2.12.1. tabs (load, newtab, refresh, screenshot)
 		2.12.2. page
-	2.13. testing front-end (formtextarea + execl + test-github.search.spec.aux) (testing github search feature)
+	2.13. testing front-end 
+		2.13.1. formtextarea && execl
+		2.13.2. inject && exec (test-github.search.spec.aux) (testing github search feature)
+		2.13.3. formtextarea && var dd
+				date true && execjs $$dd
+				--------------
+				alias moma
+				-> var blogurl krasimirtsonev.com/blog
+				load $$blogurl
 	2.14. inject (same as 2.13, but load the file)
 	2.15. compare, diff
 	2.16. delay,
