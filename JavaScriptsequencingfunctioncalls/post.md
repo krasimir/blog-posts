@@ -1,6 +1,6 @@
 # JavaScript: sequencing function calls 
 
-While I'm working on [Auxilio](https://github.com/krasimir/auxilio) I end up in a sitatuation where I have to call few javascript functions in a sequence. It's an interesting how this could be solved and I'll be happy if you share your approach for such problem.[STOP]
+While I'm working on [Auxilio](https://github.com/krasimir/auxilio) I end up in a sitatuation where I have to call few javascript functions in a sequence. It's an interesting how this could be solved and I'll be happy if you share your opinion for such problem.
 
 (The source code of the developed class is available here [https://github.com/krasimir/chain](https://github.com/krasimir/chain))
 
@@ -21,7 +21,7 @@ That's cool and saves a lot of time. However, after few weeks using the extensio
 		})
 	}
 
-Not very nice! The first thing that you will notice is that there is a *callback* passed in every function call. That's mandatory and it is deeply integrated in the architecture of [Auxilio](https://github.com/krasimir/auxilio). Especially when you are executing commands like *git push*. There is a chain of functions and each other should wait till the previous one does its job. Most of the predefined methods return data and probably the developer will need this information. That's how every script works as well. There is a callback as a second argument and this function should be called no matter what.
+Not very nice! The first thing that you will notice is that there is a *callback* passed in every function call. That's mandatory and it is deeply integrated in the architecture of [Auxilio](https://github.com/krasimir/auxilio). You need to wait till the command ends, especially when you are executing things like *git push*. There is a chain of functions and each other should wait till the previous one does its job. Most of the predefined methods return data and probably the developer will need this information. That's how every script works as well. There is a callback as a second argument and this function should be called no matter what.
 
 I have external js files which contain more then 10 nested functions. It doesn't look good for sure. So, I started thinking about a simple class which will save me some time and will make my code much cleaner. Here are the requirements:
 
@@ -116,7 +116,7 @@ So far, so good. I know how my API should look like and I can start coding. Here
 
 What is coming to every javascript function, i.e. the *arguments* object, is not exactly an array. It doesn't have *shift* method, so I simply create a real array and add all the sent functions there. After that the first method of the newly array is fetched and called. In its callback the run method is fired again. The process continues till there is no more commands.
 
-Later I decided that I don't want to write *function(res, next) { ... }* all the time. It will be nice if I can type something like:
+Later I decided that I don't want to write *function(res, next) { ... }* every time. It will be nice if I can type something like:
 
 	Chain.run(
 		[cd, "D:/work/projects"],
@@ -218,4 +218,80 @@ Here is the full source code of the class containing the observer pattern logic.
 
 	})();
 
-The code above is also available in GitHub [here](https://github.com/krasimir/chain), so feel free to fork it and let me know if you have any ideas how to improve it.
+Here is how to use the class:
+
+### #1 (simple)
+
+	Chain.run(
+		function(res, next) {
+			console.log("A"); next(10);
+		},
+		function(res, next) {
+			console.log("B", res); next(res+1);
+		},
+		function(res, next) {
+			console.log("C", res); next();
+		}
+	);
+
+Output:
+
+	A
+	B 10
+	C 11
+
+### #2 (passing function as array)
+
+	var A = function(str, callback) {
+		console.log("Hello " + str + "!");
+		callback();
+	}
+	var B = function(str1, str2, callback) {
+		console.log("How " + str1 + " " + str2 + "?");
+		callback();
+	}
+	Chain.run(
+		[A, "world"],
+		[B, "are", "you"],
+		function(res, next) {
+			next();
+		}
+	);
+
+Output:
+
+	Hello world!
+	How are you?
+
+### #3 (#1 + #2 + listening for chain ending)
+
+	var chainFinished = function(res) {
+		console.log("End", res);
+	}
+	var customFunc = function(arg1, arg2, callback) {
+		console.log("customFunc", arg1, arg2);
+		callback("result(customFunc)");
+	}
+
+	Chain.on("done", chainFinished).run(
+		function(res, next) {
+			console.log("A", res);
+			setTimeout(function() {
+				next("result(A)");
+			}, 2000)		
+		},
+		[customFunc, "Hello", "World"],
+		function(res, next) {
+			console.log("B", res);
+			next("result(B)");
+		}
+	);
+
+Output:
+
+	A null
+	customFunc Hello World 
+	B result(customFunc)
+	End result(B)
+
+The class's code above is also available in GitHub [here](https://github.com/krasimir/chain), so feel free to fork it and let me know if you have any ideas how to improve it.
