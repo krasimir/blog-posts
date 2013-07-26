@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+		<title>CSS: :before and :after pseudo elements in practice</title>
+        <link rel="stylesheet" href="styles.css" type="text/css">
+        <style type="text/css">
+            h2 {
+                float: left;
+                width: 170px;
+            }
+            .popup {
+                float: left;
+                width: 340px;
+                background: #727272;
+                padding: 10px;
+                border-radius: 6px;
+                color: #FFF;
+                position: relative;
+                font-size: 12px;
+                line-height: 20px;
+            }
+            .popup:before {
+                content: "";
+                display: block;
+                width: 0; 
+                height: 0; 
+                border-top: 12px solid transparent;
+                border-bottom: 12px solid transparent;
+                border-right: 12px solid #727272; 
+                position: absolute;
+                top: 16px;
+                left: -12px;
+            }
+        </style>
+	</head>
+    <body>
+        <h2>What is CSS?</h2>
+        <div class="popup">
+            Cascading Style Sheets is a style sheet language used for describing the presentation semantics of a document written in a markup language.
+        </div>
+    </body>
+</html>

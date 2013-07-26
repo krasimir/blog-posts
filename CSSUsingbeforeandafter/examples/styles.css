@@ -10,7 +10,7 @@ body, html {
 	-moz-box-sizing:border-box;
 	color: #000;
 }
-p {
+h1, h2, p {
 	margin: 0;
 	padding: 0;
 }

@@ -9,23 +9,25 @@
                 text-decoration: none;
                 font-weight: bold;
                 color: #000;
+                display: block;
+                width: 100px;
+                text-align: center;
+                background-color: #C6C6C6;
+                float: left;
+                padding: 4px;
+                border: solid 1px #000;
+                margin: 0 2px 0 0;
             }
-            a:after {
-                content: " /";
-            }
-            a:first-child:before {
-                content: " » ";
-            }
-            a:last-child:after {
+            p:before {
                 content: "";
+                display: block;
+                clear: both;
             }
         </style>
 	</head>
     <body>
-        <p>
-            <a href="#">Home</a>
-            <a href="#">Team</a>
-            <a href="#">Developers</a>
-        </p>
+        <a href="#">Home</a>
+        <a href="#">Products</a>
+        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec at purus ac lacus ultrices vehicula.</p>
     </body>
 </html>
