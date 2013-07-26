@@ -1,0 +1,16 @@
+body, html {
+	background: #FFF;
+	padding: 14px;
+	margin: 0;
+	width: 100%;
+	height: 100%;
+	font-family: Verdana;
+	font-size: 16px;
+	box-sizing:border-box;
+	-moz-box-sizing:border-box;
+	color: #000;
+}
+p {
+	margin: 0;
+	padding: 0;
+}

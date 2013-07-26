@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+		<title>CSS: :before and :after pseudo elements in practice</title>
+        <link rel="stylesheet" href="styles.css" type="text/css">
+        <style type="text/css">
+            a {
+                text-decoration: none;
+                font-weight: bold;
+                color: #000;
+            }
+            a:after {
+                content: " /";
+            }
+            a:first-child:before {
+                content: " » ";
+            }
+            a:last-child:after {
+                content: "";
+            }
+        </style>
+	</head>
+    <body>
+        <p>
+            <a href="#">Home</a>
+            <a href="#">Team</a>
+            <a href="#">Developers</a>
+        </p>
+    </body>
+</html>
