@@ -18,7 +18,7 @@ We are able to use a pseudo element like that:
 
 And the result is:
 
-![CSS: :before and :after pseudo elements in practice](img/syntax.jpg)
+![CSS: :before and :after pseudo elements in practice](http://krasimirtsonev.com/blog/articles/CSSUsingbeforeandafter/img/syntax.jpg)
 
 Have in mind that you are actually adding an element before or after the content. It's not something which appear next to the selected element, but it is related to its content.
 
@@ -40,7 +40,7 @@ Again, we have the same markup *&lt;p>paragraph text&lt;/p>* and the following C
 
 *icon.jpg* is a 20x20 image exported from Photoshop. Here is how this looks in a browser:
 
-![CSS: :before and :after pseudo elements in practice](img/icon.jpg)
+![CSS: :before and :after pseudo elements in practice](http://krasimirtsonev.com/blog/articles/CSSUsingbeforeandafter/img/icon.jpg)
 
 ## Styling external links
 
@@ -64,7 +64,7 @@ We could add a small icon after that link indicating that it points to page outs
         height: 12px;
     }
 
-![CSS: :before and :after pseudo elements in practice](img/links.jpg)
+![CSS: :before and :after pseudo elements in practice](http://krasimirtsonev.com/blog/articles/CSSUsingbeforeandafter/img/links.jpg)
 
 ## Breadcrumbs (navigation)
 
@@ -97,7 +97,7 @@ Just a few lines of CSS:
 
 And the result is this:
 
-![CSS: :before and :after pseudo elements in practice](img/breadcrumbs.jpg)
+![CSS: :before and :after pseudo elements in practice](http://krasimirtsonev.com/blog/articles/CSSUsingbeforeandafter/img/breadcrumbs.jpg)
 
 There are few interesting things happening. Firstly, there is a bullet before all the links. I combined two pseudo elements *first-child* and *before* saying "Add &#187; before the first link". At the end I did the same thing to remove the separator from the last link in the list.
 
@@ -134,7 +134,7 @@ Using [*float*](http://krasimirtsonev.com/blog/article/css-using-float-property-
 
 Will produce the following layout:
 
-![CSS: :before and :after pseudo elements in practice](img/floating1.jpg)
+![CSS: :before and :after pseudo elements in practice](http://krasimirtsonev.com/blog/articles/CSSUsingbeforeandafter/img/floating1.jpg)
 
 The text should be below the links and instead of adding new DOM node you can use *:before* pseudo element to clear the float:
 
@@ -144,7 +144,7 @@ The text should be below the links and instead of adding new DOM node you can us
         clear: both;
     }
 
-![CSS: :before and :after pseudo elements in practice](img/floating2.jpg)
+![CSS: :before and :after pseudo elements in practice](http://krasimirtsonev.com/blog/articles/CSSUsingbeforeandafter/img/floating2.jpg)
 
 ## Quoting
 
@@ -158,7 +158,7 @@ The text should be below the links and instead of adding new DOM node you can us
 
 The following effect could be achieved only with CSS:
 
-![CSS: :before and :after pseudo elements in practice](img/quotes.jpg)
+![CSS: :before and :after pseudo elements in practice](http://krasimirtsonev.com/blog/articles/CSSUsingbeforeandafter/img/quotes.jpg)
 
 	span.quoted {
         font-family: Georgia;
@@ -188,7 +188,7 @@ The following effect could be achieved only with CSS:
 
 You know those little things which the designers add to the popups or the nice looking tooltips. It's kinda tricky to code them. Luckily you are able to solve the problem in your CSS file. No additional images or hacky JavaScript. Here is what I'm talking about.
 
-![CSS: :before and :after pseudo elements in practice](img/arrow1.jpg)
+![CSS: :before and :after pseudo elements in practice](http://krasimirtsonev.com/blog/articles/CSSUsingbeforeandafter/img/arrow1.jpg)
 
 As a starting point our markup looks like that:
 
@@ -232,7 +232,7 @@ So, we have a title on the left and popup on the right. We need to add this litt
 
 Currently I'm working on a project which is an one-page site. There are titles which devide the different sections. Every title is wrapped by two lines. Here is how the final design looks like:
 
-![CSS: :before and :after pseudo elements in practice](img/titles.jpg)
+![CSS: :before and :after pseudo elements in practice](http://krasimirtsonev.com/blog/articles/CSSUsingbeforeandafter/img/titles.jpg)
 
 Again really simple usage of *:before* and *:after*:
 
