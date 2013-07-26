@@ -228,6 +228,39 @@ So, we have a title on the left and popup on the right. We need to add this litt
         left: -12px;
     }
 
+## Styling titles
+
+Currently I'm working on a project which is an one-page site. There are titles which devide the different sections. Every title is wrapped by two lines. Here is how the final design looks like:
+
+![CSS: :before and :after pseudo elements in practice](img/titles.jpg)
+
+Again really simple usage of *:before* and *:after*:
+
+    h2 {
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        text-align: center;
+    }
+    h2:after {
+        display: inline-block;
+        margin: 0 0 8px 20px;
+        height: 3px;
+        content: " ";
+        text-shadow: none;
+        background-color: #999;
+        width: 140px;
+    }
+    h2:before {
+        display: inline-block;
+        margin: 0 20px 8px 0;
+        height: 3px;
+        content: " ";
+        text-shadow: none;
+        background-color: #999;
+        width: 140px;
+    }
+
 ## Conclusion
 
 The most important benefit of pseudo *:after* and *:before* elements is that you are able style your HTML without to add new DOM nodes. I really like to read clean and semantic markup. CSS is the place for all the visual things and it is great that we have such an instrument.

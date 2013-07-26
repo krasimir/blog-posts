@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+		<title>CSS: :before and :after pseudo elements in practice</title>
+        <link rel="stylesheet" href="styles.css" type="text/css">
+        <style type="text/css">
+            h2 {
+                width: 100%;
+                margin: 0;
+                padding: 0;
+                text-align: center;
+            }
+            h2:after {
+                display: inline-block;
+                margin: 0 0 8px 20px;
+                height: 3px;
+                content: " ";
+                text-shadow: none;
+                background-color: #999;
+                width: 140px;
+            }
+            h2:before {
+                display: inline-block;
+                margin: 0 20px 8px 0;
+                height: 3px;
+                content: " ";
+                text-shadow: none;
+                background-color: #999;
+                width: 140px;
+            }
+        </style>
+	</head>
+    <body>
+        <h2>CSS is awesome</h2>
+    </body>
+</html>
