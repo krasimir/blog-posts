@@ -27,25 +27,22 @@
             window.onload = function() {
 
                 var element = document.querySelector(".star");
-                var classToApply = 'rotateInDownLeft';
                 element.addEventListener("click", function() {
-                    if(element.className.indexOf(classToApply) === -1) {
-                        element.className += ' ' + classToApply;
+                    if(element.className.indexOf('rotateInDownLeft') === -1) {
+                        element.className += ' rotateInDownLeft';
+                    } else {
+                        element.className = element.className.replace('rotateInDownLeft', 'bounceOutRight');
                     }
-                });
-                element.addEventListener("mouseout", function() {
-                    element.className = element.className.replace(classToApply, '');
                 });
 
                 function whichTransitionEvent(el){
                     var t;
                     var transitions = {
-                      'transition':'transitionend',
-                      'OTransition':'oTransitionEnd',
-                      'MozTransition':'transitionend',
-                      'WebkitTransition':'webkitTransitionEnd'
+                      'transition': 'transitionend',
+                      'OTransition': 'oTransitionEnd',
+                      'MozTransition': 'transitionend',
+                      'WebkitTransition': 'webkitTransitionEnd'
                     }
-
                     for(t in transitions){
                         if( el.style[t] !== undefined ){
                             return transitions[t];
@@ -53,10 +50,33 @@
                     }
                 }
 
+                function whichAnimationEvent(el){
+                    var a;
+                    var animations = {
+                      'animation': 'animationend',
+                      'OAnimation': 'oAnimationEnd',
+                      'MozAnimation': 'animationend',
+                      'WebkitAnimation': 'webkitAnimationEnd'
+                    }
+                    for(a in animations){
+                        if( el.style[a] !== undefined ){
+                            return animations[a];
+                        }
+                    }
+                }
+
                 var transitionEnd = whichTransitionEvent(element);
-                element.addEventListener(transitionEnd, function(e) {
-                    
-                }); 
+                var animationEnd = whichAnimationEvent(element);
+                var onEnd = function(e) {
+                    if(e.animationName === 'bounceOutRight') {
+                        element.className = element.className.replace(/rotateInDownLeft/g, '').replace(/bounceOutRight/g, '');
+                    } else {
+                        element.innerHTML = element.innerHTML.replace('click me', 'click me again');
+                    }
+                }
+                element.addEventListener(transitionEnd, onEnd); 
+                element.addEventListener(animationEnd, onEnd); 
+
 
             }
         </script>

@@ -190,4 +190,23 @@ Having in mind that the handler of the event receives and object which contains 
 
 ### Be creative
 
-I strongly recommend to check [Animate.css](http://daneden.me/animate/). It is a collection of CSS classes, which you can you. They apply some nice transitions to your elements.
+I strongly recommend to check [Animate.css](http://daneden.me/animate/). It is a collection of CSS classes, which you can use. They apply some nice transitions to your elements and you don't have to worry about the math.
+
+<iframe width="100%" height="180" src="http://jsfiddle.net/krasimir/uYrbA/7/embedded/result,js,html,css/" allowfullscreen="allowfullscreen" frameborder="0"></iframe>
+
+In this example I simply attach/remove two classes *rotateInDownLeft* and *bounceOutRight*. I also used additional helper for detecting the end of the animation. *Animate.css* uses CSS animation, not CSS transition. So, the method is a bit changed:
+
+	function whichAnimationEvent(el){
+        var a;
+        var animations = {
+          'animation': 'animationend',
+          'OAnimation': 'oAnimationEnd',
+          'MozAnimation': 'animationend',
+          'WebkitAnimation': 'webkitAnimationEnd'
+        }
+        for(a in animations){
+            if( el.style[a] !== undefined ){
+                return animations[a];
+            }
+        }
+    }
