@@ -184,6 +184,10 @@ That's critical part for creating complex animations. Every browser has its own 
 
 The following widget shows the event in action. If you click on the star you will see that firstly the color is changed and after that the width of the box is increased. That's because two new CSS classes are added one after the other.
 
-<iframe width="100%" height="180" src="http://jsfiddle.net/krasimir/7rtCB/2/embedded/result,js,html,css/" allowfullscreen="allowfullscreen" frameborder="0"></iframe>
+<iframe width="100%" height="180" src="http://jsfiddle.net/krasimir/7rtCB/6/embedded/result,js,html,css/" allowfullscreen="allowfullscreen" frameborder="0"></iframe>
 
 Having in mind that the handler of the event receives and object which contains information about the animation. Like for example which property is changed, elapsed time and so on.
+
+### Be creative
+
+I strongly recommend to check [Animate.css](http://daneden.me/animate/). It is a collection of CSS classes, which you can you. They apply some nice transitions to your elements.

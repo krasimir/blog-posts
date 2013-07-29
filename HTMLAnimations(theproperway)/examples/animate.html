@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+		<title>HTML Animations (the proper way)</title>
+        <link rel="stylesheet" href="styles.css" type="text/css">
+        <link rel="stylesheet" href="animate.css" type="text/css">
+        <style type="text/css">
+            .star {
+                font-size: 40px;
+                background: #C9C9C9;
+                padding: 20px;
+                width: 100px;
+                text-align: center;
+                border-radius: 6px;
+                margin: 0 auto;
+                cursor: pointer;
+                line-height: 20px;
+            }
+            .star span {
+                font-size: 16px;
+                font-weight: bold;
+            }
+        </style>
+        <script type="text/javascript">
+
+            window.onload = function() {
+
+                var element = document.querySelector(".star");
+                var classToApply = 'rotateInDownLeft';
+                element.addEventListener("click", function() {
+                    if(element.className.indexOf(classToApply) === -1) {
+                        element.className += ' ' + classToApply;
+                    }
+                });
+                element.addEventListener("mouseout", function() {
+                    element.className = element.className.replace(classToApply, '');
+                });
+
+                function whichTransitionEvent(el){
+                    var t;
+                    var transitions = {
+                      'transition':'transitionend',
+                      'OTransition':'oTransitionEnd',
+                      'MozTransition':'transitionend',
+                      'WebkitTransition':'webkitTransitionEnd'
+                    }
+
+                    for(t in transitions){
+                        if( el.style[t] !== undefined ){
+                            return transitions[t];
+                        }
+                    }
+                }
+
+                var transitionEnd = whichTransitionEvent(element);
+                element.addEventListener(transitionEnd, function(e) {
+                    
+                }); 
+
+            }
+        </script>
+	</head>
+    <body>
+        <div class="star animated">★<br /><span>click me</span></div>
+    </body>
+</html>
