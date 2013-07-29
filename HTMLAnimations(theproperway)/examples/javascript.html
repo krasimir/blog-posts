@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+		<title>HTML Animations (the proper way)</title>
+        <link rel="stylesheet" href="styles.css" type="text/css">
+        <style type="text/css">
+            .star {
+                font-size: 40px;
+                background: #C9C9C9;
+                padding: 20px;
+                width: 100px;
+                text-align: center;
+                border-radius: 6px;
+                margin: 0 auto;
+                cursor: pointer;
+                line-height: 20px;
+            }
+            .star:hover {
+                background: #959595;
+                color: #FFF;
+            }
+            .star span {
+                font-size: 16px;
+                font-weight: bold;
+            }
+        </style>
+        <script type="text/javascript">
+            window.onload = function() {
+
+                var calcAnimation = function(from, to, steps) {
+                    var diff = Math.abs(to - from);
+                    var res = [];
+                    var valuePerStep = diff / steps;
+                    from += valuePerStep;
+                    for(var i=0; i<steps; i++) {
+                        res.push(from + (i * valuePerStep));
+                    }
+                    return res;
+                }
+
+                var calcAnimationOutElastic = function(from, to, steps) {
+                    var InOutElastic = function(t, b, c, d, a, p) {
+                        if (t==0) return b;  if ((t/=d)==1) return b+c;  if (!p) p=d*.3;
+                        if (!a || a < Math.abs(c)) { a=c; var s = p/4; }
+                        else s = p/(2*Math.PI) * Math.asin (c/a);
+                        return (a*Math.pow(2,-10*t) * Math.sin( (t*d-s)*(2*Math.PI)/p ) + c + b);
+                    }
+                    var res = [];
+                    for(var i=0; i<steps; i++) {
+                        res.push(InOutElastic(i, from, to, steps, 0, 0));
+                    }
+                    return res;
+                }
+
+                var element = document.querySelector(".star");
+                var animation = {from: 100, to: 200, steps: 550};
+                // var values = calcAnimation(animation.from, animation.to, animation.steps);
+                var values = calcAnimationOutElastic(animation.from, animation.to, animation.steps);
+                element.addEventListener("click", function() {
+                    var currentIndex = 0;
+                    var loop = function() {
+                        if(currentIndex < values.length) {
+                            element.style.width = values[currentIndex] + "px";
+                            currentIndex += 1;
+                            setTimeout(loop, 1);
+                        }
+                    }
+                    loop();
+                });
+
+            }
+        </script>
+	</head>
+    <body>
+        <div class="star">★<br /><span>click me</span></div>
+    </body>
+</html>

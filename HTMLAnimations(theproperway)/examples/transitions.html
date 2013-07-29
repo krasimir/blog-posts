@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+		<title>HTML Animations (the proper way)</title>
+        <link rel="stylesheet" href="styles.css" type="text/css">
+        <style type="text/css">
+            .star {
+                font-size: 40px;
+                background: #C9C9C9;
+                padding: 20px;
+                width: 100px;
+                text-align: center;
+                border-radius: 6px;
+                margin: 0 auto;
+                cursor: pointer;
+                line-height: 20px;
+
+                transition-property: all;
+                -moz-transition-property: all;
+                -webkit-transition-property: all;
+                -o-transition-property: all;
+
+                transition-duration: 1000ms;
+                -webkit-transition-duration: 1000ms;
+
+            }
+            .star-hover {
+                background: #F00;
+                color: #FFF;
+            }
+            .star-expand {
+                width: 200px;
+            }
+            .star span {
+                font-size: 16px;
+                font-weight: bold;
+            }
+        </style>
+        <script type="text/javascript">
+
+            window.onload = function() {
+
+                var element = document.querySelector(".star");
+                element.addEventListener("click", function() {
+                    if(element.className.indexOf('star-hover') === -1) {
+                        element.className += ' star-hover';
+                    }
+                });
+                element.addEventListener("mouseout", function() {
+                    element.className = element.className.replace(/ star-hover/g, '').replace(/ star-expand/g, '');
+                });
+
+                function whichTransitionEvent(el){
+                    var t;
+                    var transitions = {
+                      'transition':'transitionend',
+                      'OTransition':'oTransitionEnd',
+                      'MozTransition':'transitionend',
+                      'WebkitTransition':'webkitTransitionEnd'
+                    }
+
+                    for(t in transitions){
+                        if( el.style[t] !== undefined ){
+                            return transitions[t];
+                        }
+                    }
+                }
+
+                var transitionEnd = whichTransitionEvent(element);
+                element.addEventListener(transitionEnd, function(e) {
+                    if(element.className.indexOf('star-expand') === -1 && element.className.indexOf('star-hover') >= 0) {
+                        element.className += ' star-expand';
+                    }
+                }); 
+
+            }
+        </script>
+	</head>
+    <body>
+        <div class="star">★<br /><span>click me</span></div>
+    </body>
+</html>
