@@ -190,7 +190,7 @@ Having in mind that the handler of the event receives and object which contains 
 
 ### Be creative
 
-I strongly recommend to check [Animate.css](http://daneden.me/animate/). It is a collection of CSS classes, which you can use. They apply some nice transitions to your elements and you don't have to worry about the math.
+I strongly recommend to check [Animate.css](http://daneden.me/animate/). It is a collection of CSS classes, which you can use. They apply some nice animations to your elements and you don't have to worry about the math.
 
 <iframe width="100%" height="180" src="http://jsfiddle.net/krasimir/uYrbA/7/embedded/result,js,html,css/" allowfullscreen="allowfullscreen" frameborder="0"></iframe>
 
@@ -210,3 +210,80 @@ In this example I simply attach/remove two classes *rotateInDownLeft* and *bounc
             }
         }
     }
+
+This collection of classes is actually pure CSS. In the [official repository](https://github.com/daneden/animate.css) of the project Dan Eden gave a little hint:
+
+    You can do a whole bunch of other stuff with *Animate.css* when you combine it with jQuery or add your own CSS rules. Dynamically add animations using jQuery with ease:
+    $('#yourElement').addClass('animated bounceOutLeft');
+
+These days I'm trying to avoid the usage of libraries like jQuery if that's not necessary. For example, here I need to select an element and change its class attribute. There are solutions for that which use simple JavaScript. I used the library in two projects and in both I needed a good control in the JavaScript part of the application. That's why I decided to write a simple class on top of *Animate.css*. It gives control on the animations and it is available in my fork of the library [here](https://github.com/krasimir/animate.css/tree/master/js). 
+
+#### The initialization
+
+Just include [*animate.js*](https://github.com/krasimir/animate.css/blob/master/js/animate.js) in your HTML and do the following:
+
+    var el = document.querySelector(".your-element-class");
+    var controller = Animate(el);
+
+#### Adding a class (i.e. starting animation)
+
+    controller
+    .add('animated')
+    .add('bounceOutLeft')
+
+The *add* method append CSS class to the *className* property of the element. The function also accepts second parameter - handler which is called once the animation finishes.
+
+    controller.add("flipInY", function() {
+        alert("flipInY finishes");
+    });
+
+#### Removing a class (i.e. returning to the initial state)
+
+    controller.remove('bounceOutLeft');
+
+Normally when you use the *Out* methods your element is hidden at the end. If you want to return it to the initial state use *remove* method.
+
+#### Catching the end of an animation
+
+All the function in the controller's API return the API itself. This means that you can create a functional chain like for example:
+
+    controller
+    .add("rotateOutUpRight")
+    .end("rotateOutUpRight", function() {
+        alert("rotateOutUpRight");
+    });
+
+You may have nested closures and to keep the readability will be good to use the *end* method. It accepts name of a class and handler notifying you about the end of the animation.
+
+Very often I needed to start new animation once another finishes. And instead of doing that in a closure I changed the *end* method a bit. It also accepts a string as a second parameter, which is actually new *Animate.css* class.
+
+    controller
+    .add("flipInY")
+    .end("flipInY", 'rotateInDownLeft')
+    .end("rotateInDownLeft", 'bounceOutDown');
+
+#### Removing all the added animation.css classes
+
+Sometimes you will need to remove everything and start adding new classes. The following method could be used:
+
+    controller.removeAll();
+
+#### Running animations in sequence
+
+    controller.sequence('flip', 'flipInX', 'flipOutX', 'flipOutY', 'fadeIn', 'fadeInUp');
+
+I think that this method is self-explanatory. Have in mind that every animation class is removed before to add a new one.
+
+--- 
+
+Every handler in the js class is called in with the context of the API. So, the *this* keywords actually points to the API and you are able to write:
+
+    Animate(el).add("flipInY", function() {
+        this.removeAll().add("fadeInUp");
+    });
+
+--- 
+
+Here is an example showing my little controller. It actually shows most of the available animations.
+
+<iframe width="100%" height="200" src="http://jsfiddle.net/krasimir/56V6e/3/embedded/result,js,html,css/" allowfullscreen="allowfullscreen" frameborder="0"></iframe>
