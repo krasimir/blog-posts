@@ -1,0 +1,66 @@
+<p>That's first of (I hope) many posts with such an idea. Problems solved with pure CSS. No JavaScript.[STOP]</p>
+
+<p>&nbsp;</p>
+
+<p>I'm working on a gallery typed site and I need to show photos. Of course, most of the things are unknown, but everything should look really cool.</p>
+
+<p>&nbsp;</p>
+
+<p>The following sketch illustrates the situation:</p>
+
+<p><img src="http://krasimirtsonev.com/blog/articles/CSSChallenge1/img/challenge.jpg" alt="CSS Challenge" /></p>
+
+<p>I.e. I have a div, wrapper which contains an image tag. The picture should expand and fill the parent element. Together with that it should be centered vertically/horizontally. The size of the image and the container could vary.</p>
+
+<pre><code>&lt;div class="wrapper"&gt;
+    &lt;img src="pic.jpg" /&gt;
+&lt;/div&gt;
+</code></pre>
+
+<p>Let's say that the wrapper has the following CSS applied:</p>
+
+<pre><code>.wrapper {
+    width: 400px;
+    height: 200px;
+    overflow: hidden;
+}
+</code></pre>
+
+<p>As I said, the dimensions of the container are unknown. The solution should work even with 200x400. And remember, I can't use JavaScript to get the size of the image, make calculations or change CSS properties.</p>
+
+<h2 id="what-i-tried-and-it-didnt-work">What I tried and it didn't work</h2>
+
+<p>The very first thing, which I did was to apply <em>max-width: 100%</em> to the image tag. The photo was successfully resized to exactly 400px by width. The problem was that it wasn't centered and, more importantly, if the image was small and its width was less then 400px there was some unfilled space. So, I replaced <em>max-width</em> with simply <em>width</em>. This guaranteed that the image will be resized to exactly 400px no matter what. The first step was made and I thought that I was in the right direction.</p>
+
+<p>&nbsp;</p>
+
+<p>The next thing, which I had to fight with was the centering. I tried several variants - negative margin or padding, absolution positioning or usage of percentages. Non of these things worked. It looked that it is not possible to cover all the cases without using JavaScript.</p>
+
+<p>&nbsp;</p>
+
+<p>Even if the above problem is solved that will be only 50% of the job, because if the width of the wrapper is less then its height everything starts from the beginning. So, I wasn't able to figure out how to make the things in the CSS styling. I had to change the markup and try again.</p>
+
+<h2 id="the-solution">The solution</h2>
+
+<p>During the development of <a href="http://krasimirtsonev.com">krasimirtsonev.com</a> I used <em>background-size: cover</em>. What it does is to resize your background image like that so it fills all the available space. So, the first thing which I did is to set the image as a background of the wrapper. </p>
+
+<pre><code>&lt;div class="wrapper" style="background-image: url('pic1.jpg');"&gt;&lt;/div&gt;
+</code></pre>
+
+<p>Yes, I know that inline styling is not a good idea. Also the missing of <em>img</em> tag means that search engines will not parse very well my images. Anyway, the type of the project allows those sacrifices.</p>
+
+<p>After that I added <em>background-size: cover</em> to the wrapper's styles:</p>
+
+<pre><code>.wrapper {
+    width: 400px;
+    height: 200px;
+    overflow: hidden;
+    background-size: cover;
+}
+</code></pre>
+
+<p>Only this property solves half of the problem. After that resizing the image matched my criterias. </p>
+
+<p>Another useful property is <em>background-position</em>. I added <em>background-position: center center</em> and voila - mission completed.</p>
+
+<iframe width="100%" height="400" src="http://jsfiddle.net/krasimir/W7GuL/3/embedded/result,css,html/" allowfullscreen="allowfullscreen" frameborder="0"></iframe>
