@@ -49,6 +49,8 @@
 
 <p>Yes, I know that inline styling is not a good idea. Also the missing of <em>img</em> tag means that search engines will not parse very well my images. Anyway, the type of the project allows those sacrifices.</p>
 
+<p>&nbsp;</p>
+
 <p>After that I added <em>background-size: cover</em> to the wrapper's styles:</p>
 
 <pre><code>.wrapper {
@@ -59,8 +61,29 @@
 }
 </code></pre>
 
-<p>Only this property solves half of the problem. After that resizing the image matched my criterias. </p>
+<p>Only this property solves half of the problem. After that the resizing of the image matched my criterias. </p>
+
+<p>&nbsp;</p>
 
 <p>Another useful property is <em>background-position</em>. I added <em>background-position: center center</em> and voila - mission completed.</p>
+
+<p>&nbsp;</p>
+
+<p>The final code looks like that</p>
+
+<pre><code>// html
+&lt;div class="wrapper" style="background-image: url('pic1.jpg');"&gt;&lt;/div&gt;
+
+// css
+.wrapperA {
+    width: 400px;
+    height: 200px;
+    overflow: hidden;
+    background-size: cover;
+    background-position: center center;
+}
+</code></pre>
+
+<p>Here is a jsfiddle showing the result:</p>
 
 <iframe width="100%" height="400" src="http://jsfiddle.net/krasimir/W7GuL/3/embedded/result,css,html/" allowfullscreen="allowfullscreen" frameborder="0"></iframe>
