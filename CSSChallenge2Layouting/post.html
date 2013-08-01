@@ -1,0 +1,354 @@
+
+<!DOCTYPE html><html><head><meta charset="utf-8"><style>html { font-size: 100%; overflow-y: scroll; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+
+body{
+  color:#444;
+  font-family:Georgia, Palatino, 'Palatino Linotype', Times, 'Times New Roman',
+              "Hiragino Sans GB", "STXihei", "微软雅黑", serif;
+  font-size:12px;
+  line-height:1.5em;
+  background:#fefefe;
+  width: 45em;
+  margin: 10px auto;
+  padding: 1em;
+  outline: 1300px solid #FAFAFA;
+}
+
+a{ color: #0645ad; text-decoration:none;}
+a:visited{ color: #0b0080; }
+a:hover{ color: #06e; }
+a:active{ color:#faa700; }
+a:focus{ outline: thin dotted; }
+a:hover, a:active{ outline: 0; }
+
+span.backtick {
+  border:1px solid #EAEAEA;
+  border-radius:3px;
+  background:#F8F8F8;
+  padding:0 3px 0 3px;
+}
+
+::-moz-selection{background:rgba(255,255,0,0.3);color:#000}
+::selection{background:rgba(255,255,0,0.3);color:#000}
+
+a::-moz-selection{background:rgba(255,255,0,0.3);color:#0645ad}
+a::selection{background:rgba(255,255,0,0.3);color:#0645ad}
+
+p{
+margin:1em 0;
+}
+
+img{
+max-width:100%;
+}
+
+h1,h2,h3,h4,h5,h6{
+font-weight:normal;
+color:#111;
+line-height:1em;
+}
+h4,h5,h6{ font-weight: bold; }
+h1{ font-size:2.5em; }
+h2{ font-size:2em; border-bottom:1px solid silver; padding-bottom: 5px; }
+h3{ font-size:1.5em; }
+h4{ font-size:1.2em; }
+h5{ font-size:1em; }
+h6{ font-size:0.9em; }
+
+blockquote{
+color:#666666;
+margin:0;
+padding-left: 3em;
+border-left: 0.5em #EEE solid;
+}
+hr { display: block; height: 2px; border: 0; border-top: 1px solid #aaa;border-bottom: 1px solid #eee; margin: 1em 0; padding: 0; }
+
+
+pre , code, kbd, samp { 
+  color: #000; 
+  font-family: monospace; 
+  font-size: 0.88em; 
+  border-radius:3px;
+  background-color: #F8F8F8;
+  border: 1px solid #CCC; 
+}
+pre { white-space: pre; white-space: pre-wrap; word-wrap: break-word; padding: 5px 12px;}
+pre code { border: 0px !important; padding: 0;}
+code { padding: 0 3px 0 3px; }
+
+b, strong { font-weight: bold; }
+
+dfn { font-style: italic; }
+
+ins { background: #ff9; color: #000; text-decoration: none; }
+
+mark { background: #ff0; color: #000; font-style: italic; font-weight: bold; }
+
+sub, sup { font-size: 75%; line-height: 0; position: relative; vertical-align: baseline; }
+sup { top: -0.5em; }
+sub { bottom: -0.25em; }
+
+ul, ol { margin: 1em 0; padding: 0 0 0 2em; }
+li p:last-child { margin:0 }
+dd { margin: 0 0 0 2em; }
+
+img { border: 0; -ms-interpolation-mode: bicubic; vertical-align: middle; }
+
+table { border-collapse: collapse; border-spacing: 0; }
+td { vertical-align: top; }
+
+@media only screen and (min-width: 480px) {
+body{font-size:14px;}
+}
+
+@media only screen and (min-width: 768px) {
+body{font-size:16px;}
+}
+
+@media print {
+  * { background: transparent !important; color: black !important; filter:none !important; -ms-filter: none !important; }
+  body{font-size:12pt; max-width:100%; outline:none;}
+  a, a:visited { text-decoration: underline; }
+  hr { height: 1px; border:0; border-bottom:1px solid black; }
+  a[href]:after { content: " (" attr(href) ")"; }
+  abbr[title]:after { content: " (" attr(title) ")"; }
+  .ir a:after, a[href^="javascript:"]:after, a[href^="#"]:after { content: ""; }
+  pre, blockquote { border: 1px solid #999; padding-right: 1em; page-break-inside: avoid; }
+  tr, img { page-break-inside: avoid; }
+  img { max-width: 100% !important; }
+  @page :left { margin: 15mm 20mm 15mm 10mm; }
+  @page :right { margin: 15mm 10mm 15mm 20mm; }
+  p, h2, h3 { orphans: 3; widows: 3; }
+  h2, h3 { page-break-after: avoid; }
+}
+</style></head><body><h1 id="css-challenge-2-layouting">CSS Challenge #2: Layouting</h1>
+
+<p>The <a href="http://krasimirtsonev.com/blog/article/CSS-Challenge-1-expand-and-center-image-fill-div">first challenge</a>, was something which I was thinking a lot these days. The next one is actually a well known common task, but it is still difficult. In every project we have different types of layouts. Of course there are some patterns. The idea today is to implement them with pure CSS.</p>
+
+<h2 id="layout-a-everything-centered">Layout A - everything centered</h2>
+
+<p><img src="http://krasimirtsonev.com/blog/articles/CSSChallenge2Layouting/img/layoutA.jpg" alt="CSS Challenge" /></p>
+
+<p>That's maybe the most simplest layout. Usually the markup is something like that:</p>
+
+<pre><code>&lt;div class="layout-a"&gt;
+    &lt;img src="..." /&gt;
+    &lt;p&gt;...&lt;/p&gt;
+&lt;/div&gt;
+</code></pre>
+
+<p>As you know, if you have container with elements which are inline objects, you could use <em>text-align: center</em> to position them in the middle. If you apply this to our wrapper the image will be centered, because it is by default an inline element. Also the text in the paragraph will be centered, because the <em>&lt;p&gt;</em> tag inherits the <em>text-align</em> from its parent. However our layout is a bit different. First of all the image and the paragraph should be with equal widths. The text should be left aligned and will be nice if we could apply the same CSS with different widths of the container.</p>
+
+<p>Let's imagine that we don't know the width of the image. This means that we can't also set the width of the paragraph. So, we should simply rely on the parent element. By default the <em>&lt;p&gt;</em> tag is a block element so its width is 100%. If we apply the same value to the <em>&lt;img&gt;</em> tag they will be with equals widths. </p>
+
+<p>Because we know the wrapper's width we could use <em>margin: 0 auto</em> to position it in the center. At the end we should apply <em>text-align: left</em> to the paragraph so its text sticks to the left. The final CSS of the layout is:</p>
+
+<pre><code>.layout-a {
+    width: 360px;
+    margin: 0 auto;
+    text-align: center;
+}
+.layout-a img {
+    width: 100%;
+}
+.layout-a p {
+    text-align: left;
+}
+</code></pre>
+
+<p>Here is a simple example to play with:</p>
+
+<iframe width="100%" height="300" src="http://jsfiddle.net/krasimir/xZR8D/16/embedded/result,css,html/" allowfullscreen="allowfullscreen" frameborder="0"></iframe>
+
+<h2 id="layout-b-an-image-and-text">Layout B - an image and text</h2>
+
+<p><img src="http://krasimirtsonev.com/blog/articles/CSSChallenge2Layouting/img/layoutB.jpg" alt="CSS Challenge" /></p>
+
+<p>The requirements here are similar. We know only the width of the container and we should position the image on the left and the text on the right. Also the picture should expand if the wrapper has bigger width.</p>
+
+<p>We should use <a href="http://krasimirtsonev.com/blog/article/css-using-float-property-navigation-layout-composition">floats</a> here. We could apply <em>float: left</em> to the image, but in this case the text will go around the picture. What we want to achieve is to keep the area below the image free. Something like this:</p>
+
+<p><img src="http://krasimirtsonev.com/blog/articles/CSSChallenge2Layouting/img/layoutB3.jpg" alt="CSS Challenge" /></p>
+
+<p>To fix this problem we have to apply 50% width to both, the image and the paragraph. This will make two columns. And if we float them to left we are almost done.</p>
+
+<pre><code>.layout-b img {
+    width: 50%;
+    float: left;
+}
+.layout-b p {
+    width: 50%;
+    float: left;
+}
+</code></pre>
+
+<p>We used floats, but we should clear them, because this will break the layout. Instead of adding more markup we may use <a href="http://krasimirtsonev.com/blog/article/CSS-before-and-after-pseudo-elements-in-practice">:after pseudo class</a>. The final CSS looks like that:</p>
+
+<pre><code>.layout-b {
+    width: 360px;
+    margin: 0 auto;
+}
+.layout-b:after {
+    content: "";
+    display: block;
+    clear: both;
+}
+.layout-b img {
+    width: 50%;
+    float: left;
+}
+.layout-b p {
+    width: 50%;
+    float: left;
+    margin: 0;
+    padding: 0 0 0 10px;
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+}
+</code></pre>
+
+<p>Notice that I used a little padding in the paragraph styling. Because of that I needed to apply <a href="http://css-tricks.com/box-sizing/"><em>box-sizing: border-box</em></a>. Otherwise those 10px will move the text below the image.</p>
+
+<p>Working example:</p>
+
+<iframe width="100%" height="360" src="http://jsfiddle.net/krasimir/BKuTU/8/embedded/result,css,html/" allowfullscreen="allowfullscreen" frameborder="0"></iframe> 
+
+<p>If you want to have the text on the left and the image on the right then you could just switch the places of the tags in the container. Also you should update the padding of the paragraph, so its <em>padding-right</em> property contains 10px.</p>
+
+<p><img src="http://krasimirtsonev.com/blog/articles/CSSChallenge2Layouting/img/layoutB2.jpg" alt="CSS Challenge" /></p>
+
+<p>Of course instead of text you could use another image. They both will take exactly 50% of the wrapper.</p>
+
+<p><img src="http://krasimirtsonev.com/blog/articles/CSSChallenge2Layouting/img/layoutB4.jpg" alt="CSS Challenge" /></p>
+
+<h2 id="layout-c-a-bit-complex">Layout C - a bit complex</h2>
+
+<p><img src="http://krasimirtsonev.com/blog/articles/CSSChallenge2Layouting/img/layoutC.jpg" alt="CSS Challenge" /></p>
+
+<p>Two images and little text. It's almost like the previous layout, but we need more markup.</p>
+
+<pre><code>&lt;div class="layout-c"&gt;
+    &lt;img src="..." /&gt;
+    &lt;div class="layout-c-right"&gt;
+        &lt;img src="..." /&gt;
+        &lt;p&gt;...&lt;/p&gt;
+    &lt;/div&gt;
+&lt;/div&gt;
+</code></pre>
+
+<p>As you may guess, we still have two columns, but this time there is a conflict. If we apply <em>width: 50%; float: left;</em> to the &lt;img&gt; tag it will be valid for the image inside the nested container <em>.layout-c-right</em>. That's why we should overwrite this style and the layout's CSS transforms to:</p>
+
+<pre><code>.layout-c {
+    width: 360px;
+    margin: 0 auto;
+}
+.layout-c:after {
+    content: "";
+    display: block;
+    clear: both;
+}
+.layout-c img {
+    width: 50%;
+    float: left;
+}
+.layout-c-right {
+    float: left;
+    width: 50%;
+}
+.layout-c-right img {
+    width: 100%;
+    float: none;
+}
+.layout-c p {
+    margin: 0;
+    padding: 5px 0 0 10px;
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+}
+</code></pre>
+
+<p>The result is exactly what we wanted:</p>
+
+<iframe width="100%" height="340" src="http://jsfiddle.net/krasimir/6SJnU/2/embedded/result,css,html/" allowfullscreen="allowfullscreen" frameborder="0"></iframe>
+
+<p>Same like in layout B, if you want to switch the positions of the columns you just have to change their order in the DOM. And of course update the padding of the paragraph.</p>
+
+<p><img src="http://krasimirtsonev.com/blog/articles/CSSChallenge2Layouting/img/layoutC2.jpg" alt="CSS Challenge" /></p>
+
+<h2 id="layout-d-many-columns-and-space-between-them">Layout D - many columns and space between them</h2>
+
+<p><img src="http://krasimirtsonev.com/blog/articles/CSSChallenge2Layouting/img/layoutD.jpg" alt="CSS Challenge" /></p>
+
+<p>It's not that simple as it looks like. Of course, we will use floats, so we should keep the clearing. In our case we have three columns, so every of them have to take exactly 33.33% of the whole width. The markup that we are using is:</p>
+
+<pre><code>&lt;div class="layout-d"&gt;
+    &lt;div class="layout-d-column"&gt;
+        &lt;img src="..." /&gt;
+        &lt;p&gt;...&lt;/p&gt;
+    &lt;/div&gt;
+    &lt;div class="layout-d-column"&gt;
+        &lt;img src="..." /&gt;
+        &lt;p&gt;...&lt;/p&gt;
+    &lt;/div&gt;
+    &lt;div class="layout-d-column"&gt;
+        &lt;img src="..." /&gt;
+        &lt;p&gt;...&lt;/p&gt;
+    &lt;/div&gt;
+&lt;/div&gt;
+</code></pre>
+
+<p>There should be some space between the columns. By using padding and box-sizing we could achieve this:</p>
+
+<pre><code>.layout-d-column {
+    width: 33.33%;
+    float: left;
+    padding: 0 20px 0 0;
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+}
+</code></pre>
+
+<p>If you try the things so far you will notice that the third column is not positioned to the very right side of the wrapper. That's because those 20px padding. Hopefully there is a way to fix that. And again with pure CSS. The idea is to play with the paddings like that so the columns have equal widths. Here is the final result:</p>
+
+<pre><code>.layout-d {
+    width: 500px;
+    margin: 0 auto;
+    border: solid 1px #000;
+}
+.layout-d:after {
+    content: "";
+    display: block;
+    clear: both;
+}
+.layout-d-column {
+    width: 33.33%;
+    float: left;
+    padding: 0 5px 0 5px;
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+}
+.layout-d-column:last-child {
+    padding: 0 0 0 10px;
+}
+.layout-d-column:first-child {
+    padding: 0 10px 0 0;
+}
+.layout-d-column img {
+    width: 100%;
+}
+.layout-d-column p {
+    padding: 10px 0 0 0;
+    margin: 0;
+}
+</code></pre>
+
+<iframe width="100%" height="300" src="http://jsfiddle.net/krasimir/nzQgq/4/embedded/result,css,html/" allowfullscreen="allowfullscreen" frameborder="0"></iframe>
+
+<p>The layout solution works with more columns as well. What you have to do is to update the width of <em>.layout-d-column</em>. For example the preview below uses 25%:</p>
+
+<iframe width="100%" height="300" src="http://jsfiddle.net/krasimir/tL9qn/3/embedded/result,css,html/" allowfullscreen="allowfullscreen" frameborder="0"></iframe>
+</body></html>
