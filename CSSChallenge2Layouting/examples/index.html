@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+		<title>CSS challenge</title>
+        <style type="text/css">
+            body, html {
+                padding: 20px;
+            }
+            .wrapperA {
+                width: 200px;
+                height: 400px;
+                overflow: hidden;
+                border: solid 1px #9f0000;
+                margin: 0 0 20px 0;
+                background-size: cover;
+                background-position: center center
+            }
+            .wrapperB {
+                width: 400px;
+                height: 200px;
+                overflow: hidden;
+                border: solid 1px #9f0000;
+                margin: 0 0 20px 0;
+                background-size: cover;
+                background-position: center center
+            }
+        </style>
+	</head>
+    <body>
+        <div class="wrapperA" style="background-image: url('pic1.jpg');"></div>
+        <div class="wrapperA" style="background-image: url('pic2.jpg');"></div>
+        <div class="wrapperA" style="background-image: url('pic3.jpg');"></div>
+
+        <div class="wrapperB" style="background-image: url('pic1.jpg');"></div>
+        <div class="wrapperB" style="background-image: url('pic2.jpg');"></div>
+        <div class="wrapperB" style="background-image: url('pic3.jpg');"></div>
+    </body>
+</html>
