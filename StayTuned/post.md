@@ -87,4 +87,3 @@ A conferences happening in Finland. Just check the speakers and I'm sure you wil
 Official page: [webshaped.fi](http://webshaped.fi/)
 
 Videos: [https://vimeo.com/webshaped](https://vimeo.com/webshaped)
-
