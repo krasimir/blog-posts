@@ -1,0 +1,138 @@
+<p>I just started using <a href="http://sass-lang.com/">SASS</a> and I love it. A bunch of cool features, which will help me to improve my CSS coding. <a href="http://sass-lang.com/docs/yardoc/file.SASS_REFERENCE.html#mixin-content">@content</a> directive is one of them.</p>
+
+<p>&nbsp;</p>
+
+<p>Let's say that you want to define various types of buttons. The base class may look like that:</p>
+
+<pre><code>@mixin button {
+    display: block;
+    font-size: 20px;
+    text-decoration: none;
+}
+</code></pre>
+
+<p>The regular button just includes the mixin, but for example the <em>delete</em> button needs a red colored text. So, we should change the definition a bit and write:</p>
+
+<pre><code>@mixin button($color: #000) {
+    display: block;
+    font-size: 20px;
+    text-decoration: none;
+    color: $color;
+}
+.alert {
+    @include button(#F00);
+}
+</code></pre>
+
+<p>By doing this we are able to pass the color and basically create another type of button. So far so good, but the <em>cancel</em> type of button may need gray border and we need to add a new parameter.</p>
+
+<pre><code>@mixin button($color: #000, $border: none) {
+    display: block;
+    font-size: 20px;
+    text-decoration: none;
+    color: $color;
+    border: $border;
+}
+.alert {
+    @include button(#F00);
+}
+.cancel {
+    @include button(#000, solid 1px #999);
+}
+</code></pre>
+
+<p>I hope you already saw the problem. We can't continue adding more and more arguments to our base class, because it is not very efficient. There is also code duplication at the end. That's the perfect place for the @content directive. We are able to remove the parameters and use the mixin like that:</p>
+
+<pre><code>@mixin button() {
+    display: block;
+    font-size: 20px;
+    text-decoration: none;
+    @content;
+}
+
+.alert {
+    @include button {
+        color: #F00;
+    }
+}
+.cancel {
+    @include button {
+        border: solid 1px #999;
+    }   
+}
+</code></pre>
+
+<p>The result is:</p>
+
+<pre><code>.alert {
+    display: block;
+    font-size: 20px;
+    text-decoration: none;
+    color: #F00;
+}
+.cancel {
+    display: block;
+    font-size: 20px;
+    text-decoration: none;
+    border: solid 1px #999;
+}
+</code></pre>
+
+<p>If we keep the old version with the parameters the <em>.alert</em> class will contain <em>border: none;</em> and in practice, that line is not needed. It's the same with the <em>.cancel</em> button and <em>color</em> property.</p>
+<p>&nbsp;</p>
+<p>I found another interesting use case  while browsing <a href="http://inuitcss.com/">inuitcss</a> framework by <a href="http://csswizardry.com/">Harry Roberts</a>. I landed on the following mixin:</p>
+
+<pre><code>@mixin keyframes ($animation-name) {
+    @-webkit-keyframes $animation-name{
+        @content;
+    }
+    @-moz-keyframes $animation-name{
+        @content;
+    }
+    @-ms-keyframes $animation-name{
+        @content;
+    }
+    @-o-keyframes $animation-name{
+        @content;
+    }
+    @keyframes $animation-name{
+        @content;
+    }
+}
+</code></pre>
+
+<p>It helps you if you want to create an <a href="http://krasimirtsonev.com/blog/article/Introduction-to-animations-in-HTML-css3-transitions-keyframes">animation</a>. All those browser prefixes are really annoying, so it is nice that you can combine them in a mixin. You are able to use it like that:</p>
+
+<pre><code>p {
+    @include keyframes("my-anim") {
+        0% { font-size: 20px; }
+        100% { font-size: 30px; }
+    }
+}
+</code></pre>
+
+<p>You pass the name of your animation along with the frames definition. SASS compiler produces:</p>
+
+<pre><code>p {
+    @-webkit-keyframes my-anim {
+        0% { font-size: 20px; }
+        100% { font-size: 30px; }
+    }
+    @-moz-keyframes my-anim {
+        0% { font-size: 20px; }
+        100% { font-size: 30px; }
+    }
+    @-ms-keyframes my-anim {
+        0% { font-size: 20px; }
+        100% { font-size: 30px; }
+    }
+    @-o-keyframes my-anim {
+        0% { font-size: 20px; }
+        100% { font-size: 30px; }
+    }
+    @keyframes my-anim {
+        0% { font-size: 20px; }
+        100% { font-size: 30px; }
+    }
+}
+</code></pre>
