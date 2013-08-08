@@ -67,3 +67,57 @@ To make the things a little bit more difficult I decided to use ten alphabets. I
     $code = $alphabet[$usedAlphabet].
             $alphabetsForNumbers[$usedAlphabet][$expression->n1].
             $alphabetsForNumbers[$usedAlphabet][$expression->n2];
+
+The generated markup looks like that:
+
+    <form method="post" action="index.php">
+        <input type="hidden" name="code" value="wgm" />
+        <img src="captcha/captcha1375950463.png" />
+        <input type="text" name="result" />
+        <input type="submit" value="submit" />
+    </form>
+
+## Processing the result
+
+Having all the alphabets and getting the secret code you are able to restore the expression and compare the sent result. There are two helper functions. The first one returns a number by a letter given. The second one accepts the code and returns the result of the original question sent to the user.
+
+    // converting alphabet character to a number
+    function getIndex($alphabet, $letter) {
+        for($i=0; $i<count($alphabet); $i++) {
+            $l = $alphabet[$i];
+            if($l === $letter) return $i;
+        }
+    }
+
+    // getting the original expression's result
+    function getExpressionResult($code) {
+        global $alphabet, $alphabetsForNumbers;
+        $userAlphabetIndex = getIndex($alphabet, substr($code, 0, 1));
+        $number1 = (int) getIndex($alphabetsForNumbers[$userAlphabetIndex], substr($code, 1, 1));
+        $number2 = (int) getIndex($alphabetsForNumbers[$userAlphabetIndex], substr($code, 2, 1));
+        return $number1 + $number2;
+    }
+
+At the end, simply get the data from the form and by using the two functions above validate the user's input.
+
+    if(isset($_POST["code"])) {
+        $sentCode = $_POST["code"];
+        $result = (int) $_POST["result"];
+        if(getExpressionResult($sentCode) === $result) {
+            $message = '<p class="success">Success.</p>';
+        } else {
+            $message = '<p class="failure">Failure.</p>';
+        }
+    }
+
+If the user type the correct number the page is:
+
+![PHP: Simple captcha](img/result.jpg)
+
+## Source code
+
+A working example could be found here.
+
+## Conclusion
+
+Sure, the provided solution is not unbreakable, but you can make it complex enough, so it is difficult to be hacked. You can add more random letters at the beginning and at the end of the code. You could even add more alphabets or integrate the current time or date.

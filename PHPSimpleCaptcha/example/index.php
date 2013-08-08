@@ -56,9 +56,9 @@
         $sentCode = $_POST["code"];
         $result = (int) $_POST["result"];
         if(getExpressionResult($sentCode) === $result) {
-            $message = '<p class="success">Success.</p>';
+            $message = '<p class="success">Success. ('.$result.')</p>';
         } else {
-            $message = '<p class="failure">Failure.</p>';
+            $message = '<p class="failure">Failure. ('.$result.')</p>';
         }
     }
 
