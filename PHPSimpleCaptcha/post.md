@@ -116,7 +116,7 @@ If the user type the correct number the page is:
 
 ## Source code
 
-A working example could be found here.
+A working example could be found [here](https://github.com/krasimir/blog-posts/tree/master/PHPSimpleCaptcha/example).
 
 ## Conclusion
 
