@@ -1,0 +1,76 @@
+<p>I like the <a href="http://krasimirtsonev.com/blog/category/CSS3">CSS</a> only solutions. Very often I need to select a specific DOM element. Sure I could add a new class, but it is always nice if I can do that inside my stylesheets. It just looks better and keeps my HTML markup clean. <em>first-child</em>, <em>last-child</em> and <em>nth-child</em> are made exactly for this purpose.</p>[STOP]
+
+<p>&nbsp;</p>
+
+<p>Here is the markup which I'm going to use in this article:</p>
+
+<pre><code>&lt;div class="wrapper"&gt;
+    &lt;div class="content"&gt;
+        &lt;p&gt;Row1&lt;/p&gt;
+        &lt;a href="#"&gt;text in between&lt;/a&gt;
+        &lt;p&gt;Row2&lt;/p&gt;
+        &lt;p&gt;Row3&lt;/p&gt;
+        &lt;p&gt;Row4&lt;/p&gt;
+        &lt;p&gt;Row4&lt;/p&gt;
+    &lt;/div&gt;
+    &lt;div class="content"&gt;
+        &lt;p&gt;RowA&lt;/p&gt;
+        &lt;p&gt;RowB&lt;/p&gt;
+        &lt;p&gt;RowC&lt;/p&gt;
+        &lt;p&gt;RowD&lt;/p&gt;
+        &lt;p&gt;RowE&lt;/p&gt;
+        &lt;a href="#"&gt;link at the end&lt;/a&gt;
+    &lt;/div&gt;
+&lt;/div&gt;
+</code></pre>
+
+<h2 id="first-child">first-child</h2>
+
+<p>The <em>first-child</em> pseudo selector matches the first element of series of tags. That's only valid for a specific scope. And by scope I mean DOM element. In the markup above every <em>.content</em> div defines its own scope. So, if you write:</p>
+
+<pre><code>p:first-child {
+    font-weight: bold;
+    text-decoration: underline;
+}
+</code></pre>
+
+<p>those styles will be applied to <em>Row1</em> and <em>RowA</em>, because they are first matches of <em>p</em> tag inside their parents.</p>
+
+<h2 id="last-child">last-child</h2>
+
+<p>It works absolutely identical as <em>first-child</em>, but it selects the last element in the list. However, if we use the same markup and add</p>
+
+<pre><code>p:last-child {
+    color: #000;
+}
+</code></pre>
+
+<p>only <em>Row4</em> will be changed. Why is that? It's because in the second <em>.content</em> div <em>RowE</em> is not the very last child. It's actually a link represented by <em>a</em> tag. So, <em>p:last-child</em> became invalid. </p>
+
+<h2 id="nth-child">nth-child</h2>
+
+<p>What if you want to select only the third paragraph. <em>nth-child</em> accepts a number, a keyword, or a formula. For example:</p>
+
+<pre><code>p:nth-child(3) {
+    color: #00009F;
+}
+</code></pre>
+
+<p>matches <em>Row2</em> (because it's a third element in its scope) and <em>RowC</em>. You are able to pass <em>odd</em>, <em>even</em> or <em>3n+0</em> for example, which styles every element whose index is a multiple of 3.</p>
+
+<h2 id="nth-of-type">nth-of-type</h2>
+
+<p>As you already saw, the above classes could lead to a unexpected results. That's because not always your selectors are valid and apply styles to the element which you want. In those cases you may use <em>nth-of-type</em>.</p>
+
+<pre><code>p:nth-of-type(4) {
+    color: #009F00;
+}
+</code></pre>
+
+<p>This selects <em>Row4</em> and <em>RowD</em>. I.e. every fourth paragraph.</p>
+
+<h2 id="example">Example</h2>
+
+<p>Here is a jsfiddle, which demonstrates all the things above</p>
+
+<iframe width="100%" height="350" src="http://jsfiddle.net/krasimir/nHJUj/3/embedded/result,html,css" allowfullscreen="allowfullscreen" frameborder="0"></iframe>
