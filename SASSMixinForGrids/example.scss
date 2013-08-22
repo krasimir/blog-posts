@@ -1,0 +1,18 @@
+@mixin grid($columns: 2, $tag: "div") {
+	&:after {
+		display: table;
+		content: " ";
+		clear: both;
+		*zoom: 1;
+	}
+	#{$tag} {
+		width: 100% / $columns;
+		box-sizing: border-box;
+		-moz-box-sizing: border-box;
+		float: left;
+	}
+}
+
+.wrapper {
+   @include grid(5, 'p');
+}
