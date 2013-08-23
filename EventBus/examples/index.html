@@ -1,0 +1,31 @@
+<script src="EventBus.js"></script>
+<script>
+
+    var Model = function() {
+        var save = function() { };
+        return {
+            store: function() {  
+                save(function() {
+                    EventBus.dispatch("update");
+                })
+            }
+        }
+    }
+    var View = function() {
+        return {
+            render: function() { }
+        }
+    }
+    var Controller = function() {
+        var view = View();
+        EventBus.addEventListener("update", function() {
+            view.render();
+        });
+    }
+    var Application = function() {
+        var model = Model();
+        var controller = Controller();
+    }
+
+</script>
+<a href="javascript:void(0);" id="save-button">save</a>
