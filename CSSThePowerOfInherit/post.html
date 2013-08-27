@@ -1,0 +1,75 @@
+<p>Luckily, I have time to watch screencasts from various conferences. Last few weeks I'm watching videos from <a href="https://vimeo.com/channels/fronteers12">Fronteers2012</a>. They are all great and it worths checking out. However, there is something which I found really interesting. It's about animating pseudo elements.</p>[STOP]
+
+<h2 id="the-problem">The problem</h2>
+<p>As you may know only Firefox supports chaining of pseudo classes and elements. For example this doesn't work everywhere.</p>
+<pre><code>.box:hover:before {
+    font-size: 20px;
+}
+</code></pre>
+<p>Why you ever need this? If it was supported by all the browser, the developers may use this for animating <a href="http://krasimirtsonev.com/blog/article/CSS-before-and-after-pseudo-elements-in-practice">pseudo elements</a>. They are very often used for bullets or icons in front of elements in a list and it will be nice to add transitions there.</p>
+<h2 id="the-solution">The solution</h2>
+<p>There is a of course a workaround. It involves the usage of <em>inherit</em> value. If you use it, you are basically saying <em>"get the value from my parent element"</em>. For example:</p>
+<pre><code>&lt;div class="wrapper"&gt;
+    &lt;p&gt;Text&lt;/p&gt;
+&lt;/div&gt;
+
+.wrapper {
+    color: #0F0;
+}
+.p {
+    color: inherit;
+}
+</code></pre>
+<p>The color of the text in the paragraph is the same as the one set to the wrapper. That's because we use <em>inherit</em> as a value. </p>
+<p>&nbsp;</p>
+<p>Let's get a real use case. We have a div called <em>.box</em> and text inside it.</p>
+<pre><code>&lt;div class="box"&gt;
+    I'm a box
+&lt;/div&gt;
+</code></pre>
+<p>With pure CSS we are making an icon in front of the text.</p>
+<pre><code>.box:before {
+    display: block;
+    float: left;
+    width: 15px;
+    height: 15px;
+    content: "";
+    margin: 3px 12px 0 0;
+    background-image: url('...');
+}
+</code></pre>
+<p>This looks great, but we want to animate the bullet. The image used as a background looks like that:</p>
+<p><img alt="CSS: the power of inherit" src="http://krasimirtsonev.com/blog/articles/CSSThePowerOfInherit/icon-bullet.jpg" /></p>
+<p>I.e. to animate it we just need to change the <em>background-position</em> property and move the background a bit. However, because we can't use <em>.box:hover:before</em> we need to use another approach. On mouse over we could change values on the <em>.box</em> class. The pseudo element is actually a child of it, so if we use <em>inherit</em> we will have an access to the value which we need. Here is what I'm talking about:</p>
+<pre><code>.box {
+    background-position: 0 0;
+}
+.box:before {
+    background-position: inherit;
+}
+.box:hover {
+    background-position: 15px 0;
+}
+</code></pre>
+<p>The <em>background-position</em> property by default is set to <em>0px 0px</em>. If we hover the box it will become <em>15px 0px</em>. And because the pseudo element inherits this value it will have the same <em>15px 0px</em> applied. The box itself doesn't have background, which means that changing <em>backgroud-position</em> doesn't affect anything. Here is the solution in practice:</p>
+<iframe width="100%" height="250" src="http://jsfiddle.net/krasimir/jV4nf/5/embedded/result,html,css" allowfullscreen="allowfullscreen" frameborder="0"></iframe>
+
+<p>So, the idea is to find something which is not working for the container, but it is important for the pseudo element. For example, you may use <em>top</em> and <em>left</em> to move the icon. You know that these properties take affect only if you position the element absolutely or it is a fixed one. </p>
+<pre><code>.box {
+
+}
+.box:before {
+    position: absolute;
+    top: inherit;
+    left: inherit;
+}
+.box:hover {
+    top: 20px;
+    left: 12px;
+}
+</code></pre>
+<p><em>top</em> and <em>left</em> doesn't move the box, but they move the bullet.</p>
+<h2 id="credits">Credits</h2>
+<p>The credits of this smart solution goes to <a href="https://twitter.com/kizmarh">Roman Komarov</a>. His talk is available at <a href="https://vimeo.com/channels/fronteers12/51897358">Vimeo</a>.</p>
+<p>&nbsp;</p>
+<iframe src="//player.vimeo.com/video/51897358" width="100%" height="300" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen></iframe>
