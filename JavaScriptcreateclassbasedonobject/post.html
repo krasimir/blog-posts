@@ -1,0 +1,49 @@
+<p>I'm very happy visiting <a href="http://stackoverflow.com/users/642670/krasimir">Stackoverflow</a> more often then Facebook these days. Today I landed on <a href="http://stackoverflow.com/questions/18519098/how-to-convert-object-literal-to-function/18546077">this question</a>. I'm not sure that I understand the real context of the situation, but I found something helpful, which may be useful for you. What if we have an object and want to use it as a base for JavaScript class (i.e. function). The idea is to create instances and basically extend the original object.</p>[STOP]
+<p>&nbsp;</p>
+<p>Let's start with the object. Here is what we have:</p>
+<pre><code>var object = {
+    a: 2,
+    b: function(){
+         return this.a;
+    }
+}
+</code></pre>
+<p>So, at the end we should be able to create other objects which have property <em>a</em> and method <em>b</em>.</p>
+<pre><code>var ob1 = Class1();
+ob1.a = 10;
+var ob2 = Class2();
+ob2.a = 20;
+console.log(ob1.b(), ob2.b()); // 10 20
+</code></pre>
+<p>There are tons of articles about <a href="http://krasimirtsonev.com/blog/article/JavaScript-is-cool-modular-programming-extending#extending-modules">extending in JavaScript</a>. However, most of them rely on the fact that you have a function as base class. And by coping prototype, the inheritance is a pretty common task. It is interesting how this could be achieved if we have an object as base. I started with a simple extend function:</p>
+<pre><code>var extend = function(obj) {
+    return function() {
+        // ...
+    }
+};
+</code></pre>
+<p>It should accept an object and return a function. Later, every function's call should create a new instance, i.e. a new object. If we type</p>
+<pre><code>var extend = function(obj) {
+    return function() {
+        return obj;
+    }
+};
+</code></pre>
+<p>we will get same object again and again. One possible solution is to copy the passed parameter property by property, but this also means that we may end up with imperfect code. Thankfully, there is a method which provides this functionality - <em>Object.create</em>.</p>
+<pre><code>var extend = function(obj) {
+    return function() {
+        return Object.create(obj);
+    }
+};
+</code></pre>
+<p>And here is the final code:</p>
+<pre><code>var Class1 = extend(object);
+var ob1 = Class1();
+ob1.a = 10;
+
+var Class2 = extend(object);
+var ob2 = Class2();
+ob2.a = 20;
+
+console.log(ob1.b(), ob2.b()); // 10 20
+</code></pre>
