@@ -1,0 +1,173 @@
+<p>I'm currently working on an animation-heavy web application. There are long chains of CSS transitions/animations, which I have to do. I wrote this little library, because I needed something lightweight with minimalistic API. I think that it deserves its own repository and I created <a href="https://github.com/krasimir/queue">one</a>.</p>[STOP]
+
+<h2 id="the-problem">The problem</h2>
+<p>One of the widely used methods for applying <a href="http://krasimirtsonev.com/blog/article/Introduction-to-animations-in-HTML-css3-transitions-keyframes">CSS transitions or animations</a> is by adding/removing CSS classes. So, here is some pseudo code:</p>
+<pre><code>var logo = $(".logo");
+var banner = $(".banner");
+setTimeout(function() {
+    logo.addClass("move-it");
+}, 1000);
+setTimeout(function() {
+    logo.removeClass("move-it");
+    banner.addClass("colorize");
+}, 2400);
+setTimeout(function() {
+    banner.removeClass("colorize");
+}, 3500);
+</code></pre>
+<p>So, it works, but it's a little bit ugly. A lot of code. If we add more actions we will end up with complex calculations of the times. Also it is difficult to control the whole animation. For example, what if I want to stop it. As you can see I'm using jQuery, so the first logical move is to involve the <em>queue</em> function. Something like this may work:</p>
+<pre><code>$( "div" )
+.delay(1000)
+.queue(function(next) {
+    logo.addClass("red");
+    next();
+})
+.delay(1400)
+.queue(function(next) {
+    logo.removeClass("red");
+    banner.addClass("green");
+    next();
+})
+.delay(1100)
+.queue(function(next) {
+    banner.removeClass("green");
+    next();
+});
+</code></pre>
+<p>This looks a little bit better, because the timing is clear enough. However there are still some syntax sugar, like <em>next</em>, <em>queue</em> and <em>delay</em>. Again the stopping of the animations is a little bit tricky. Also I needed to use a jQuery object to start from, which looks weird. So, I spend some time and I wrote <a href="https://github.com/krasimir/queue">queue library</a>.</p>
+<h2 id="the-library">The library</h2>
+<p>Very often before to start writing something I'm first trying to imagine how the API should look like. I mean, I simply wrote a real use case just to see how the things look. This time, I wanted to use the <a href="http://krasimirtsonev.com/blog/article/JavaScript-sequencing-function-calls-parallel-functional-chain">chain pattern</a> and avoid writing methods like <em>delay</em> and <em>queue</em>. </p>
+<pre><code>queue()(func1)(2000)(func2)();
+</code></pre>
+<p>The code should run <em>func1</em>, waits for two seconds and run <em>func2</em>. What is happening is that I have a method called <em>queue</em> which returns a function. That function returns itself, so I'm able to call it again and again. I have another experiment using the same approach. It's available <a href="http://krasimirtsonev.com/blog/article/JavaScript-sequencing-function-calls-parallel-functional-chain-2">here</a> and if you are interested you may check it. The first draft of the library looks like that:</p>
+<pre><code>var queue = function() {
+    var api = function() {
+        // ...
+        return api;
+    }
+    return api;
+}
+</code></pre>
+<p>In theory, every call of the <em>api</em> function should add elements to the queue. At the end, calling the same function without parameters will run the sequence. The key moment in this pattern is the number and type of the arguments. So, the next step is to distinguish the filling of the queue from its processing.</p>
+<pre><code>var queue = function() {
+    var api = function() {
+        if(arguments.length === 0) {
+            // processing
+        } else {
+            // fill the queue
+        }
+        return api;
+    }
+    return api;
+}
+</code></pre>
+<p>Let's start with the filling. We need the first argument added to an array.</p>
+<pre><code>var filling = function() {
+    var item = arguments[0];
+    queueElements.push(item);
+}
+</code></pre>
+<p>First, I didn't care about the type of the argument. But later I decided to implement features like stopping of the execution or looping the whole queue. And because I have only one function I deiced to accept three types of parameters:</p>
+<ul>
+<li>function - function which will be called</li>
+<li>number - a delay</li>
+<li>string - everything else</li>
+</ul>
+<p>A possible implementation may look like that:</p>
+<pre><code>var queueElements = [];
+var flags = {};
+var filling = function() {
+    var item = arguments[0];
+    if(isNumber(item) || typeof item === 'function') {
+        queueElements.push(item);
+    } else if(typeof item === 'string') {
+        flags[item] = arguments[1] || true;
+    }
+}
+</code></pre>
+<p>The <em>flags</em> object is filled with properties, which are later used in the processing of the queue. For example to loop the whole chain:</p>
+<pre><code>queue()(func1)(2000)(func2)("loop")();
+</code></pre>
+<p>The values in the <em>flag</em> object are either <em>true</em> or the second passed parameter. Writing the things like that, I was able to create <em>on-end</em> callback.</p>
+<pre><code>queue()(func1)(2000)(func2)("callback", function() {
+    // called once the queue is empty
+})();
+</code></pre>
+<p>Processing is just going through every element of the queue. If it's a number a <em>setTimeout</em> is added. If it's a function is just called directly. </p>
+<pre><code>var processing = function() {
+    if(queueElements.length &gt; 0) {
+        var item = queueElements.shift();
+        if(isNumber(item)) { // delay
+            setTimeout(api, item);
+        } else if(typeof item === 'function') { // functions
+            item();
+            api();
+        }
+    } else {
+        // queue is empty
+    }   
+}
+</code></pre>
+<p>To simplify the code I used the <em>shift</em> method. It removes the first element of the array and returns it. If <em>queueElements.length</em> is equal to 0 then everything is processed. </p>
+<h2 id="final-result">Final result</h2>
+<p>At the end, the library supports looping, stopping and calling a function at the end.</p>
+<h3 id="loop-the-queue">Loop the queue</h3>
+<pre><code>queue()(func1)(2000)(func2)("loop")();
+</code></pre>
+<p>Have in mind that you may call <em>("loop")</em> in the beginning too.</p>
+<h3 id="stopping">Stopping</h3>
+<pre><code>var q = queue()(func1)(2000)(func2)();
+q("stop");
+</code></pre>
+<h3 id="calling-a-function-once-there-are-no-elements-in-the-queue">Calling a function once there are no elements in the queue:</h3>
+<pre><code>queue()(func1)(2000)(func2)("callback", function() {
+    // called once the queue is empty
+})();
+</code></pre>
+<p>And here is the final implementation:</p>
+<pre><code>var queue = function() {
+    var api = null, self = this;
+    var queueElements = [], queueElementsSource = [];
+    var isNumber = function(n) { return !isNaN(parseFloat(n)) &amp;&amp; isFinite(n); };
+    var flags = {}, interval = null;
+    var processing = function() {
+        if(queueElements.length &gt; 0) {
+            var item = queueElements.shift();
+            if(flags.stop !== true) {
+                if(isNumber(item)) { // delay
+                    interval = setTimeout(api, item);
+                } else if(typeof item === 'function') { // functions
+                    item();
+                    api();
+                }
+            } else {
+                clearTimeout(interval);
+            }
+        } else {
+            if(typeof flags.callback !== 'undefined') flags.callback();
+            if(flags.loop) {
+                queueElements = [];
+                for(var i=0; el=queueElementsSource[i]; i++) {
+                    queueElements.push(el);
+                }
+                api();
+            }
+        }   
+    }
+    var filling = function() {
+        var item = arguments[0];
+        if(isNumber(item) || typeof item === 'function') {
+            queueElements.push(item);
+            queueElementsSource.push(item); 
+        } else if(typeof item === 'string') {
+            flags[item] = arguments[1] || true;
+        }
+    }
+    return api = function() {
+        arguments.length === 0 ? processing() : filling.apply(self, arguments);
+        return api;
+    }
+    return api;
+}
+</code></pre>
+<p>The library may be used as a front-end helper, but also as a Nodejs module. Check out the repository in GitHub here <a href="https://github.com/krasimir/queue">https://github.com/krasimir/queue</a>.</p></body></html>
