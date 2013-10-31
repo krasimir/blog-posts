@@ -1,0 +1,39 @@
+<p>While I worked on <a href="file://D:\work\KrasimirTsonev\github\blog-posts\blog-posts\JavaScriptDependencyFreeExtend/krasimir.github.io/absurd">AbsurdJS</a> I needed a function which accepts numerous objects and combines their properties. I.e. something like the <em><a href="http://underscorejs.org/#extend">_.extend</a></em> method of UnderscoreJS. What I did is actually to use one more dependency just because of such method. <a href="https://github.com/jdalton">John-David Dalton</a> nicely pointed out my mistake and added a simple function which solved the problem. I change it a bit and now it acts as UnderscoreJS's version.</p>[STOP]
+<pre><code>var extend = function() {   
+    var process = function(destination, source) {   
+        for (var key in source) {
+            if (hasOwnProperty.call(source, key)) {
+                destination[key] = source[key];
+            }
+        }
+        return destination;
+    };
+    var result = arguments[0];
+    for(var i=1; i&lt;arguments.length; i++) {
+        result = process(result, arguments[i]);
+    }
+    return result;
+};
+</code></pre>
+<p>Here is a short <a href="https://github.com/pivotal/jasmine">Jasmine</a> test:</p>
+<pre><code>describe("Testing utils /", function() {
+
+    it("should use extend", function(done) {
+        expect(extend).toBeDefined();
+        var o = {prop: 10};
+        o = extend(o, { prop: 20 }, { prop: 30, name: "Extend" }, { prop: 40, address: "Bla Bla" });
+        expect(o.name).toBeDefined();
+        expect(o.address).toBeDefined();
+        expect(o.prop).toBe(40);
+        done();
+    });
+
+});
+</code></pre>
+<p>The resulted <em>o</em> object has the following value:</p>
+<pre><code>{
+    prop: 40, 
+    name: "Extend", 
+    address: "Bla Bla"
+}
+</code></pre>
