@@ -1,0 +1,31 @@
+<p>As javascript developers we all have to write a lot of for loops. Before a couple of months I saw an alternative syntax, which I really liked. It saves some time and it looks much nicer. However, one of my colleagues reported that this fancy syntax is not working as it should.</p>
+<p>Let's say that I have an array of data representing users in a system. What I did before is:</p>
+<pre><code>var users = [
+    { name: "A"},
+    { name: "B"},
+    { name: "C"},
+    { name: "D"},
+    { name: "E"}
+];
+</code></pre>
+<p>There is one additional row var <em>user = users[i];</em>. Normally I feel more comfortable if I have <em>user</em> instead of <em>users[i]</em>. So, the new way:</p>
+<pre><code>for(var i=0; user=users[i]; i++) {
+    // ...
+}
+</code></pre>
+<p>I wrote a <a href="http://stackoverflow.com/questions/19853985/javascript-for-loop-syntax?noredirect=1">question</a> in Stackoverflow and the guys there spotted the problem. This syntax will not work if some of the elements of the array is <em>falsy</em>. I.e. if I have:</p>
+<pre><code>var users = [
+    { name: "A"},
+    { name: "B"},
+    false,
+    { name: "D"},
+    { name: "E"}
+];
+</code></pre>
+<p>The loop will stop on the third element, because <em>user</em> will be false. We could of course solve this by checking the type of the variable:</p>
+<pre><code>for(var i=0; typeof (user=users[i]) !== "undefined"; i++) {
+   // ...
+}
+</code></pre>
+<p>Even this, is not perfect, because if something is <em>undefined</em> we will be in the same situation. </p>
+<p>The conclusion is that we can use the second syntax only if we are 100% sure that our elements are <em>truly</em>.</p></body></html>

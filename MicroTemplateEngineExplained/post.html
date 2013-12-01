@@ -1,0 +1,236 @@
+<p>I'm still working on my JavaScript based preprocessor - <a href="http://krasimirtsonev.com/blog/article/AbsurdJS-fundamentals">AbsurdJS</a>. It started as a CSS preprocessor, but later it was expanded to CSS/HTML preprocessor. Shortly, it allows JavaScript to CSS/HTML conversion. Of course, because it generates HTML it was normal to act as a template engine. I.e. somehow to fill the markup with data.[STOP]</p>
+<p>&nbsp;</p>
+<p>So, I wanted to write a simple template engine logic, which work nicely with my current implementation. <a href="http://krasimirtsonev.com/blog/article/AbsurdJS-fundamentals">AbsurdJS</a> is mainly distributed as a NodeJS module, but it is also ported for a client-side usage. Having this in mind, I knew that I can't really get some of the existing engines. That's because most of the them are only NodeJS based and it will be difficult to replicate them in the browser. I needed something small, written in pure JavaScript. I landed on <a href="http://ejohn.org/blog/javascript-micro-templating/">this</a> blog post by <a href="http://ejohn.org/">John Resig</a>. It looks like the thing which I needed. I change it a bit and it fits into 20 lines. I think that it is quite interesting how the script works. In this article I'll recreate the engine step by step so you could see the wonderful idea which originally came from John.</p>
+<p>&nbsp;</p>
+<p>Here is what we could have in the beginning:</p>
+<pre><code>var TemplateEngine = function(tpl, data) {
+    // magic here ...
+}
+var template = '&lt;p&gt;Hello, my name is &lt;%name%&gt;. I\'m &lt;%age%&gt; years old.&lt;/p&gt;';
+console.log(TemplateEngine(template, {
+    name: "Krasimir",
+    age: 29
+}));
+</code></pre>
+<p>A simple function, which takes our template and a <em>data</em> object. As you may guess, the result which we want to achieve at the end is:</p>
+<pre><code>&lt;p&gt;Hello, my name is Krasimir. I'm 29 years old.&lt;/p&gt;
+</code></pre>
+<p>The very first thing which we have to do is to take the dynamic blocks inside the template. Later we will replace them with the real data passed to the engine. I decided to use regular expression to achieve this. That's not my strongest part, so feel free to comment and suggest a better RegExp.</p>
+<pre><code>var re = /&lt;%([^%&gt;]+)?%&gt;/g;
+</code></pre>
+<p>We will catch all the pieces which start with <em>&lt;%</em> and end with <em>%&gt;</em>. The flag <em>g</em> (global) means that we will get not one, but all the matches. There are a lot of methods which accept regular expressions. However, what we need is an array containing the strings. That's what <a href="http://www.w3schools.com/jsref/jsref_regexp_exec.asp"><em>exec</em></a> does.</p>
+<pre><code>var re = /&lt;%([^%&gt;]+)?%&gt;/g;
+var match = re.exec(tpl);
+</code></pre>
+<p>If we <em>console.log</em> the <em>match</em> variable we will get:</p>
+<pre><code>[
+    "&lt;%name%&gt;",
+    " name ", 
+    index: 21,
+    input: 
+    "&lt;p&gt;Hello, my name is &lt;%name%&gt;. I\'m &lt;%age%&gt; years old.&lt;/p&gt;"
+]
+</code></pre>
+<p>So, we got the data, but as you can see the returned array has only one element. And we need to process all the matches. To do this we should wrap our logic into <em>while</em> loop.</p>
+<pre><code>var re = /&lt;%([^%&gt;]+)?%&gt;/g;
+while(match = re.exec(tpl)) {
+    console.log(match);
+}
+</code></pre>
+<p>If you run the code above you will see that the both <em>&lt;%name%&gt;</em> and <em>&lt;%age%&gt;</em> are shown.</p>
+<p>&nbsp;</p>
+<p>Now it gets interesting. We have to replace placeholders with the real data passed to the function. The most simple thing which we can use is to use <em>.replace</em> method against the template. We could write something like this:</p>
+<pre><code>var TemplateEngine = function(tpl, data) {
+    var re = /&lt;%([^%&gt;]+)?%&gt;/g;
+    while(match = re.exec(tpl)) {
+        tpl = tpl.replace(match[0], data[match[1]])
+    }
+    return tpl;
+}
+</code></pre>
+<p>Ok, this works, but of course it is not enough. We have really simple object and it is easy to use <em>data["property"]</em>. But in practice we may have complex nested objects. Let's for example change our data to</p>
+<pre><code>{
+    name: "Krasimir Tsonev",
+    profile: { age: 29 }
+}
+</code></pre>
+<p>This doesn't work because when we type <em>&lt;%profile.age%&gt;</em> we will get <em>data["profile.age"]</em> which is actually <em>undefined</em>. So, we need something else. The <em>.replace</em> method will not work our case. The very best thing will be to put real JavaScript code between <em>&lt;%</em> and <em>%&gt;</em>. It will be nice if it is evaluated against the passed data. For example:</p>
+<pre><code>var template = '&lt;p&gt;Hello, my name is &lt;%this.name%&gt;. I\'m &lt;%this.profile.age%&gt; years old.&lt;/p&gt;';
+</code></pre>
+<p>How is this possible? John used the <em>new Function</em> syntax. I.e. creating a function from strings. Let's see a simple example.</p>
+<pre><code>var fn = new Function("arg", "console.log(arg + 1);");
+fn(2); // outputs 3
+</code></pre>
+<p><em>fn</em> is a real function which takes one argument. It's body is <em>console.log(arg + 1);</em>. In other words the above code is equal to:</p>
+<pre><code>var fn = function(arg) {
+    console.log(arg + 1);
+}
+fn(2); // outputs 3
+</code></pre>
+<p>We are able to define a function, its arguments and its body from simple strings. That's exactly what we need. But before to create such a function we need to construct its body. The method should return the final compiled template. Let's get the string used so far and try to imagine how it will look like. </p>
+<pre><code>return 
+"&lt;p&gt;Hello, my name is " + 
+this.name + 
+". I\'m " + 
+this.profile.age + 
+" years old.&lt;/p&gt;";
+</code></pre>
+<p>For sure, we will split the template into text and meaningful JavaScript. As you can see above we may use a simple concatenation and produce the wanted result. However, this approach doesn't align on 100% with our needs. Because we are passing working JavaScript sooner or later  we will want to make a loop. For example:</p>
+<pre><code>var template = 
+'My skills:' + 
+'&lt;%for(var index in this.skills) {%&gt;' + 
+'&lt;a href=""&gt;&lt;%this.skills[index]%&gt;&lt;/a&gt;' +
+'&lt;%}%&gt;';
+</code></pre>
+<p>If we use concatenation the result will be:</p>
+<pre><code>return
+'My skills:' + 
+for(var index in this.skills) { +
+'&lt;a href=""&gt;' + 
+this.skills[index] +
+'&lt;/a&gt;' +
+}
+</code></pre>
+<p>Of course this will produce an error. That's why I decided to follow the logic used in the John's article. I.e. put all the strings in an array and join its elements at the end.</p>
+<pre><code>var r = [];
+r.push('My skills:'); 
+for(var index in this.skills) {
+r.push('&lt;a href=""&gt;');
+r.push(this.skills[index]);
+r.push('&lt;/a&gt;');
+}
+return r.join('');
+</code></pre>
+<p>The next logical step is to collect the different lines of for custom generated function. We already have some information extracted from the template. We know the content of the placeholders and their position. So, by using a helper variable (<em>cursor</em>) we are able to produce the desire result.</p>
+<pre><code>var TemplateEngine = function(tpl, data) {
+    var re = /&lt;%([^%&gt;]+)?%&gt;/g,
+        code = 'var r=[];\n',
+        cursor = 0;
+    var add = function(line) {
+        code += 'r.push("' + line.replace(/"/g, '\\"') + '");\n';
+    }
+    while(match = re.exec(tpl)) {
+        add(tpl.slice(cursor, match.index));
+        add(match[1]);
+        cursor = match.index + match[0].length;
+    }
+    add(tpl.substr(cursor, tpl.length - cursor));
+    code += 'return r.join("");'; // &lt;-- return the result
+    console.log(code);
+    return tpl;
+}
+var template = '&lt;p&gt;Hello, my name is &lt;%this.name%&gt;. I\'m &lt;%this.profile.age%&gt; years old.&lt;/p&gt;';
+console.log(TemplateEngine(template, {
+    name: "Krasimir Tsonev",
+    profile: { age: 29 }
+}));
+</code></pre>
+<p>The <em>code</em> variable holds the body of the function. It starts with definition of the array. As I said, <em>cursor</em> shows us where in the template we are. We need such a variable to go through the whole string and skip the data blocks. An additional <em>add</em> function is created. It's job is to append lines to the <em>code</em> variable. And here is something tricky. We need to escape the double quotes, because otherwise the generated script will not be valid. If we run that example and check the console we will see:</p>
+<pre><code>var r=[];
+r.push("&lt;p&gt;Hello, my name is ");
+r.push("this.name");
+r.push(". I'm ");
+r.push("this.profile.age");
+return r.join("");
+</code></pre>
+<p>Hm ... not what we wanted. <em>this.name</em> and <em>this.profile.age</em> should not be quoted. A little improvement of the <em>add</em> method solves the problem.</p>
+<pre><code>var add = function(line, js) {
+    js? code += 'r.push(' + line + ');\n' :
+        code += 'r.push("' + line.replace(/"/g, '\\"') + '");\n';
+}
+while(match = re.exec(tpl)) {
+    add(tpl.slice(cursor, match.index));
+    add(match[1], true); // &lt;-- say that this is actually valid js
+    cursor = match.index + match[0].length;
+}
+</code></pre>
+<p>The placeholders' content is passed along with a boolean variable. Now this generates the correct body.</p>
+<pre><code>var r=[];
+r.push("&lt;p&gt;Hello, my name is ");
+r.push(this.name);
+r.push(". I'm ");
+r.push(this.profile.age);
+return r.join("");
+</code></pre>
+<p>All we need to do is to create the function and execute it. At the end of our template engine, instead of returning <em>tpl</em>:</p>
+<pre><code>return new Function(code.replace(/[\r\t\n]/g, '')).apply(data);
+</code></pre>
+<p>We don't even need to send any arguments to the function. We use the <em>apply</em> method to call it. It automatically sets the scope. That's the reason of having <em>this.name</em> working. The <em>this</em> actually points to our data.</p>
+<p>We are almost done. One last thing. We need to support more complex operations, like <em>if/else</em> statements and loops. Let's get the same example from above and try the code so far.</p>
+<pre><code>var template = 
+'My skills:' + 
+'&lt;%for(var index in this.skills) {%&gt;' + 
+'&lt;a href="#"&gt;&lt;%this.skills[index]%&gt;&lt;/a&gt;' +
+'&lt;%}%&gt;';
+console.log(TemplateEngine(template, {
+    skills: ["js", "html", "css"]
+}));
+</code></pre>
+<p>The result is an error <em>Uncaught SyntaxError: Unexpected token for</em>. If we debug a bit and print out the <em>code</em> variable we will see the problem.</p>
+<pre><code>var r=[];
+r.push("My skills:");
+r.push(for(var index in this.skills) {);
+r.push("&lt;a href=\"\"&gt;");
+r.push(this.skills[index]);
+r.push("&lt;/a&gt;");
+r.push(});
+r.push("");
+return r.join("");
+</code></pre>
+<p>The line containing the <em>for</em> loop should not be pushed to the array. It should be just placed inside the script. To achieve that we have to make one more check before to attach something to <em>code</em>. </p>
+<pre><code>var re = /&lt;%([^%&gt;]+)?%&gt;/g,
+    reExp = /(^( )?(if|for|else|switch|case|break|{|}))(.*)?/g,
+    code = 'var r=[];\n',
+    cursor = 0;
+var add = function(line, js) {
+    js? code += line.match(reExp) ? line + '\n' : 'r.push(' + line + ');\n' :
+        code += 'r.push("' + line.replace(/"/g, '\\"') + '");\n';
+}
+</code></pre>
+<p>A new regular expression is added. It tells us if the javascript code starts with <em>if</em>, <em>for</em>, <em>else</em>, <em>switch</em>, <em>case</em>, <em>break</em>, <em>{</em> or <em>}</em>. If yes, then it simply adds the line. Otherwise it wraps it in a push statement. The result is:</p>
+<pre><code>var r=[];
+r.push("My skills:");
+for(var index in this.skills) {
+r.push("&lt;a href=\"#\"&gt;");
+r.push(this.skills[index]);
+r.push("&lt;/a&gt;");
+}
+r.push("");
+return r.join("");
+</code></pre>
+<p>And of course, everything is properly compiled.</p>
+<pre><code>My skills:&lt;a href="#"&gt;js&lt;/a&gt;&lt;a href="#"&gt;html&lt;/a&gt;&lt;a href="#"&gt;css&lt;/a&gt;
+</code></pre>
+<p>The latest fix gives us a lot of power actually. We may apply complex logic directly into the template. For example:</p>
+<pre><code>var template = 
+'My skills:' + 
+'&lt;%if(this.showSkills) {%&gt;' +
+    '&lt;%for(var index in this.skills) {%&gt;' + 
+    '&lt;a href="#"&gt;&lt;%this.skills[index]%&gt;&lt;/a&gt;' +
+    '&lt;%}%&gt;' +
+'&lt;%} else {%&gt;' +
+    '&lt;p&gt;none&lt;/p&gt;' +
+'&lt;%}%&gt;';
+console.log(TemplateEngine(template, {
+    skills: ["js", "html", "css"],
+    showSkills: true
+}));
+</code></pre>
+<p>To improve the things a bit I added a few minor optimizations and the <a href="https://github.com/krasimir/absurd/blob/master/lib/processors/html/helpers/TemplateEngine.js">final version</a> looks like that:</p>
+<pre><code>var TemplateEngine = function(html, options) {
+    var re = /&lt;%([^%&gt;]+)?%&gt;/g, reExp = /(^( )?(if|for|else|switch|case|break|{|}))(.*)?/g, code = 'var r=[];\n', cursor = 0;
+    var add = function(line, js) {
+        js? (code += line.match(reExp) ? line + '\n' : 'r.push(' + line + ');\n') :
+            (code += line != '' ? 'r.push("' + line.replace(/"/g, '\\"') + '");\n' : '');
+        return add;
+    }
+    while(match = re.exec(html)) {
+        add(html.slice(cursor, match.index))(match[1], true);
+        cursor = match.index + match[0].length;
+    }
+    add(html.substr(cursor, html.length - cursor));
+    code += 'return r.join("");';
+    return new Function(code.replace(/[\r\t\n]/g, '')).apply(options);
+}
+</code></pre>
+<p>It's even less - 15 lines.</p>
