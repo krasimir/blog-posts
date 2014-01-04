@@ -1,0 +1,21 @@
+<script src="expect.js"></script>
+<script src="injector.js"></script>
+<script>
+
+var Service = { name: 'Service' };
+var Router = { name: 'Router' };
+    
+injector.register('service', Service);
+injector.register('router', Router);
+
+/***********************************************/
+
+var doSomething = injector.resolve(function(service, other, router) {
+    expect(service.name).to.be('Service');
+    expect(router.name).to.be('Router');
+    expect(other).to.be('Other');
+    expect().result();
+});
+doSomething("Other");
+
+</script>

@@ -1,0 +1,43 @@
+<script src="expect.js"></script>
+<script>
+
+/***********************************************/
+
+var injector = {
+    dependencies: {},
+    register: function(key, value) {
+        this.dependencies[key] = value;
+    },
+    resolve: function(deps, func, scope) {
+        var args = [];
+        for(var i=0; i<deps.length, d=deps[i]; i++) {
+            if(this.dependencies[d]) {
+                args.push(this.dependencies[d]);
+            } else {
+                throw new Error('Can\'t resolve ' + d)
+            }
+        }
+        return function() {
+            func.apply(scope || {}, args.concat(Array.prototype.slice.call(arguments, 0)));
+        }        
+    }
+}
+
+/***********************************************/
+
+var Service = { name: 'Service' };
+var Router = { name: 'Router' };
+injector.register('service', Service);
+injector.register('router', Router);
+
+/***********************************************/
+
+var doSomething = injector.resolve(['service', 'router'], function(service, router, other) {
+    expect(service.name).to.be('Service');
+    expect(router.name).to.be('Router');
+    expect(other).to.be('Other');
+    expect().result();
+});
+doSomething("Other");
+
+</script>
