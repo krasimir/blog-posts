@@ -11,15 +11,16 @@ var injector = {
     },
     resolve: function(deps, func, scope) {
         var args = [];
+        scope = scope || {};
         for(var i=0; i<deps.length, d=deps[i]; i++) {
             if(this.dependencies[d]) {
-                args.push(this.dependencies[d]);
+                scope[d] = this.dependencies[d];
             } else {
                 throw new Error('Can\'t resolve ' + d);
             }
         }
         return function() {
-            func.apply(scope || {}, args.concat(Array.prototype.slice.call(arguments, 0)));
+            func.apply(scope || {}, Array.prototype.slice.call(arguments, 0));
         }        
     }
 }
@@ -31,9 +32,9 @@ injector.register('router', Router);
 
 /***********************************************/
 
-var doSomething = injector.resolve(['service', 'router'], function(service, router, other) {
-    expect(service().name).to.be('Service');
-    expect(router().name).to.be('Router');
+var doSomething = injector.resolve(['service', 'router'], function(other) {
+    expect(this.service().name).to.be('Service');
+    expect(this.router().name).to.be('Router');
     expect(other).to.be('Other');
     expect().result();
 });

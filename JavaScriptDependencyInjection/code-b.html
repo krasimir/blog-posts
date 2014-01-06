@@ -1,18 +1,37 @@
 <script src="expect.js"></script>
-<script src="injector.js"></script>
+<script>
+var injector = {
+    dependencies: {},
+    register: function(key, value) {
+        this.dependencies[key] = value;
+    },
+    resolve: function() {
+        var func, deps, scope, args = [], self = this;
+        func = arguments[0];
+        deps = func.toString().match(/^function\s*[^\(]*\(\s*([^\)]*)\)/m)[1].replace(/ /g, '').split(',');
+        scope = arguments[1] || {};
+        return function() {
+            var a = Array.prototype.slice.call(arguments, 0);
+            for(var i=0; i<deps.length; i++) {
+                var d = deps[i];
+                args.push(self.dependencies[d] && d != '' ? self.dependencies[d] : a.shift());
+            }
+            func.apply(scope || {}, args);
+        }        
+    }
+}
+</script>
+<script src="setup.js"></script>
 <script>
 
-var Service = { name: 'Service' };
-var Router = { name: 'Router' };
-    
 injector.register('service', Service);
 injector.register('router', Router);
 
 /***********************************************/
 
 var doSomething = injector.resolve(function(service, other, router) {
-    expect(service.name).to.be('Service');
-    expect(router.name).to.be('Router');
+    expect(service().name).to.be('Service');
+    expect(router().name).to.be('Router');
     expect(other).to.be('Other');
     expect().result();
 });

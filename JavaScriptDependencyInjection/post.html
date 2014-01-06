@@ -1,0 +1,195 @@
+<p>I like the quote that the programming is all about managing complexity. Maybe you've heard that the computer world is a giant construction of abstractions. We simply wrap things and produce new tools over and over again. Just think for a minute. The languages which you use have build-in functionalities and they are probably abstracted functions of other low level operations. It's the same with <a href="http://krasimirtsonev.com/blog/category/JavaScript">JavaScript</a>. [STOP]Sooner or later you need to use abstractions made by other developers. I.e. you depend on someone's other code. I like the dependency-free modules, but that's kinda difficult to achieve. Even if you create those nice black-box liked components you still have a part which combines everything. That's where the dependency injection placed in. The ability to manage the dependencies effectively is absolutely necessary nowadays. This articles sums up my observations on the problem.</p>
+<h2 id="the-goal">The goal</h2>
+<p>Let's say that we have two modules. The first one is a service which makes Ajax requests and the second one is a router.</p>
+<pre><code>var service = function() {
+    return { name: 'Service' };
+}
+var router = function() {
+    return { name: 'Router' };
+}
+</code></pre>
+<p>We have another function which needs these modules.</p>
+<pre><code>var doSomething = function(other) {
+    var s = service();
+    var r = router();
+};
+</code></pre>
+<p>And to make the things a little bit more interesting the function needs to accept one more parameter. Sure, we could use the above code, but that's not really flexible. What if we want to use <code>ServiceXML</code> or <code>ServiceJSON</code>. Or what if we want to mockup some of the modules for testing purposes. We can't just edit the body of the function. The first thing which we all come up with is to pass the dependencies as parameters to the function. I.e.:</p>
+<pre><code>var doSomething = function(service, router, other) {
+    var s = service();
+    var r = router();
+};
+</code></pre>
+<p>By doing this we are passing the exact implementation of the module which we want. However this brings a new problem. Imagine if we have <code>doSomething</code> all over our code. What will happen if we need a third dependency. We can't edit all the function's calls. So, we need an instrument which will do that for us. That's what dependency injectors are trying to solve. Let's write down few goals which we want to achieve:</p>
+<ul>
+<li>we should be able to register dependencies</li>
+<li>the injector should accept a function and should return a function which somehow gets the needed resources</li>
+<li>we should not write a lot, we need short and nice syntax</li>
+<li>the injector should keep the scope of the passed function</li>
+<li>the passed function should be able to accept custom arguments, not only the described dependencies</li>
+</ul>
+<p>A nice list isn't it. Let's dive in.</p>
+<h2 id="the-requirejs-amd-approach">The <a href="http://requirejs.org/">requirejs</a> / <a href="http://requirejs.org/docs/whyamd.html">AMD</a> approach</h2>
+<p>You probably already know about <a href="http://requirejs.org/">requirejs</a>. It's a nice variant for solving dependencies.</p>
+<pre><code>define(['service', 'router'], function(service, router) {       
+    // ...
+});
+</code></pre>
+<p>The idea is firstly to describe the needed dependencies and then write your function. The order of the arguments is of course important here. Let's say that we will write a module called <code>injector</code> which will accept the same syntax.</p>
+<pre><code>var doSomething = injector.resolve(['service', 'router'], function(service, router, other) {
+    expect(service().name).to.be('Service');
+    expect(router().name).to.be('Router');
+    expect(other).to.be('Other');
+});
+doSomething("Other");
+</code></pre>
+<p><i>Before to continue I should clarify the body of the <code>doSomething</code> function. I'm using <a href="https://github.com/LearnBoost/expect.js">expect.js</a> as a assertion library just to be sure that the code which I'm writing works as I want. A little bit TDD approach.</i></p>
+<p>Here is what our <code>injector</code> module starts from. It's good to be a singleton, so it does its job from different parts of our application.</p>
+<pre><code>var injector = {
+    dependencies: {},
+    register: function(key, value) {
+        this.dependencies[key] = value;
+    },
+    resolve: function(deps, func, scope) {
+
+    }
+}
+</code></pre>
+<p>Really simple object which has two functions and one variable which acts as a storage. What we have to do is to checks the <code>deps</code> array and search for answers in the <code>dependencies</code> variable. The rest is just calling the <code>.apply</code> method against the past <code>func</code> parameter.</p>
+<pre><code>resolve: function(deps, func, scope) {
+    var args = [];
+    for(var i=0; i&lt;deps.length, d=deps[i]; i++) {
+        if(this.dependencies[d]) {
+            args.push(this.dependencies[d]);
+        } else {
+            throw new Error('Can\'t resolve ' + d);
+        }
+    }
+    return function() {
+        func.apply(scope || {}, args.concat(Array.prototype.slice.call(arguments, 0)));
+    }        
+}
+</code></pre>
+<p>If there is any scope it is effectively used. <code>Array.prototype.slice.call(arguments, 0)</code> is necessary to transform the <code>arguments</code> variable to an actually array. So far so good. Our test passes. The problem with this implementation is that we have to write the needed components twice and we can't really mix their order. The additional custom parameters are always after the dependencies.</p>
+<h2 id="the-reflection-approach">The reflection approach</h2>
+<p>According to Wikipedia <em>reflection</em> is the ability of a program to examine and modify the structure and behaviour of an object at runtime. With simple words, in the context of JavaScript, that's reading the source code of an object or function and analyzing it. Let's get our <code>doSomething</code> function from the beginning. If you log <code>doSomething.toString()</code> you will get the following string:</p>
+<pre><code>"function (service, router, other) {
+    var s = service();
+    var r = router();
+}"
+</code></pre>
+<p>Having the method as a string gives us the ability to fetch the expected parameters. And, which is more important, their names. That's what <a href="http://angularjs.org/">Angular</a> uses for its dependency injection implementation. I cheated a bit and got the regular expression which exports the arguments directly from the Angular's code.</p>
+<pre><code>/^function\s*[^\(]*\(\s*([^\)]*)\)/m
+</code></pre>
+<p>We could change the <code>resolve</code> class to the following:</p>
+<pre><code>resolve: function() {
+    var func, deps, scope, args = [], self = this;
+    func = arguments[0];
+    deps = func.toString().match(/^function\s*[^\(]*\(\s*([^\)]*)\)/m)[1].replace(/ /g, '').split(',');
+    scope = arguments[1] || {};
+    return function() {
+        var a = Array.prototype.slice.call(arguments, 0);
+        for(var i=0; i&lt;deps.length; i++) {
+            var d = deps[i];
+            args.push(self.dependencies[d] &amp;&amp; d != '' ? self.dependencies[d] : a.shift());
+        }
+        func.apply(scope || {}, args);
+    }        
+}
+</code></pre>
+<p>We run the RegExp against the function's definition. The result is:</p>
+<pre><code>["function (service, router, other)", "service, router, other"]
+</code></pre>
+<p>So, we need only the second item. Once we clean up the empty spaces and split the string we got the <code>deps</code> array filled. There is one more change:</p>
+<pre><code>var a = Array.prototype.slice.call(arguments, 0);
+...
+args.push(self.dependencies[d] &amp;&amp; d != '' ? self.dependencies[d] : a.shift());
+</code></pre>
+<p>We are looping through the dependencies and if there is something missing we are trying to fetch it from the <code>arguments</code> object. Thankfully the <code>shift</code> method returns simply <code>undefined</code> if the array is empty. It's not throwing an error. The new version of the <code>injector</code> could be used like that:</p>
+<pre><code>var doSomething = injector.resolve(function(service, other, router) {
+    expect(service().name).to.be('Service');
+    expect(router().name).to.be('Router');
+    expect(other).to.be('Other');
+});
+doSomething("Other");
+</code></pre>
+<p>No double writing of the dependencies and we could mix their order. It still works and we replicated the Angular's magic.</p>
+<p>However, the world is not perfect and there is one very big problem with that reflection type of injection. The minification will break our logic. That's because it changes the names of the parameters and we will not be able to resolve the dependencies. For example:</p>
+<pre><code>var doSomething=function(e,t,n){var r=e();var i=t()}
+</code></pre>
+<p>That's our <code>doSomething</code> function passed to a compressor. The solution proposed by Angular's team looks like that:</p>
+<pre><code>var doSomething = injector.resolve(['service', 'router', function(service, router) {
+
+}]);
+</code></pre>
+<p>It looks like the thing which we started with. I personally wasn't able to find a better solution, and decided to mix the two approaches. Here is the final version of the injector.</p>
+<pre><code>var injector = {
+    dependencies: {},
+    register: function(key, value) {
+        this.dependencies[key] = value;
+    },
+    resolve: function() {
+        var func, deps, scope, args = [], self = this;
+        if(typeof arguments[0] === 'string') {
+            func = arguments[1];
+            deps = arguments[0].replace(/ /g, '').split(',');
+            scope = arguments[2] || {};
+        } else {
+            func = arguments[0];
+            deps = func.toString().match(/^function\s*[^\(]*\(\s*([^\)]*)\)/m)[1].replace(/ /g, '').split(',');
+            scope = arguments[1] || {};
+        }
+        return function() {
+            var a = Array.prototype.slice.call(arguments, 0);
+            for(var i=0; i&lt;deps.length; i++) {
+                var d = deps[i];
+                args.push(self.dependencies[d] &amp;&amp; d != '' ? self.dependencies[d] : a.shift());
+            }
+            func.apply(scope || {}, args);
+        }        
+    }
+}
+</code></pre>
+<p>The <code>resolve</code> method accepts two or three parameters. If they are two it acts like we wrote it lately. However, if there are three arguments it gets the first one, parse it and fills the <code>deps</code> array. Here is the test case:</p>
+<pre><code>var doSomething = injector.resolve('router,,service', function(a, b, c) {
+    expect(a().name).to.be('Router');
+    expect(b).to.be('Other');
+    expect(c().name).to.be('Service');
+});
+doSomething("Other");
+</code></pre>
+<p>You will probably notice that there are two commas one after each other. That's not a typo. The empty value actually represents the <code>"Other"</code> parameter. That's how we will be able to control the order of the parameters.</p>
+<h2 id="injection-directly-into-the-scope">Injection directly into the scope</h2>
+<p>Sometimes I'm using a third variant of injection. It involves a manipulation of the function's scope (or with other words, the <code>this</code> object). So, it is not always appropriate.</p>
+<pre><code>var injector = {
+    dependencies: {},
+    register: function(key, value) {
+        this.dependencies[key] = value;
+    },
+    resolve: function(deps, func, scope) {
+        var args = [];
+        scope = scope || {};
+        for(var i=0; i&lt;deps.length, d=deps[i]; i++) {
+            if(this.dependencies[d]) {
+                scope[d] = this.dependencies[d];
+            } else {
+                throw new Error('Can\'t resolve ' + d);
+            }
+        }
+        return function() {
+            func.apply(scope || {}, Array.prototype.slice.call(arguments, 0));
+        }        
+    }
+}
+</code></pre>
+<p>All we do is to attach the dependencies to the scope. The benefits here are that the developer should not write the dependencies as parameters. They are just part of the function's scope.</p>
+<pre><code>var doSomething = injector.resolve(['service', 'router'], function(other) {
+    expect(this.service().name).to.be('Service');
+    expect(this.router().name).to.be('Router');
+    expect(other).to.be('Other');
+});
+doSomething("Other");
+</code></pre>
+<h2 id="final-words">Final words</h2>
+<p>The dependency injection is one of those things which we all do, but never think of. Even if you didn't hear about the term you probably use it million of times. </p>
+<p>All the examples mentioned in this article could be seen <a href="https://github.com/krasimir/blog-posts/tree/master/JavaScriptDependencyInjection">here</a>.</p>
