@@ -20,7 +20,7 @@ var injector = {
             }
         }
         return function() {
-            func.apply(scope || {}, Array.prototype.slice.call(arguments, 0));
+            return func.apply(scope || {}, Array.prototype.slice.call(arguments, 0));
         }        
     }
 }

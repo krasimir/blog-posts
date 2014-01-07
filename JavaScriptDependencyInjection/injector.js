@@ -20,7 +20,7 @@ var injector = {
                 var d = deps[i];
                 args.push(self.dependencies[d] && d != '' ? self.dependencies[d] : a.shift());
             }
-            func.apply(scope || {}, args);
+            return func.apply(scope || {}, args);
         }        
     }
 }
