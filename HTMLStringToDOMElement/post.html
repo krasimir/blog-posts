@@ -1,0 +1,103 @@
+<p>This seems like a trivial task. However, it is not. There are few popular solutions, but they have a big problem and if you use them a lot you will spot the issue.[STOP]</p>
+<p>&nbsp;</p>
+<p>Let's say that we have the following HTML markup:</p>
+<pre><code>&lt;section&gt;&lt;a href="#"&gt;Link label&lt;/a&gt;&lt;/section&gt;
+</code></pre>
+<p>If you <a href="http://lmgtfy.com/?q=html+string+to+dom+element">google</a> the problem you will find that the most popular solution involves the usage of <i>.innerHTML</i> property of a newly created element.</p>
+<pre><code>var notWorking = function(html) {
+    var el = document.createElement('div');
+    el.innerHTML = html;
+    return el.childNodes[0];
+}
+console.log(notWorking('&lt;section&gt;&lt;a href="#"&gt;Link label&lt;/a&gt;&lt;/section&gt;'));
+</code></pre>
+<p>The result of the above script is actually correct. You will get section element with link inside it. Everything seems ok and it looks like you did the trick. Now let's try with something else:</p>
+<pre><code>console.log(notWorking('&lt;tr&gt;&lt;td&gt;Text Here&lt;/td&gt;&lt;/tr&gt;'));
+</code></pre>
+<p>The result is only</p>
+<pre><code>Text Here
+</code></pre>
+<p>Hm ... the &lt;tr&gt; and &lt;td&gt; tags are missing. This seems wrong isn't it. Actually that's kinda correct behaviour of the browser. I searched for similar problems and landed on <a href="http://www.ericvasilik.com/2006/07/code-karma.html">this article</a> by Eric Vasilik. Here is what he said back at 2006:</p>
+<p>&nbsp;</p>
+<p><i>"When one sets the innerHTML property of an element, the string containing the HTML is run through the parser."</i></p>
+<p>&nbsp;</p>
+<p>and </p>
+<p>&nbsp;</p>
+<p><i>"Now, parsing something like "&lt;tr&gt;&lt;td&gt;Foo" where there is no TABLE tag preceding the TR causes the parser to ignore the TR tag altogether."</i></p>
+<p>&nbsp;</p>
+<p>So, I realize that the string which is passed to <i>.innerHTML</i> shouldn't be just a mix of tags. It should be a valid DOM representation. If I want to use the function above I should pass &lt;table&gt; tag as well. And I did, I tried with the following code:</p>
+<pre><code>console.log(notWorking('&lt;table&gt;&lt;tr&gt;&lt;td&gt;Text Here&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;'));
+</code></pre>
+<p>and the result was:</p>
+<pre><code>&lt;table&gt;
+    &lt;tbody&gt;
+        &lt;tr&gt;
+            &lt;td&gt;Text Here&lt;/td&gt;
+        &lt;/tr&gt;
+    &lt;/tbody&gt;
+&lt;/table&gt;
+</code></pre>
+<p>Which proves the words from Eric Vasilik. My method should somehow examine the passed HTMl and automatically adds the necessary tags. Along with that it should return not the first child node, but the correct nested element. Looks like a lot of work. </p>
+<p>Ok, but ... wait a minute. jQuery doesn't have this problem. You may pass <i>&lt;tr&gt;&lt;td&gt;Text Here&lt;/td&gt;&lt;/tr&gt;</i> and still get the desired result. I started digging into the jQuery's code and found this:</p>
+<pre><code>// We have to close these tags to support XHTML (#13200)
+wrapMap = {
+    option: [ 1, "&lt;select multiple='multiple'&gt;", "&lt;/select&gt;" ],
+    legend: [ 1, "&lt;fieldset&gt;", "&lt;/fieldset&gt;" ],
+    area: [ 1, "&lt;map&gt;", "&lt;/map&gt;" ],
+    param: [ 1, "&lt;object&gt;", "&lt;/object&gt;" ],
+    thead: [ 1, "&lt;table&gt;", "&lt;/table&gt;" ],
+    tr: [ 2, "&lt;table&gt;&lt;tbody&gt;", "&lt;/tbody&gt;&lt;/table&gt;" ],
+    col: [ 2, "&lt;table&gt;&lt;tbody&gt;&lt;/tbody&gt;&lt;colgroup&gt;", "&lt;/colgroup&gt;&lt;/table&gt;" ],
+    td: [ 3, "&lt;table&gt;&lt;tbody&gt;&lt;tr&gt;", "&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;" ],
+    // IE6-8 can't serialize link, script, style, or any html5 (NoScope) tags,
+    // unless wrapped in a div with non-breaking characters in front of it.
+    _default: jQuery.support.htmlSerialize ? [ 0, "", "" ] : [ 1, "X&lt;div&gt;", "&lt;/div&gt;"  ]
+},
+</code></pre>
+<p>This looks like the magic which solves the problem. I cheated a bit and got the code above. I managed to extract that functionality into a single method:</p>
+<pre><code>var str2DOMElement = function(html) {
+    /* code taken from jQuery */
+   var wrapMap = {
+        option: [ 1, "&lt;select multiple='multiple'&gt;", "&lt;/select&gt;" ],
+        legend: [ 1, "&lt;fieldset&gt;", "&lt;/fieldset&gt;" ],
+        area: [ 1, "&lt;map&gt;", "&lt;/map&gt;" ],
+        param: [ 1, "&lt;object&gt;", "&lt;/object&gt;" ],
+        thead: [ 1, "&lt;table&gt;", "&lt;/table&gt;" ],
+        tr: [ 2, "&lt;table&gt;&lt;tbody&gt;", "&lt;/tbody&gt;&lt;/table&gt;" ],
+        col: [ 2, "&lt;table&gt;&lt;tbody&gt;&lt;/tbody&gt;&lt;colgroup&gt;", "&lt;/colgroup&gt;&lt;/table&gt;" ],
+        td: [ 3, "&lt;table&gt;&lt;tbody&gt;&lt;tr&gt;", "&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;" ],
+
+        // IE6-8 can't serialize link, script, style, or any html5 (NoScope) tags,
+        // unless wrapped in a div with non-breaking characters in front of it.
+        _default: [ 1, "&lt;div&gt;", "&lt;/div&gt;"  ]
+    };
+    wrapMap.optgroup = wrapMap.option;
+    wrapMap.tbody = wrapMap.tfoot = wrapMap.colgroup = wrapMap.caption = wrapMap.thead;
+    wrapMap.th = wrapMap.td;
+    var element = document.createElement('div');
+    var match = /&lt;\s*\w.*?&gt;/g.exec(html);
+    if(match != null) {
+        var tag = match[0].replace(/&lt;/g, '').replace(/&gt;/g, '');
+        var map = wrapMap[tag] || wrapMap._default, element;
+        html = map[1] + html + map[2];
+        element.innerHTML = html;
+        // Descend through wrappers to the right content
+        var j = map[0]+1;
+        while(j--) {
+            element = element.lastChild;
+        }
+    } else {
+        // if only text is passed
+        element.innerHTML = html;
+        element = element.lastChild;
+    }
+    return element;
+}
+</code></pre>
+<p>The map of jQuery nicely shows me what exactly I should wrap my string in. There are few lines of code which find the root tag and its type. At the beginning I wondered what are this numbers in the <i>wrapMap</i> object for. Later I found this:</p>
+<pre><code>j = wrap[0];
+while ( j-- ) {
+    tmp = tmp.lastChild;
+}
+</code></pre>
+<p>That was the code that returns the needed DOM element from the build tree. And the numbers were the level of nesting. Pretty simple, but I think, one of the most used features of jQuery.</p>
