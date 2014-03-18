@@ -76,3 +76,35 @@ The predefined arguments are placed in the beginning of the parameters' list.
 
 If you need to use <i>bind</i> in an older browser I'll suggest to use [the polyfill published in MDN](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function/bind).
 
+	if (!Function.prototype.bind) {
+	  Function.prototype.bind = function (oThis) {
+	    if (typeof this !== "function") {
+	      // closest thing possible to the ECMAScript 5 internal IsCallable function
+	      throw new TypeError("Function.prototype.bind - what is trying to be bound is not callable");
+	    }
+
+	    var aArgs = Array.prototype.slice.call(arguments, 1), 
+	        fToBind = this, 
+	        fNOP = function () {},
+	        fBound = function () {
+	          return fToBind.apply(
+	          	this instanceof fNOP && oThis ? this : oThis, 
+	          	aArgs.concat(Array.prototype.slice.call(arguments))
+	          );
+	        };
+
+	    fNOP.prototype = this.prototype;
+	    fBound.prototype = new fNOP();
+
+	    return fBound;
+	  };
+	}
+
+The first line checks if the function is available. If it is then the polyfill is not registered. <i>typeof this !== "function"</i> check is necessary because there are cases where you may run the <i>bind</i> method agains something different of a function. <i>aArgs</i> variable keeps the arguments which you want to be passed to the bound function. As you probably know every function in JavaScript has the magic <i>arguments</i> variable. It is something like an array, so we are able to extract the unknown number of passed parameters with the <i>slice</i> method. For example:
+
+	var f = function() {
+		console.log(Array.prototype.slice.call(arguments, 1));
+	};
+	f(10, 20, 30, 40); // outputs [20, 30, 40]
+
+<i>fToBind</i> is the function which we are going to execute. <i>fBound</i> is the function which is returned and which we could pass around freely. And of course wherever we call it it will be run with the proper scope and parameters. The polyfill successfully keeps the prototype chain and performs a check if a scope is actually passed.
