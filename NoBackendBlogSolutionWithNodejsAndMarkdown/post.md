@@ -176,7 +176,7 @@ Of course, you are not tight to AbsurdJS. You may use plain CSS, LESS or SASS. J
 
 Before to continue with the actual content of the pages or the sidebar we will write two custom methods. The first one will gets the Markdowns from the <i>articles</i> directory, will sort them by date and will return the content in the form of HTML.
 
-	/blog/lib/list.techy.js
+	// blog/lib/list.techy.js
 	module.exports = function(template, max) {
 		template = template || 'partials/article-home.md';
 		var articles = this.pages('articles', 'date');
@@ -196,7 +196,7 @@ Before to continue with the actual content of the pages or the sidebar we will w
 
 In order to create a custom method we need to create a file ending on *.techy.js*. It's not necessary to be in a <i>lib</i> folder. The file should contain the usual Node.js module which exports a function. The same function later is executed in the context of the current page. So, all the methods which we can use in the Markdown files are available here. The only one difference is that we need to call them with <i>this.</i> in front. The function above accepts two parameters. The first one, <i>template</i>, is the skeleton which we will put content in. We are going to use this function on two places so it is good to have this changeable. The default value for this is <i>partials/article-home.md</i>. <i>max</i> argument shows how many articles to be included in the list. There is a build in method <i>pages</i> which gives us an access to all the Markdown files in the project. We need only those which are placed inside the <i>articles</i> folder. They will be also sorted by the <i>date</i> property. The last thing that we have to mention is the usage of the <i>template</i> function. We already saw it in the basic layout of the theme but here accepts a second parameter. It's a hash with key-value pairs. The passed keys will be available as variables in the template which looks like that:
 
-	// partials/article-home.md
+	// blog/partials/article-home.md
 	---
 	noSave: true
 	layout: none
@@ -211,3 +211,110 @@ In order to create a custom method we need to create a file ending on *.techy.js
 	<a href="<% get('link') %>">read more</a>
 
 Notice that we are setting <i>noSave: true</i> and <i>layout: none</i> because this is a partial. We don't want to be saved to HTMl and we don't want to be wrapped in the basic layout.
+
+The second method will be almost the same. It will just filter the articles by tag.
+
+	// blog/lib/listbytag.techy.js
+	module.exports = function(tag) {
+		var template = 'partials/article-home.md';
+		var articles = this.pages('articles', 'date');
+		var html = '', to = articles.length;
+		for(var i=0; i<to; i++) {
+			var article = articles[i];
+			var tags = article.get('tags');
+			if(tags && tags.indexOf(tag) >= 0) {
+				html += this.template(template, {
+					title: article.get('title'),
+					preface: article.get('preface'),
+					link: this.linkto(article),
+					date: article.get('date'),
+					tags: article.get('tags').join(', ')
+				});
+			}
+		}
+		return html;
+	}
+
+We are again getting all the articles, but this time filter them manually by the passed tag.
+
+## The sidebar
+
+Having the handy <i>list</i> and <i>listbytag</i> methods we are able to make our sidebar.
+
+	// blog/partials/sidebar.md
+	---
+	layout: none
+	noSave: true
+	---
+
+	<small>About the Author:</small><br />
+	name: John Black<br />
+	interests: front-end, gaming
+
+	---
+
+	<small>Latest blog posts:</small><br />
+	<% list('partials/article-sidebar.md', 5) %>
+
+	---
+
+	<small>Tags:</small><br />
+	<a href="<% linkto('javascript') %>">JavaScript</a>
+	<a href="<% linkto('nodejs') %>">Node.js</a>
+	<a href="<% linkto('css3') %>">CSS3</a>
+	<a href="<% linkto('html5') %>">HTML5</a>
+	<a href="<% linkto('design') %>">Design</a>
+
+Again this is a partial so no saving and layout. The rest is just calling of the functions written in the previous section. The links to the tags pages are generated successfully by using the <i>linkto</i> method. It accepts a name of a page. And by page's name we mean a <i>name</i> property set in the page. 
+
+## Tags page
+
+The page which displays the articles having <i>javascript</i> as a tag looks like that:
+
+	// blog/tags/javascript.md
+	---
+	name: javascript
+	---
+	# JavaScript
+
+	<% listbytag('javascript') %>
+
+The key moment here is the setting of the <i>name</i> property. That's how the sidebar gets the correct link to the file. The pages for the other tags are absolutely identical. Only the word <i>javascript</i> is replaced.
+
+## The home and the all articles page
+
+These two pages are the shortest in the whole project.
+
+	// blog/index.md
+	<% list(null, 4) %>
+
+	// blog/all.md
+	---
+	name: all
+	---
+	<% list() %>
+
+## The footer
+
+The footer contains a link to the home page and a link to the page showing all the articles:
+
+	// blog/partials/footer.md
+	---
+	layout: none
+	noSave: true
+	---
+
+	<a href="<% get('paths').root %>"><i class="fa fa-home"></i> Home</a>
+	<a href="<% linkto('all') %>"><i class="fa fa-list-ul"></i> All articles</a>
+
+## Summary
+
+The power of Techy is in the fact that every Markdown is an object. We are able to access it, define and retrieve properties. Having this as a base we are able to build everything and basically wire the different parts of the project.
+
+## Source code
+
+Demo: [http://krasimir.github.io/techy-simple-blog/](http://krasimir.github.io/techy-simple-blog/)
+
+Source code: [https://github.com/krasimir/techy-simple-blog](https://github.com/krasimir/techy-simple-blog)
+
+Techy: [http://krasimir.github.io/techy/](http://krasimir.github.io/techy/)
