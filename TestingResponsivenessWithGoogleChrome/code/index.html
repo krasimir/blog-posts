@@ -1,0 +1,45 @@
+<!doctype html>
+<html>
+    <head>    
+        <title>Web Page</title>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+        <meta name="viewport" content="user-scalable=no, width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+        <link rel="stylesheet" href="styles.css">
+    </head>
+    <body>
+        <div class="content">
+            <nav>
+                <a href="#">About</a>
+                <a href="#">Products</a>
+                <a href="#">Team</a>
+                <a href="#">Contacts</a>
+                <a href="#">Sitemap</a>
+            </nav>
+            <section>
+                <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. A, esse, error ab natus facilis dolor sit ducimus unde maiores dicta aperiam nam quo at. Ducimus placeat nisi maxime perferendis dolores!</p>
+            </section>
+        </div>
+        <script>
+            window.onload = function() {
+                
+                var paragraph = document.querySelector('section p');
+                var process = function(event) {
+                    paragraph.innerHTML = event.type;
+                }
+                document.addEventListener("touchstart", process, false);
+                document.addEventListener("touchend", process, false);
+                document.addEventListener("touchmove", process, false);
+                document.addEventListener("touchcancel", process, false);
+                document.addEventListener("touchleave", process, false);
+
+                document.addEventListener("click", function() {
+                    if (navigator.userAgent.indexOf('MSIE') !== -1 || navigator.appVersion.indexOf('Trident/') > 0) {
+                       paragraph.innerHTML = 'Yes, it is IE.';
+                    } else {
+                        paragraph.innerHTML = 'No, it is not IE.';
+                    }
+                });
+            }
+        </script>
+    </body>
+</html>

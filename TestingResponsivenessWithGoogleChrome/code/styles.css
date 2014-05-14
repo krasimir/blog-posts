@@ -1,0 +1,49 @@
+body {
+	margin: 0;
+	padding: 0;
+	width: 100%;
+	height: 100%;
+	font-family: Verdana;
+	font-size: 18px;
+}
+.content {
+	width: 640px;
+	margin: 20px auto 0 auto;
+}
+nav:after {
+	display: table;
+	content: " ";
+	clear: left;
+}
+nav a {
+	color: #731515;
+	text-decoration: none;
+	display: block;
+	float: left;
+	width: 100px;
+	text-align: center;
+	padding: 4px;
+	border-left: solid 1px #999;
+}
+@media all and (max-width: 640px) {
+	.content {
+		max-width: 640px;
+		width: auto;
+	}
+}
+@media all and (max-width: 550px) {
+	nav a {
+		width: auto;
+		font-size: 14px;
+		padding: 10px;
+	}
+}
+@media all and (max-width: 370px) {
+	nav a {
+		float: none;
+		width: 100%;
+		text-align: center;
+		border-left: none;
+		padding: 10px 0 10px 0;
+	}
+}
