@@ -1,0 +1,155 @@
+<p>We all know what <em>responsive</em> means nowadays. We, as developers, normally develop responsive applications. There is a dozen of instruments helping us achieving our goals. Some of us use extensions and even pay for them. However, I'm using one thing - <a href="file://D:\work\KrasimirTsonev\github\blog-posts\blog-posts\TestingResponsivenessWithGoogleChrome/www.google.com/intl/en/chrome/browser/">Google Chrome</a> browser. In this article, we will see what the Chrome's capabilities for testing responsiveness are.</p>[STOP]
+<h2 id="choosing-the-subject-of-testing">Choosing the subject of testing</h2>
+<p>We need a simple web site to play with. Let's create one. The following HTML markup shows our page in its initial state. It contains navigation and few lines of text. In the process of reading this article, we will add more tags.</p>
+<pre><code>&lt;!doctype html&gt;
+&lt;html&gt;
+    &lt;head&gt;    
+        &lt;title&gt;Web Page&lt;/title&gt;
+        &lt;meta http-equiv="Content-Type" content="text/html; charset=utf-8" /&gt;
+        &lt;link rel="stylesheet" href="styles.css"&gt;
+    &lt;/head&gt;
+    &lt;body&gt;
+        &lt;div class="content"&gt;
+            &lt;nav&gt;
+                &lt;a href="#"&gt;About&lt;/a&gt;
+                &lt;a href="#"&gt;Products&lt;/a&gt;
+                &lt;a href="#"&gt;Team&lt;/a&gt;
+                &lt;a href="#"&gt;Contacts&lt;/a&gt;
+                &lt;a href="#"&gt;Sitemap&lt;/a&gt;
+            &lt;/nav&gt;
+            &lt;section&gt;
+                &lt;p&gt;Lorem ipsum dolor sit amet, consectetur adipisicing elit. A, esse, error ab natus facilis dolor sit ducimus unde maiores dicta aperiam nam quo at. Ducimus placeat nisi maxime perferendis dolores!&lt;/p&gt;
+            &lt;/section&gt;
+        &lt;/div&gt;
+    &lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+<p>Here is the content of the <i>styles.css</i> file:</p>
+<pre><code>body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    font-family: Verdana;
+    font-size: 18px;
+}
+.content {
+    width: 640px;
+    margin: 20px auto 0 auto;
+}
+nav:after {
+    display: table;
+    content: " ";
+    clear: left;
+}
+nav a {
+    color: #731515;
+    text-decoration: none;
+    display: block;
+    float: left;
+    width: 100px;
+    text-align: center;
+    padding: 4px;
+    border-left: solid 1px #999;
+}
+</code></pre>
+<p>Some really basic styling of the <i>body</i> tag and the menu. The result looks like on the picture below.</p>
+<p>&nbsp;</p>
+<p><img alt="Testing responsiveness with Chrome" src="http://krasimirtsonev.com/blog/articles/TestingResponsiveness/img/page-first.jpg" /></p>
+<p>&nbsp;</p>
+<h2 id="basic-responsiveness">Basic responsiveness</h2>
+<p>As it is now our page is not responsive. If we shrink the browser a bit we will see a horizontal scroller. That is bad because the users will see the same thing if they open our site on lower resolutions. On some devices, they may not see a scroller but will get the content cut of. So our first task is to solve that problem. We will use media queries to change the fixed width of the <i>.content</i> div. In order to do this, we have to pick break points first. There is something very important while we are doing this. The break points should be based on how our content behaves. We should not choose some resolutions just because they are widely used by the device vendors. The idea is to start changing the viewport's width and see when the horizontal scroller become visible. For example:</p>
+<p>&nbsp;</p>
+<p><img alt="Testing responsiveness with Chrome" src="http://krasimirtsonev.com/blog/articles/TestingResponsiveness/img/breakpoints.gif" /></p>
+<p>&nbsp;</p>
+<p>Instead of resizing the whole browser window, I found that it is much easier to show the developer tools panel and resize it. Notice that my own is placed on the right side of the screen. The cool thing is that Chrome shows us the current viewport's size, and we are able to see where exactly will be a break point. In our case, it is at 640px, but this is obvious because that is the width of our main container. So let's add the following CSS:</p>
+<pre><code>@media all and (max-width: 640px) {
+    .content {
+        max-width: 640px;
+        width: auto;
+    }
+}
+</code></pre>
+<p>This will make our container much flexible. If the user sees our site on a big screen its width will be still 640px, but if it is on a lower resolution the div will get the width of the viewport. However, checkout the following image. We still get a problem at around 550px where our navigation become on two lines.</p>
+<p>&nbsp;</p>
+<p><img alt="Testing responsiveness with Chrome" src="http://krasimirtsonev.com/blog/articles/TestingResponsiveness/img/breakpoints2.gif" /></p>
+<p>&nbsp;</p>
+<p>We need another media queries which make the links smaller and position them below each other on the lower resolutions.</p>
+<pre><code>@media all and (max-width: 550px) {
+    nav a {
+        width: auto;
+        font-size: 14px;
+        padding: 10px;
+    }
+}
+@media all and (max-width: 370px) {
+    nav a {
+        float: none;
+        width: 100%;
+        text-align: center;
+        border-left: none;
+        padding: 10px 0 10px 0;
+    }
+}
+</code></pre>
+<p>And here is the result:</p>
+<p>&nbsp;</p>
+<p><img alt="Testing responsiveness with Chrome" src="http://krasimirtsonev.com/blog/articles/TestingResponsiveness/img/breakpoints3.gif" /></p>
+<p>&nbsp;</p>
+<h2 id="emulating-devices">Emulating devices</h2>
+<p>Okey, we resized the viewport and saw how our content changes based on the available space. However, we are far away from making our site responsive. This is because we run our code in a desktop browser on a desktop machine. The browsers installed on our laptop are different from the ones used on the mobile devices. In practice, they control the viewport differently. Thankfully we do not have to buy all the mobile phones or tablets in the world to perform tests. The emulation that is made in Chrome is enough to give us idea how our design will look. It is not 100% accurate, but it is an option.</p>
+<p>&nbsp;</p>
+<p>Let's first briefly introduce the tooling in Google's browser. There is a panel called <em>Emulation</em> containing all the available instruments. To see that panel we have to enable it from the console's preferences.</p>
+<p>&nbsp;</p>
+<p><img alt="Testing responsiveness with Chrome" src="http://krasimirtsonev.com/blog/articles/TestingResponsiveness/img/emulation.gif" /></p>
+<p>&nbsp;</p>
+<p>Now let's see our little experiment in iPhone5 device. We need to open the <i>Emulation</i> panel and choose <em>Apple iPhone 5</em> in the <i>Device</i> section. A few things happen. First, Chrome autoconfigure the next sections by applying values typical for the iPhone5 phone. It resizes the viewport on the left, so it matches the needed resolution. This is important because we (the developers and designers) work with CSS pixels. Very often I see how my colleagues use the device pixels as a starting point which is kinda wrong. The resolution of the iPhone5 device is 640x1136 but this does not mean that we have 640px by width. We still have <a href="http://i-skool.co.uk/mobile-development/web-design-for-mobiles-and-tablets-viewport-sizes/">320px</a> because the device pixel ration is equal to two. If you want to learn more about how mobile browsers handle the viewport sizes checkout the talk <a href="http://krasimirtsonev.com/blog/article/A-Pixel-is-Not-a-Pixel-Learn-about-Viewports-with-PPK"><em>A Pixel is Not a Pixel</em></a> by PPK. Here is how our page behaves.</p>
+<p>&nbsp;</p>
+<p><img alt="Testing responsiveness with Chrome" src="http://krasimirtsonev.com/blog/articles/TestingResponsiveness/img/iphone5.gif" /></p>
+<p>&nbsp;</p>
+<p>Notice that the content is super huge, and it is not readable at all. The user has to scroll or zoom-out to see the whole page. In the image above I hold the <i>Shift</i> key and drag the mouse to simulate "pinch". Doesn't look right. Our media queries are not working at all and this is because we are seeing only part of our viewport but in practice is a lot more. To fix this problem we need to add one more tag in the <i>head</i> of the document.</p>
+<pre><code>&lt;meta name="viewport" content="user-scalable=no, width=device-width, initial-scale=1.0, maximum-scale=1.0" /&gt;
+</code></pre>
+<p>With that tag, we are saying that we want our viewport with the same width as the device. We are also setting the initial and maximum scale to one and preventing the user from pitching. The result looks much better.</p>
+<p>&nbsp;</p>
+<p><img alt="Testing responsiveness with Chrome" src="http://krasimirtsonev.com/blog/articles/TestingResponsiveness/img/meta-viewport.jpg" /></p>
+<p>&nbsp;</p>
+<p>Now, our media queries work and everything is displayed as we wanted.</p>
+<h2 id="emulating-touch-events">Emulating touch events</h2>
+<p>The developers from Google gave us this nice feature so we can simulate touch events. All we have to do is to enable this functionality in the same panel. It's under <i>Sensors</i> section. In order to see that we are firing touch events we will use the following JavaScript code:</p>
+<pre><code>&lt;script&gt;
+    window.onload = function() {
+        var paragraph = document.querySelector('section p');
+        var process = function(event) {
+            paragraph.innerHTML = event.type;
+        }
+        document.addEventListener("touchstart", process, false);
+        document.addEventListener("touchend", process, false);
+        document.addEventListener("touchmove", process, false);
+        document.addEventListener("touchcancel", process, false);
+        document.addEventListener("touchleave", process, false);
+    }
+&lt;/script&gt;
+</code></pre>
+<p>Every time when a touch event is captured we will replace the content of the paragraph with the event's type. Here is the result:</p>
+<p>&nbsp;</p>
+<p><img alt="Testing responsiveness with Chrome" src="http://krasimirtsonev.com/blog/articles/TestingResponsiveness/img/touch.gif" /></p>
+<p>&nbsp;</p>
+<h2 id="emulating-different-browsers">Emulating different browsers</h2>
+<p>I know what you are thinking about and <em>No</em> you cannot make a real simulation of IE, Firefox or Opera. The thing that you can do is to spoof the user agent. However, it is still useful if you have some JavaScript that acts differently based on the current browser. For example, the following code checks if we are using Internet Explorer:</p>
+<pre><code>document.addEventListener("click", function() {
+    if (navigator.userAgent.indexOf('MSIE') !== -1 || navigator.appVersion.indexOf('Trident/') &gt; 0) {
+        paragraph.innerHTML = 'Yes, it is IE.';
+    } else {
+        paragraph.innerHTML = 'No, it is not IE.';
+    }
+});
+</code></pre>
+<p>Here is how this could be tested in Chrome:</p>
+<p>&nbsp;</p>
+<p><img alt="Testing responsiveness with Chrome" src="http://krasimirtsonev.com/blog/articles/TestingResponsiveness/img/browser.gif" /></p>
+<p>&nbsp;</p>
+<h2 id="summary">Summary</h2>
+<p>I wanted to show you that you do not need an extension to build responsive websites. The Google's browser has enough features, and it is completely free. A detailed documentation of the <i>Emulation</i> panel could be found <a href="https://developer.chrome.com/devtools/docs/mobile-emulation">here</a>.</p>
+<p>&nbsp;</p>
+<p>The code used in this article is, as usual, published in <a href="https://github.com/krasimir/blog-posts/tree/master/TestingResponsivenessWithGoogleChrome/code">GitHub</a> and the demo could be seen on <a href="http://krasimirtsonev.com/blog/articles/TestingResponsiveness/code/index.html">this address</a>.</p>
