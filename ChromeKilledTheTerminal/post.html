@@ -1,0 +1,31 @@
+<p>That's right. I'm not using the terminal anymore. Instead of that I'm using Chrome. Yes, the Google's browser. There is an extension called <a href="https://chrome.google.com/webstore/detail/yez/acbhddemkmodoahhmnphpcfmcfgpjmap">Yez!</a> that connects to a Node.js module via web socket. It executes the shell commands and returns the result. And even works under Windows.</p>[STOP]
+<h2 id="the-motivation">The motivation</h2>
+<p>There are several reasons behind the development of the extension:</p>
+<ul>
+<li>If we develop Node.js applications we will switch between the terminal and the browser. That's really annoying. We have to do that all the time, for every little change. So, moving the shell into the browser seems like a logical step.</li>
+<li>If we don't like to write shell scripts then this extension is perfect for us. Developing our own terminal in JavaScript will allow us to produce better automation.</li>
+<li>Chrome extensions are constructed with the usual web technologies - JavaScript, HTML and CSS. So we have the power to build the tool that fits perfectly in our workflow.</li>
+</ul>
+<h2 id="is-it-really-a-terminal">Is it really a terminal?</h2>
+<p>Yes, it is. What it does is to proxy the shell commands. They are still executed on the same place. The difference is that it is not the terminal that runs them but a Node.js process. And, of course, the <a href="https://chrome.google.com/webstore/detail/yez/acbhddemkmodoahhmnphpcfmcfgpjmap">Yez!</a> module uses <a href="http://nodejs.org/api/child_process.html#child_process_child_process_spawn_command_args_options">spawn</a> so it sends the command's output directly to the browser once it appears. It doesn't wait for the operation's end to show something. As it happens with <a href="http://nodejs.org/api/child_process.html#child_process_child_process_exec_command_options_callback">exec</a>. (More about managing child process in Node.js could be found <a href="http://krasimirtsonev.com/blog/article/Nodejs-managing-child-processes-starting-stopping-exec-spawn">here</a>). Checkout the following image. It illustrates how everything works:</p>
+<p> </p>
+<p><img alt="Yez! Chrome extension" src="http://krasimirtsonev.com/blog/articles/ChromeKilledTheTerminal/imgs/yez_01.gif" /></p>
+<p> </p>
+<p>As we can see, we are able to navigate through the directories and execute commands. The extension checks if the current directory is a valid <i>Git</i> repository. If yes it shows the current branch and if there are any changed files.</p>
+<h2 id="it-s-also-a-task-runner">It's also a task runner</h2>
+<p>When we have an instrument that runs shell commands, it make sense to provide functionality for task executing - running several commands at once. That's not something incredible, but the really valuable thing is that we are doing this from a browser. Also, thankfully to Google, we have access to APIs for controlling programmatically the browser. </p>
+<p>The following animated gif shows how we create a task for running <a href="https://github.com/pivotal/jasmine">Jasmine</a> tests on a project and perform a search in GitHub.</p>
+<p> </p>
+<p><img alt="Yez! Chrome extension" src="http://krasimirtsonev.com/blog/articles/ChromeKilledTheTerminal/imgs/yez_02.gif" /></p>
+<p> </p>
+<h2 id="how-to-get-started">How to get started</h2>
+<ul>
+<li>Install the <a href="https://www.npmjs.org/package/yez">Yez! module</a> by running <i>npm install -g yez</i> or <i>npm install -g https://registry.npmjs.org/yez/-/yez-1.0.4.tgz</i> if the first command doesn't work. If you still have problems installing the module check out the <a href="https://github.com/krasimir/yez/issues/1" target="_blank">this thread</a>.</li>
+<li>Run <i>yez</i> in your console</li>
+<li>Open Chrome browser and install the extension from <a href="https://chrome.google.com/webstore/detail/yez/acbhddemkmodoahhmnphpcfmcfgpjmap">here</a></li>
+<li>Open Chrome's DevTools and find the <i>Yez!</i> tab</li>
+</ul>
+<h2 id="contribution">Contribution</h2>
+<p>The project is open source. Feel free to report issues or make pull requests at <a href="https://github.com/krasimir/yez">https://github.com/krasimir/yez</a>.</p>
+<h2 id="contribution">The truth</h2>
+<p>Of course, I'm using the good old terminal too. There are some things that could not be achieved with Node.js. Like for example SSH connection to a server or complex piping of commands. However, for the regular tasks I prefer to stick to the extension. There is directories' name autocompletion and few keyboard shortcuts. I'm planning to provide functionality for registering aliases. In other words all those small goodies that will boost my productivity.</p>
