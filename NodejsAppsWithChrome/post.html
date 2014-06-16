@@ -1,0 +1,57 @@
+<p>Google chrome is my favorite browser. I'm spending a big part of my working hours there, so it makes sense to use it for everything. Last week I posted <a href="http://krasimirtsonev.com/blog/article/Sorry-Chrome-killed-the-terminal">"Sorry, Chrome killed the terminal"</a>. The article was about <a href="https://github.com/krasimir/yez">Yez!</a>, an extension that brings terminal-liked functionalities to the browser. Today, I'll show you how I use Chrome in my Node.js development workflow.</p>[STOP]
+<h2 id="the-node-js-app">The Node.js app</h2>
+<p>Let's create new folder and place the following <i>server.js</i> file there:</p>
+<pre><code>var http = require('http');
+var url = require('url');
+http.createServer(function (req, res) {
+    var url_parts = url.parse(req.url, true);
+    var query = url_parts.query;
+    var page = '';
+    if(url_parts.path == 'text') {
+        page += '&lt;p&gt;Lorem ipsum dolor sit amet, consectetur adipisicing elit.&lt;/p&gt;';
+    } else {
+        page += '&lt;p&gt;Hello World&lt;/p&gt;';
+        page += '&lt;p&gt;&lt;a href="/text"&gt;Please, click me&lt;/a&gt;&lt;/p&gt;';
+    }
+    res.writeHead(200, {'Content-Type': 'text/html'});
+    res.end(page);
+}).listen(1337, '127.0.0.1');
+console.log('Server running at http://127.0.0.1:1337/');
+</code></pre>
+<p>When we run the server with <i>node ./server.js</i> we will have <i>http://127.0.0.1:1337/</i> page available. It simply shows a welcome screen with a link. Once the link is clicked we should see the <i>Lorem ipsum</i> text. Let's try this in the browser:</p>
+<p><img alt="Develop Node.js applications with Google Chrome" src="http://krasimirtsonev.com/blog/articles/NodejsAppsWithChrome/imgs/yez_01.gif" /></p>
+<p>Hm ... something goes wrong. After the click, the URL was changed, but we didn't see the text. So, now our steps are:</p>
+<ul>
+<li>go back to the editor (Alt+Tab x 1)</li>
+<li>place few <i>console.log</i> here and there</li>
+<li>go to the console (Alt+Tab x 2)</li>
+<li>press Ctrl+C to stop the running Node.js app</li>
+<li>press Up+Enter to run it again</li>
+<li>go to the browser again (Alt+Tab x 3)</li>
+<li>refresh the page and click on the link again</li>
+<li>go to the console (Alt+Tab x 4)</li>
+<li>monitor the result and hopefully come with a solution</li>
+</ul>
+<p>Yes, if we have more than one monitor it is not a big deal because we will probably have the terminal shown together with the browser. However, sometimes (at least happens to me) we can't use a second monitor. So, imagine how many times we have to repeat the steps above. </p>
+<p>&nbsp;</p>
+<p>I decided to invest time developing a Chrome extension that eliminates the usage of the terminal in cases like the one above. </p>
+<h2 id="using-yez">Using Yez!</h2>
+<p>The installation of the extension is pretty straightforward. You have to go to <a href="https://chrome.google.com/webstore/detail/yez/acbhddemkmodoahhmnphpcfmcfgpjmap">this address</a> and click on the big green button at the right upper corner. After the installation finishes, you will have a brand new tab in your DevTools. There is one more thing to make Yez! working. The extension needs a specific Node.js module setupped and running. It is needed because by default the extensions in Chrome live in a sandbox. We can't run other processes or read from the disk. So, we need to execute </i>npm install -g yez</i> and then <i>yez</i>. The module will open a web socket that we will use to transfer data back and forth. (If you have any problems installing the Node.js module please check <a href="https://github.com/krasimir/yez/issues/1">this issue thread</a>)</p>
+<p>&nbsp;</p>
+<p>Once we have everything running we are ready to start, stop and monitor our Node.js scripts. Let's see how:</p>
+<p><img alt="Develop Node.js applications with Google Chrome" src="http://krasimirtsonev.com/blog/articles/NodejsAppsWithChrome/imgs/yez_02.gif" /></p>
+<p>We didn't go to the terminal at all. Everything happened in the browser, and we were able to see the Node.js script output right away. </p>
+<p>&nbsp;</p>
+<p>We skipped some points from the list above, but we still have to press Up+Enter to run the server. Yez! supports definition of tasks that could make our life even easier.</p>
+<h2 id="defining-tasks">Defining tasks</h2>
+<p>It's simple. We set a working directory and add (as many as we want) commands. They will be executed one after each other. For example:</p>
+<p><img alt="Develop Node.js applications with Google Chrome" src="http://krasimirtsonev.com/blog/articles/NodejsAppsWithChrome/imgs/yez_03.gif" /></p>
+<p>Instead of stopping and starting the application again and again, there is a button <i>restart</i> that does all this for us. It just stops the current active process and restarts the whole chain of commands.</p>
+<h2 id="bonus-creating-aliases">Bonus (creating aliases)</h2>
+<p>Yez! is handy not only for Node.js apps development but for dealing with the usual terminal tasks. I personally use Git a lot and all I do with it is happening in the console. Let's say that we want to clone some repository, make a change and commit the updates.</p>
+<p><img alt="Develop Node.js applications with Google Chrome" src="http://krasimirtsonev.com/blog/articles/NodejsAppsWithChrome/imgs/yez_04.gif" /></p>
+<p>We defined two aliases. The first one was for one command only - <i>git clone</i>. The second one combines several actions. Yez! registers its aliases as regular expressions. So, we are able to use <i>$n</i> placeholders. </p>
+<pre><code>^gc (.*):git clone $1
+^cipm (.*):git add . &amp;&amp; git commit -m "$1" &amp;&amp; git push origin master
+</code></pre>
+<p>Notice that we didn't add quotes around the commit message but it was handled properly.</p>

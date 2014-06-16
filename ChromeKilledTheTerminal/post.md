@@ -28,7 +28,7 @@ The following animated gif shows how we create a task for running [Jasmine](http
 
 ## How to get started
 
-* Install the [Yez! module](https://www.npmjs.org/package/yez) by running <i>npm install -g yez</i> or <i>npm install -g https://registry.npmjs.org/yez/-/yez-1.0.5.tgz</i> if the first command doesn't work
+* Install the [Yez! module](https://www.npmjs.org/package/yez) by running <i>npm install -g yez</i> or <i>npm install -g https://registry.npmjs.org/yez/-/yez-1.0.5.tgz</i> if the first command doesn't work. If you still have problems installing the module check out [this thread](https://github.com/krasimir/yez/issues/1).
 * Run <i>yez</i> in your console
 * Open Chrome browser and install the extension from [here](https://chrome.google.com/webstore/detail/yez/acbhddemkmodoahhmnphpcfmcfgpjmap)
 * Open Chrome's DevTools and find the <i>Yez!</i> tab
