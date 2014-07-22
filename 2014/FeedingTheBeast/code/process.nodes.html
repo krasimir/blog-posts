@@ -1,0 +1,72 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Code</title>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    </head>
+    <body>
+        <div class="content">
+            <h1>Title</h1>
+            <ul>
+                <li>A</li>
+                <li>B</li>
+                <li>C</li>
+            </ul>
+        </div>
+        <div class="footer">
+            <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Incidunt, in accusamus necessitatibus, libero enim asperiores maxime ab adipisci nemo quaerat modi, deleniti a odit assumenda consequatur. Esse eos beatae debitis.</p>
+        </div>
+        <script>
+            window.onload = function() {
+                // (function parse(e, cb) {
+
+                //     // skipping text nodes and script tags
+                //     if(e.nodeType !== 1 || e.nodeType == 'SCRIPT') { cb(); return; }
+
+                //     processed++;
+
+                //     // showing processing message
+                //     console.log('Processed ' + processed + ' nodes.');
+
+                //     // local vars
+                //     var numChilds = e.childNodes.length,
+                //         numOfProcessed = 0;
+
+                //     // recursion
+                //     // if(numChilds > 0) {
+                //     //     processed = function() {
+                //     //         numOfProcessed++;
+                //     //         if(e.childNodes[numOfProcessed]) {
+                //     //             setTimeout(function(){
+                //     //                 parse(e.childNodes[numOfProcessed], elStorage, item.path + ' ' + item.name, processed);
+                //     //             }, gap);
+                //     //         } else {
+                //     //             cb();
+                //     //         }
+                //     //     }
+                //     //     setTimeout(function(){
+                //     //         parse(e.childNodes[numOfProcessed], elStorage, item.path + ' ' + item.name, processed);
+                //     //     }, gap);
+                //     // } else {
+                //     //     cb();
+                //     // }
+
+                // })(document.querySelector('body'), function() {
+                //     console.log('end');
+                // });
+
+                var processed = 0;
+                (function parse(e) {
+                    if(e.nodeType !== 1 || e.nodeName == 'SCRIPT') return;
+                    processed++;
+                    console.log(e.nodeName.toLowerCase() + ' (' + processed + ')');
+                    // using e.getAttributes ...
+                    for(var i=0; i<e.childNodes.length; i++) {
+                        parse(e.childNodes[i]);
+                    }
+                })(document.querySelector('body'));
+
+            }
+        </script>
+    </body>
+</html>

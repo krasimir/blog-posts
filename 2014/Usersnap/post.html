@@ -1,0 +1,136 @@
+<p>The bug reporting is something very important for us. As developers, we produce code that should work everywhere. Not only on our machines. No matter how many times we test our application it often happens that it does not work properly for the client. We all know how helpful is an email with text &ldquo;It does not work. Fix it ASAP!&rdquo;. <a href="http://usersnap.com/">Usersnap</a> is amazing tool that removes the gap between you (the developer) and the non-techy guy from the other side. </p>[STOP]
+<h2 id="how-it-works"><a name="user-content-how-it-works" href="#how-it-works" class="headeranchor-link"  aria-hidden="true"><span class="headeranchor"></span></a>How it works</h2>
+<p>You need to create an account at <a href="https://usersnap.com/#signup"><a href="http://usersnap.com/"><a href="http://usersnap.com/">http://usersnap.com/</a></a></a>. Once you are finished and logged in you have to create a new project. Normally you will be redirected to your projects&rsquo; list. If this does not happen just click on the <em>My Projects</em> link in the header.</p>
+<p>&nbsp;</p>
+<p>The picture below shows that I already added a project called <em>Test Project</em>.</p>
+<p>&nbsp;</p>
+<p><img alt="Usersnap - the holy grail of bug reporting" src="http://krasimirtsonev.com/blog/articles/Usersnap/usersnap1.jpg" /></p>
+<p>&nbsp;</p>
+<p>Here is how the dashboard looks like when we click on the <em>Add new project</em> button.</p>
+<p>&nbsp;</p>
+<p><img alt="Usersnap - the holy grail of bug reporting" src="http://krasimirtsonev.com/blog/articles/Usersnap/usersnap2.jpg" /></p>
+<p>&nbsp;</p>
+<p>We should set the name of the project and add URL (or several URLs). These are the pages where we want to get feedback for. There is only one step left. We should get the Usersnap&rsquo;s <code>&lt;script&gt;</code> tag and add it to our page. Similar like GoogleAnalytics, this little piece of code brings the magic to our application. </p>
+<h2 id="the-example"><a name="user-content-the-example" href="#the-example" class="headeranchor-link"  aria-hidden="true"><span class="headeranchor"></span></a>The example</h2>
+<p>Let&rsquo;s write a small web application and test with it. We will use the following HTML markup as a base:</p>
+<pre><code>&lt;!doctype html&gt;
+&lt;html&gt;
+    &lt;head&gt;
+        ...        
+    &lt;/head&gt;
+    &lt;body&gt;
+        &lt;h1&gt;Usersnap test&lt;/h1&gt;
+        &lt;section&gt;
+            &lt;a href='#' id='click-me'&gt;click me&lt;/a&gt;
+            &lt;div id="data"&gt;&lt;/div&gt;
+        &lt;/section&gt;
+        &lt;script&gt;
+            // application logic
+        &lt;/script&gt;
+        &lt;script type="text/javascript"&gt;
+          (function() {
+          var s = document.createElement("script");
+            s.type = "text/javascript";
+            s.async = true;
+            s.src = '//api.usersnap.com/load/'+
+                '.......js';
+            var x = document.getElementsByTagName('script')[0];
+            x.parentNode.insertBefore(s, x);
+          })();
+        &lt;/script&gt;
+    &lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+<p>There are title, link and empty <code>&lt;div&gt;</code> element. We add the code provided by Usersnap in the end. Once the page is loaded that code adds a little button in the lower right area of the page. That is how the user will start its feedback sending.</p>
+<p>&nbsp;</p>
+<p>Let&rsquo;s say that we have a simple JSON file with data. We want to show part of this data once the user clicks on the link. </p>
+<pre><code>// data.json
+{
+    "items": [
+        { "id": 10 },
+        { "id": 11 },
+        { "id": 12 },
+        { "id": 13 }
+    ]
+}
+</code></pre>
+<p>We need to access DOM elements. So, here is a small utility function. A shortcut to <code>document.querySelector</code>:</p>
+<pre><code>var qs = function(selector) {
+    return document.querySelector(selector);
+}
+</code></pre>
+<p>The entry of our application is the handler of <code>window.onload</code> event. That is the place where we will attach an event listener to the link and trigger the Ajax request:</p>
+<pre><code> window.onload = function() {
+    console.log('onload event');
+    qs('#click-me').addEventListener('click', function() {
+        console.log('the button is clicked');
+        qs('section').setAttribute('style', 'background: #9CCDA6;');
+        ajax('data.json', function(err, data) {
+            if(err) { alert(err); return; }
+            else { data = JSON.parse(data); }
+            console.log('the data is here ', data);
+            qs('#data').innerHTML = 'There are ' + data.items.length + ' items.';
+        });
+    });
+}
+</code></pre>
+<p>When the user clicks on the link, we are changing the background of the section element. This is how we indicate that we are going to load the JSON data. The <code>ajax</code> method accepts the path to the file and callback. If everything is ok, the user should see the number of the items (4) on the screen. The <code>ajax</code> method looks like that:</p>
+<pre><code>var ajax = function(file, cb) {
+    console.log('starting an ajax call');
+    var xmlhttp = window.XMLHttpRequest ? new XMLHttpRequest() : new ActiveXObject('Microsoft.XMLHTTP');
+    xmlhttp.onreadystatechange = function() {
+        if (xmlhttp.readyState == 4) {
+            if(xmlhttp.status == 200){
+                cb(null, xmlhttp.responseText);
+            } else if(xmlhttp.status == 400) {
+                cb('There was an error 400')
+            } else {
+                cb('something else other than 200 was returned')
+            }
+        }
+    }
+    xmlhttp.open('GET', file, true);
+    xmlhttp.send();
+}
+</code></pre>
+<p>It looks like our little experiment is ready for a test. We open our lovely Chrome browser and run the application:</p>
+<p>&nbsp;</p>
+<p><img alt="Usersnap - the holy grail of bug reporting" data-gifffer="http://krasimirtsonev.com/blog/articles/Usersnap/usersnap3.gif" /></p>
+<p>&nbsp;</p>
+<p>Everything looks ok. We are happy with the result and we send a link to the client. </p>
+<p>&nbsp;</p>
+<h2 id="feedback-required"><a name="user-content-feedback-required" href="#feedback-required" class="headeranchor-link"  aria-hidden="true"><span class="headeranchor"></span></a>Feedback required</h2>
+<p>Guess what! The client does not receive the same experience. He opens our <em>tested</em> page, clicks on the button, and only the color of the section is changed. There is no information about the number of the items. He makes a phone call and says &ldquo;The site is broken. Fix it!&rdquo;. It cannot be broken. We tested it, and it worked on our machine. We start asking question after question till we find the type and version of the client&rsquo;s browser. Eventually, we teach him how to use MS Paint and request a screenshot. The annoying long process that we all know about.</p>
+<p>&nbsp;</p>
+<p>Now let&rsquo;s see how easy is to use Usersnap. With just a few clicks, the client can report the problem:</p>
+<p>&nbsp;</p>
+<p><img alt="Usersnap - the holy grail of bug reporting" data-gifffer="http://krasimirtsonev.com/blog/articles/Usersnap/usersnap4.gif" /></p>
+<p>&nbsp;</p>
+<p>We receive an email containing the message and a link to a feedback&rsquo;s page:</p>
+<p>&nbsp;</p>
+<p><img alt="Usersnap - the holy grail of bug reporting" src="http://krasimirtsonev.com/blog/articles/Usersnap/usersnap5.jpg" /></p>
+<p>&nbsp;</p>
+<p>So, from the client&rsquo;s point of view the whole process is straightforward. There is no need prepare email, generate images or deal with the question about the version of the browser. Everything is collected by Usersnap. Check out the image below. That is what we have as result:</p>
+<p>&nbsp;</p>
+<p><img alt="Usersnap - the holy grail of bug reporting" src="http://krasimirtsonev.com/blog/articles/Usersnap/usersnap6.jpg" /></p>
+<p>&nbsp;</p>
+<p>We see the resolution, the browser, the note. Moreover, we are able to invite more people and start a discussion related to the problem. Awesome! Isn&rsquo;t it?</p>
+<h2 id="bug-reporting"><a name="user-content-bug-reporting" href="#bug-reporting" class="headeranchor-link"  aria-hidden="true"><span class="headeranchor"></span></a>Bug reporting</h2>
+<p>Let&rsquo;s get back to our example. The feedback so far is nice but doesn&rsquo;t help us a lot. We have only visual look of the client&rsquo;s browser. We have no idea what is going on behind the scene. </p>
+<p>&nbsp;</p>
+<p>Before a couple of days the guys from Usersnap introduced a new feature - <a href="http://usersnap.com/blog/super-powers-for-web-developers/">super powers for web developers</a>. Now, we are able to receive a lot more from the user&rsquo;s computer. As developers, we are interested in the JavaScript processes happening on the page. If we check the example&rsquo;s code again, we will see a lot of <code>console.log</code> statements. There is a way to receive them along with a screenshot. Let&rsquo;s tweak our Usersnap&rsquo;s widget and enable the <em>Console recorder</em>. </p>
+<p>&nbsp;</p>
+<p><img alt="Usersnap - the holy grail of bug reporting" src="http://krasimirtsonev.com/blog/articles/Usersnap/usersnap7.jpg" /></p>
+<p>&nbsp;</p>
+<p>The project page contains a button called <em>Change Widget Look&amp;Feel</em>. It is below the <code>&lt;script&gt;</code> code that we copied. If we click it, we will have a chance to modify the widget shown to the client. That is the place where we could enable the <em>Console Recorder</em>. </p>
+<p>&nbsp;</p>
+<p>There is no difference for the user, but now the feedback includes the console&rsquo;s output.</p>
+<p>&nbsp;</p>
+<p><img alt="Usersnap - the holy grail of bug reporting" src="http://krasimirtsonev.com/blog/articles/Usersnap/usersnap8.jpg" /></p>
+<p>&nbsp;</p>
+<p>Now we see that there is an error <i><code>Uncaught SyntaxError: Unexpected token {</code></i>. We see also the call stack, and it looks like <code>JSON.parse</code> method failed. So, the problem is probably in the JSON returned by our server. It is somehow invalid. Now imagine that this JSON is generated specifically for the client&rsquo;s account. The only one way to replicate the problem on our machine is to log in with the right credentials and repeat the actions that the client did. It often happens  that we cannot do that. The debugging of such problems could take hours and even days. Usersnap points us in the right direction. We are able to solve the problem quickly without losing the client&rsquo;s time.</p>
+<h2 id="summary"><a name="user-content-summary" href="#summary" class="headeranchor-link"  aria-hidden="true"><span class="headeranchor"></span></a>Summary</h2>
+<p><a href="http://usersnap.com/">Usersnap</a> could be a time safer in your project. We do not have to talk about making screenshots or write dozen emails to find out what is going on on the client&rsquo;s machine. It is priceless service for designers and developers.</p>
+<p>&nbsp;</p>
+<p>P.S.<p>
+<p>This is not a promotional blog post. Usersnap is simple and helpful and deserves attention. Easy to use, even by nontechnical people. It worked great for me in my latest project and saved tons of main and client&rsquo;s time.</p>

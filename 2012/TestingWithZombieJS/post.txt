@@ -1,0 +1,174 @@
+I was planning to post this article a few weeks ago, but today I finally finished the examples and I can't wait to share it. We all know that the testing is a big part of our daily tasks and we should use every existing tool to make our lives easier. I really like <a href="http://en.wikipedia.org/wiki/Test-driven_development" class="external">test driven development</a> and once I found the concept of the <a href="http://blog.arhg.net/2009/10/what-is-headless-browser.html" class="external">headless browsing</a> I started to think that we can automate every single aspect of the testing. In this post I'll show you how to use <a href="http://nodejs.org/" class="external">Nodejs</a> to test a simple php site.[STOP]
+
+All the source files in this post could be found here <a href="https://github.com/krasimir/blog-posts/tree/master/TestingWithZombieJS" class="external">https://github.com/krasimir/blog-posts/tree/master/TestingWithZombieJS</a>.
+
+First of all, let's see how our test site looks like (feel free to browse it <a href="http://work.krasimirtsonev.com/git/blog-posts/TestingWithZombieJS/site/" class="external">here</a>. Username: admin, password: 1234).
+
+The site's content is protected with a password. So initially a login form is shown:
+
+[1]
+(If the user type wrong credentials the login form is shown again).
+
+The home page presents some text and two buttons. <i>Logout</i> removes the current session of the user and <i>CSS selectors</i> points to another page with text.
+
+[2]
+
+The second page of the site:
+
+[3]
+
+It is really simple web site, but it is enough to illustrate the idea. The topic of the article is to show the process of testing, so I'm not going to spend time in explaining how the site works. If you are interested in this part please check the <a href="https://github.com/krasimir/blog-posts/tree/master/TestingWithZombieJS" target="_blank">source code</a>. Here is what we will probably want to test in a real environment:
+<ul>
+    <li>Can we actually access the site</li>
+    <li>We are not logged in the beginning, so we should see the login form</li>
+    <li>We should not be able to login via wrong credentials</li>
+    <li>We should be able to login with the correct credentials</li>
+    <li>We should be able to see the second page <i>CSS selectors</i></li>
+    <li>We should be able to logout</li>
+    <li>We should not be able to see <i>CSS selectors</i> page because we are logged out</li>
+</ul>
+Without the usage of the headless browser we will need to test all those things manually. For such a simple application it will take no more then minute or two, but imagine if you have really solid web based system with bunch of features. It will take some time for sure.
+
+I'm going to use <a href="http://zombie.labnotes.org/" class="external">Zombie.js</a> together with <a href="https://github.com/mhevery/jasmine-node" class="external">Jasmine</a> under <a href="http://nodejs.org/" class="external">Nodejs</a>. To install Nodejs on your system please check <a href="https://github.com/creationix/nvm" class="external">https://github.com/creationix/nvm</a>. The NVM is really nice too, especially if you have to deal with different versions.
+
+Once you have Nodejs installed you should prepare your testing and install the necessary modules. The usage of the <a href="https://npmjs.org/" class="external">Node Package Manager (NPM)</a> is recommended. So, create a directly where you will place your test, go there and create a <i>package.json</i> file with the following content:[code]
+{
+  "name": "TestingWithZombieJS",
+  "version": "0.0.0",
+  "description": "Testing using headless browser",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": "",
+  "keywords": [
+    "testing",
+    "headless",
+    "browser"
+  ],
+  "dependencies": {
+    "zombie": "latest",
+    "jasmine-node": "latest"
+  },
+  "author": "Krasimir Tsonev",
+  "license": "BSD"
+}
+[/code](You can use <a href="https://npmjs.org/doc/init.html" class="external">npm init</a>. It will help you to create the file.)
+
+Once you have <i>package.json</i> in your directory you could run <i>npm install</i> there and at the end you should have a folder called <i>node_modules</i> with zombiejs and jasmine-node modules inside. 
+
+If you successfully finished the above steps, then you could start writing your test. Create an empty .js file (for example zombie.spec.js) and put the following code there:[code]
+var Browser = require("zombie");
+var url = "http://work.krasimirtsonev.com/git/blog-posts/TestingWithZombieJS/site/";
+var browser = new Browser();
+
+describe("testing with zombie", function() {
+
+});
+[/code]When you run the test via[code]
+jasmine-node zombie.spec.js
+[/code]You should see the following result:[code]
+Finished in 0.004 seconds
+0 tests, 0 assertions, 0 failures
+[/code]
+The first thing that we should test - is our browser created and is our site actually accessible:[code]
+var Browser = require("zombie");
+var url = "http://work.krasimirtsonev.com/git/blog-posts/TestingWithZombieJS/site/";
+var browser = new Browser();
+
+describe("testing with zombie", function() {
+
+    it("should have defined headless browser", function(next){
+        expect(typeof browser != "undefined").toBe(true);
+        expect(browser instanceof Browser).toBe(true);
+        next();
+    });
+
+    it("should visit the site and see the login form", function(next) {
+        browser.visit(url, function(err) {
+            expect(browser.success).toBe(true);
+            expect(browser.query("input[value='Login']")).toBeDefined();
+            next();
+        })
+    });
+
+});
+[/code]The result should be:[code]
+Finished in 0.208 seconds
+2 tests, 4 assertions, 0 failures
+[/code]
+Zombiejs's browser has bunch of helpful features, which you can use to check what is going on. For example in the code above we used <i>.query</i>, which accepts a valid CSS selector and returns a DOM element. We used this information to find out if the <i>Login</i> button is on the page, which means that the login form is shown. You could also use <i>.html</i> or <i>.text</i> to get the exact html markup, which is currently in the browser. I strongly recommend checking the <a href="http://zombie.labnotes.org/API" class="external">Zombiejs API</a> to find out what you can do.
+
+Here is the full test of site:[code]
+var Browser = require("zombie");
+var url = "http://work.krasimirtsonev.com/git/blog-posts/TestingWithZombieJS/site/";
+var browser = new Browser();
+
+describe("testing with zombie", function() {
+
+    it("should have defined headless browser", function(next){
+        expect(typeof browser != "undefined").toBe(true);
+        expect(browser instanceof Browser).toBe(true);
+        next();
+    });
+
+    it("should visit the site and see the login form", function(next) {
+        browser.visit(url, function(err) {
+            expect(browser.success).toBe(true);
+            expect(browser.query("input[value='Login']")).toBeDefined();
+            next();
+        })
+    });
+
+    it("should not be able to login with wrong credentials", function(next) {
+        browser
+        .fill('input[name="username"]', "wrongname")
+        .fill('input[name="password"]', "wrongpassword")
+        .pressButton('input[value="Login"]', function() {
+            expect(browser.html("body")).not.toContain("Insanely fast, headless full-stack testing using Node.js");
+            expect(browser.query("input[value='Login']")).toBeDefined();
+            next();
+        });
+    });
+
+    it("should be able to login with correct credentials", function(next) {
+        browser
+        .fill('input[name="username"]', "admin")
+        .fill('input[name="password"]', "1234")
+        .pressButton('input[value="Login"]', function(res) {
+            expect(browser.html("body")).toContain("Insanely fast, headless full-stack testing using Node.js");
+            expect(browser.query("input[value='Login']")).toBeUndefined();
+            next();
+        });
+    });
+
+    it("should be able to see CSS selectors page", function(next) {
+        browser.visit(url + "css-selectors", function(err) {
+            expect(browser.html("body")).toContain("CSS Selectors");
+            next();
+        });
+    });
+
+    it("should logout", function(next) {
+        browser.clickLink('#logout', function() {
+            expect(browser.query("input[value='Login']")).toBeDefined();
+            next();
+        });
+    });
+
+    it("should not be able to see CSS selectors page after the logout", function(next) {
+        browser.visit(url + "css-selectors", function(err) {
+            expect(browser.html("body")).not.toContain("CSS Selectors");
+            next();
+        });
+    });
+
+});
+[/code]The final result:[code]
+Finished in 1.274 seconds
+7 tests, 11 assertions, 0 failures
+[/code]
+As you can see you have a fully working browser under your script control. You can fill forms, click buttons or links. You can also modify the request headers and all those things are programmable. By creating such an automated tests you could save a lot of time, which is normally spend in browsing the application. 
+And, of course, the very best part, is that you will be notified where exactly is the problem. 
+
+

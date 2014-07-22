@@ -1,0 +1,70 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Experiments</title>
+        <meta http-equiv='Content-Type' content='text/html; charset=utf-8' />
+        <style>
+            body {
+                font-family: Verdana;
+                padding: 20px;
+                margin: 0;
+            }
+            h1 {
+                margin: 0 0 10px 0;
+            }
+        </style>        
+    </head>
+    <body>
+        <h1>Usersnap test</h1>
+        <section>
+            <a href='#' id='click-me'>click me</a>
+            <div id="data"></div>
+        </section>
+        <script>
+            var qs = function(selector) {
+                return document.querySelector(selector);
+            }
+            var ajax = function(file, cb) {
+                console.log('starting an ajax call');
+                var xmlhttp = window.XMLHttpRequest ? new XMLHttpRequest() : new ActiveXObject('Microsoft.XMLHTTP');
+                xmlhttp.onreadystatechange = function() {
+                    if (xmlhttp.readyState == 4) {
+                        if(xmlhttp.status == 200){
+                            cb(null, xmlhttp.responseText);
+                        } else if(xmlhttp.status == 400) {
+                            cb('There was an error 400')
+                        } else {
+                            cb('something else other than 200 was returned')
+                        }
+                    }
+                }
+                xmlhttp.open('GET', file, true);
+                xmlhttp.send();
+            }
+            window.onload = function() {
+                console.log('onload event');
+                qs('#click-me').addEventListener('click', function() {
+                    console.log('the button is clicked');
+                    qs('section').setAttribute('style', 'background: #9CCDA6;');
+                    ajax('data.json', function(err, data) {
+                        if(err) { alert(err); return; }
+                        else { data = JSON.parse(data); }
+                        console.log('the data is here ', data);
+                        qs('#data').innerHTML = 'There are ' + data.items.length + ' items.';
+                    });
+                });
+            }
+        </script>
+        <script type="text/javascript">
+          (function() {
+          var s = document.createElement("script");
+            s.type = "text/javascript";
+            s.async = true;
+            s.src = '//api.usersnap.com/load/'+
+                '30272a4c-94a3-4a81-8ddc-d085d9c09c2d.js';
+            var x = document.getElementsByTagName('script')[0];
+            x.parentNode.insertBefore(s, x);
+          })();
+        </script>
+    </body>
+</html>
