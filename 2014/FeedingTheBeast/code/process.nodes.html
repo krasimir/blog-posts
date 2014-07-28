@@ -18,43 +18,6 @@
         </div>
         <script>
             window.onload = function() {
-                // (function parse(e, cb) {
-
-                //     // skipping text nodes and script tags
-                //     if(e.nodeType !== 1 || e.nodeType == 'SCRIPT') { cb(); return; }
-
-                //     processed++;
-
-                //     // showing processing message
-                //     console.log('Processed ' + processed + ' nodes.');
-
-                //     // local vars
-                //     var numChilds = e.childNodes.length,
-                //         numOfProcessed = 0;
-
-                //     // recursion
-                //     // if(numChilds > 0) {
-                //     //     processed = function() {
-                //     //         numOfProcessed++;
-                //     //         if(e.childNodes[numOfProcessed]) {
-                //     //             setTimeout(function(){
-                //     //                 parse(e.childNodes[numOfProcessed], elStorage, item.path + ' ' + item.name, processed);
-                //     //             }, gap);
-                //     //         } else {
-                //     //             cb();
-                //     //         }
-                //     //     }
-                //     //     setTimeout(function(){
-                //     //         parse(e.childNodes[numOfProcessed], elStorage, item.path + ' ' + item.name, processed);
-                //     //     }, gap);
-                //     // } else {
-                //     //     cb();
-                //     // }
-
-                // })(document.querySelector('body'), function() {
-                //     console.log('end');
-                // });
-
                 var processed = 0;
                 (function parse(e) {
                     if(e.nodeType !== 1 || e.nodeName == 'SCRIPT') return;
@@ -62,9 +25,39 @@
                     console.log(e.nodeName.toLowerCase() + ' (' + processed + ')');
                     // using e.getAttributes ...
                     for(var i=0; i<e.childNodes.length; i++) {
-                        parse(e.childNodes[i]);
+                        (function(index) {
+                            requestAnimationFrame(function() {
+                                parse(e.childNodes[index]);
+                            });
+                        })(i);
                     }
                 })(document.querySelector('body'));
+
+                // var processed = 0;
+                // (function parse(e) {
+                //     if(e.nodeType !== 1 || e.nodeName == 'SCRIPT') return;
+                //     processed++;
+                //     console.log(e.nodeName.toLowerCase() + ' (' + processed + ')');
+                //     // using e.getAttributes ...
+                //     for(var i=0; i<e.childNodes.length; i++) {
+                //         (function(index) {
+                //             setTimeout(function() {
+                //                 parse(e.childNodes[index]);
+                //             }, 0);
+                //         })(i);
+                //     }
+                // })(document.querySelector('body'));
+
+                // var processed = 0;
+                // (function parse(e) {
+                //     if(e.nodeType !== 1 || e.nodeName == 'SCRIPT') return;
+                //     processed++;
+                //     console.log(e.nodeName.toLowerCase() + ' (' + processed + ')');
+                //     // using e.getAttributes ...
+                //     for(var i=0; i<e.childNodes.length; i++) {
+                //         parse(e.childNodes[i]);
+                //     }
+                // })(document.querySelector('body'));
 
             }
         </script>

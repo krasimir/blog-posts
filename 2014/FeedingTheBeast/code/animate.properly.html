@@ -1,0 +1,94 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Code</title>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+        <style>
+            input[type="text"] {
+                display: none;
+            }
+            ul {
+                list-style: none;
+                margin: 0;
+                left: 0;
+            }
+            li {
+                width: 300px;
+                margin: 0;
+                padding: 4px 20px;
+                background: #DEDEDE;
+                border-radius: 6px;
+                border-bottom: solid 2px #999;
+                transition: all 200ms;
+            }
+            li:hover {
+                font-size: 30px;
+            }
+            li {
+                display: block;
+                width: 300px;
+                margin: 0;
+                padding: 4px 20px;
+                background: #DEDEDE;
+                border-radius: 6px;
+                border-bottom: solid 2px #999;
+                transition: all 200ms;
+            }
+            li:hover {
+                transform: scale(1.2, 1.2) translate(27px, 0);
+            }
+        </style>
+    </head>
+    <body>
+        <ul></ul>
+<script>
+window.onload = function() {
+
+    var loadData = function(url, cb) {
+        var xmlhttp;
+        if (window.XMLHttpRequest) {
+            xmlhttp = new XMLHttpRequest();
+        } else {
+            xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
+        }
+        xmlhttp.onreadystatechange = function() {
+            if (xmlhttp.readyState == 4 ) {
+                if(xmlhttp.status == 200){
+                    var rawData = xmlhttp.responseText;
+                    cb(JSON.parse(rawData));
+                } else if(xmlhttp.status == 400) {
+                    console.log('There was an error 400');
+                } else {
+                    console.log('something else other than 200 was returned');
+                }
+            }
+        }
+        xmlhttp.open("GET", url, true);
+        xmlhttp.send();
+    }
+
+    var list = document.querySelector('ul');
+    var field = document.querySelector('input');
+
+    loadData('names.json', function(data) {
+        
+        var numOfUsers = data.length;
+        // numOfUsers = 800;
+
+        var printUsers = function(filter) {
+            var r = new RegExp(filter || '', 'i');
+            var html = '';
+            for(var i=0; i<numOfUsers; i++) {
+                if(r.test(data[i].name)) {
+                    html += '<li>' + (i+1) + '. ' + data[i].name + '</li>';
+                }
+            }
+            list.innerHTML = html;
+        }
+        printUsers();
+
+    });
+}
+</script>
+    </body>
+</html>

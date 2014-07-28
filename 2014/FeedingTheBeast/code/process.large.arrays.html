@@ -1,0 +1,72 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Code</title>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+        <style>
+            input[type="text"] {
+                display: none;
+            }
+        </style>
+    </head>
+    <body>
+        <input type="text">
+        <ul></ul>
+<script>
+window.onload = function() {
+
+    var loadData = function(url, cb) {
+        var xmlhttp;
+        if (window.XMLHttpRequest) {
+            xmlhttp = new XMLHttpRequest();
+        } else {
+            xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
+        }
+        xmlhttp.onreadystatechange = function() {
+            if (xmlhttp.readyState == 4 ) {
+                if(xmlhttp.status == 200){
+                    var rawData = xmlhttp.responseText;
+                    cb(JSON.parse(rawData));
+                } else if(xmlhttp.status == 400) {
+                    console.log('There was an error 400');
+                } else {
+                    console.log('something else other than 200 was returned');
+                }
+            }
+        }
+        xmlhttp.open("GET", url, true);
+        xmlhttp.send();
+    }
+
+    var list = document.querySelector('ul');
+    var field = document.querySelector('input');
+
+    loadData('names.json', function(data) {
+
+        field.style.display = 'block';
+        field.focus();  
+        
+        var numOfUsers = data.length;
+        // numOfUsers = 800;
+
+        var printUsers = function(filter) {
+            var r = new RegExp(filter || '', 'i');
+            var html = '';
+            for(var i=0; i<numOfUsers; i++) {
+                if(r.test(data[i].name)) {
+                    html += '<li>' + (i+1) + '. ' + data[i].name + '</li>';
+                }
+            }
+            list.innerHTML = html;
+        }
+        printUsers();
+
+        field.addEventListener('keyup', function() {
+            printUsers(field.value);
+        });
+
+    });
+}
+</script>
+    </body>
+</html>
