@@ -1,0 +1,42 @@
+<p>Before a couple of months my first book <a href="http://nodejs.krasimirtsonev.com/">Node.js Blueprints</a> was published by <a href="https://www.packtpub.com/nodejs-blueprints/book">Packt</a>. There are a couple of reviews in <a href="http://www.amazon.com/Node-js-Blueprints-Krasimir-Tsonev/product-reviews/1783287330">Amazon</a> about chapter two. It&rsquo;s about <a href="http://expressjs.com/">Express</a>. One of the most popular frameworks in the Node.js ecosystem. The book mentions version 3.0 but the truth is that the code samples are for version 4.0. I feel that I still have to point out the differences and mark these parts of the chapter that are not valid for the newest version of the library.</p>[STOP]
+<h2 id="the-connect-dependency"><a name="user-content-the-connect-dependency" href="#the-connect-dependency" class="headeranchor-link"  aria-hidden="true"><span class="headeranchor"></span></a>The <a href="https://github.com/senchalabs/connect">connect</a> dependency</h2>
+<p>Express 4.0 is not depending on <a href="https://github.com/senchalabs/connect">connect</a> module. However, this doesn&rsquo;t mean that the framework is not using a middleware architecture. It still works by following this design pattern. The difference is that the middlewares, i.e. the plugins, are not part of Express&rsquo;s package anymore. They have to be installed additionally. For example, so far we used:</p>
+<pre><code>app.use(express.bodyParser());
+</code></pre>
+<p>With 4.0 we have to add <a href="https://github.com/expressjs/body-parser">body-parser</a> module and use the following syntax:</p>
+<pre><code>var bodyParser = require(&lsquo;body-parser&rsquo;);
+app.use(bodyParser());</code></pre>
+<h2 id="installation"><a name="user-content-installation" href="#installation" class="headeranchor-link"  aria-hidden="true"><span class="headeranchor"></span></a>Installation</h2>
+<p>There are no changes in this area. Still the framework could be installed in two ways</p>
+<ul>
+<li>Add <code>"express": "4.x"</code> in the <code>package.json</code> file.</li>
+<li>Via the command line tool <code>express-generator</code>.</li>
+</ul>
+<p>The <a href="http://expressjs.com/guide.html#intro">Getting started</a> section of the official site demonstrates the both methods.</p>
+<h2 id="the-basic-example"><a name="user-content-the-basic-example" href="#the-basic-example" class="headeranchor-link"  aria-hidden="true"><span class="headeranchor"></span></a>The basic example</h2>
+<p>The very basic example used in the book is still up-to-date.</p>
+<pre><code>var express = require(&lsquo;express&rsquo;);
+var app = express();
+app.get(&ldquo;/&rdquo;, function(req, res, next) {
+    res.send(&ldquo;Hello world&rdquo;);
+}).listen(1337);
+console.log(&lsquo;Server running at http://127.0.0.1:1337/&rsquo;);</code></pre>
+<p>The <code>app.verb()</code> APIs are kept and we could still use them. For example, in the code above we successfully processed a GET request passed to the root path of our application. If we need to handle POST or PUT request we are free to use <code>.post</code> and <code>.put</code> methods.</p>
+<p>&nbsp;</p>
+<p>If we use the command line tool and run:</p>
+<pre><code>npm install -g express-generator
+express &ndash;css less myapp</code></pre>
+The generated directories and files are the same. To run the application we have to execute the following commands:</p>
+<pre><code>npm install
+npm start
+</code></pre>
+<p>Our Express server listens on <em>localhost</em> at port 3000.</p>
+<h2 id="the-book"><a name="user-content-the-book" href="#the-book" class="headeranchor-link"  aria-hidden="true"><span class="headeranchor"></span></a>The book</h2>
+<p>In fact, the example demonstrated in <em>Node.js Blueprints</em> uses version 4. In the <code>package.json</code> coming along with the book we have:</p>
+<pre><code>&ldquo;dependencies&rdquo;: {
+    &ldquo;express&rdquo;: &ldquo;~4.0.0&rdquo;
+    &hellip;</code></pre>
+<p>This installs the version that uses the new APIs. So, you don&rsquo;t have to change the code or look for migration advices. I reread the second chapter I could confirm that the published snippets and screenshots are actually for version 4. For example, the following image is from page 27:</p>
+<p><img alt="ExpressJS Node.js Blueprints" src="http://krasimirtsonev.com/blog/articles/ExpressJS/7338_02_02.png" /></p>
+<p>&nbsp;</p>
+<p>Here is a great article about migrating from version 3 to version 4 - <a href="http://scotch.io/bar-talk/expressjs-4-0-new-features-and-upgrading-from-3-0">ExpressJS 4.0: New Features and Upgrading from 3.0</a></p>
