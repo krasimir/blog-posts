@@ -1,0 +1,71 @@
+<p>I&rsquo;m reading and watching a lot of interesting things regarding client-side performance. I&rsquo;m interested in the browser&rsquo;s processes happening before and just after the page&rsquo;s load. There are tons of stuff to think about. Before a couple of days, I joined the <a href="https://shop.smashingmagazine.com/online-workshop-friedman-front-end-perf-rwd-august-15.html">online workshop of Vitaly Friedman</a>. I had a great time and learned some clever facts about performance optimization.</p>[STOP]
+<p>I spent weeks optimizing applications for clients, but I did not do that for my website. It is not optimized at all. Last few years I changed the blog a lot, and the whole codebase is awful. These days I found some free time and decided to use the learned techniques. I didn&rsquo;t have time for a complete rewrite but there were some changes that are easily applicable.</p>
+<h2 id="the-old-state"><a name="user-content-the-old-state" href="#the-old-state" class="headeranchor-link"  aria-hidden="true"><span class="headeranchor"></span></a>The old state</h2>
+<p>There are two helpful online services that I used to analyze the main problems - <a href="https://developers.google.com/speed/pagespeed/insights/">PageSpeedInsights</a> and <a href="http://www.webpagetest.org/">WebPageTest</a>. Here are two screenshots showing the old state of the <a href="http://krasimirtsonev.com/main/">main page</a>:</p>
+<p>PageSpeedInsights</p>
+<p><img alt="PageSpeedInsights screenshot" src="http://krasimirtsonev.com/blog/articles/performance/01.jpg" /></p>
+<p>WebPageTest</p>
+<p><img alt="WebPageTest screenshot" src="http://krasimirtsonev.com/blog/articles/performance/02.jpg" /></p>
+<p>I don&rsquo;t think that the results are satisfying. If you open <a href="http://krasimirtsonev.com/main/"><a href="http://krasimirtsonev.com/main/"><a href="http://krasimirtsonev.com/main/">http://krasimirtsonev.com/main/</a></a></a> you will see that there are only text and few images. It should be a lot faster.</p>
+<h2 id="avoiding-redirects"><a name="user-content-avoiding-redirects" href="#avoiding-redirects" class="headeranchor-link"  aria-hidden="true"><span class="headeranchor"></span></a>Avoiding redirects</h2>
+<p>The <em>First Byte</em> characteristics provided by WebPageTest shows how quickly the server responds to a request. If we have a high value, this is usually because of redirects. I had one. The content of my <code>/index.php</code> was:</p>
+<pre><code>&lt;?php        
+    header(&ldquo;Location: main/&rdquo;);
+?&gt;</code></pre>
+<p>When I transfer the content of <code>/main/index.php</code> to <code>/index.php</code> I won roughly 200ms.</p>
+<p><img alt="WebPageTest screenshot" src="http://krasimirtsonev.com/blog/articles/performance/03.jpg" /></p>
+<p>I used absolute URLs for all the assets. So I didn&rsquo;t change even a line of the code in the new <code>/index.php</code> file.</p>
+<h2 id="eliminate-render-blocking-javascript-and-css-in-above-the-fold-content"><a name="user-content-eliminate-render-blocking-javascript-and-css-in-above-the-fold-content" href="#eliminate-render-blocking-javascript-and-css-in-above-the-fold-content" class="headeranchor-link"  aria-hidden="true"><span class="headeranchor"></span></a>Eliminate render-blocking JavaScript and CSS in above-the-fold content</h2>
+<p>Google&rsquo;s PageSpeedInsights is saying that I have blocking JavaScript and/or CSS in the above-the-fold area. Of course, that was true. I had the following code in my head tag:</p>
+<pre><code>&lt;link rel=&rdquo;stylesheet&rdquo; type=&rdquo;text/css&rdquo; href=&rdquo;/blog/assets/css/fontello.css&rdquo; /&gt;
+&lt;link href=&rsquo;http://fonts.googleapis.com/css?family=Roboto:400,700&amp;subset=latin,cyrillic-ext&rsquo; rel=&rsquo;stylesheet&rsquo; type=&rsquo;text/css&rsquo;&gt;
+&lt;link rel=&rdquo;stylesheet&rdquo; type=&rdquo;text/css&rdquo; href=&rsquo;/blog/assets/css/blog.css&rsquo; /&gt;</code></pre>
+<p>The first problem is <a href="http://fontello.com/">Fontello</a>. It&rsquo;s an icon font. I checked carefully, and it looks like that I&rsquo;m using three icons from this CSS file in the above-the-fold content: Twitter&rsquo;s bird, GitHub&rsquo;s icon and the Facebook&rsquo;s one. I had a few more in the footer of the page, but this was not critical. Instead of relying on to an external file for these icons, I decided to use SVG images directly inlined in the HTML. The SVG is <a href="http://caniuse.com/#feat=svg">well supported</a> and it is a good choice for non-detailed images.</p>
+<p>The result was 200ms less for the initial rendering of the page. The document completion and the full loading is also faster:</p>
+<p><img alt="WebPageTest screenshot" src="http://krasimirtsonev.com/blog/articles/performance/04.jpg" /></p>
+<p>Here are the differences in the waterfall views:</p>
+<p><img alt="WebPageTest screenshot" src="http://krasimirtsonev.com/blog/articles/performance/05.jpg" /></p>
+<p>There are two more CSS files to think about. The first one holds the definition of the fonts that the site uses and the second one contains the rest of the styling. As I said the main page of my site was changed several times during the last years and I ended up by using the styles from my blog. So, to save time I directly referenced <code>blog.css</code>. It&rsquo;s 13KB file, and most of the styles there are blog-specific. What I did is to grab the font definitions and started a new file. In the end, I rewrite everything and produced much smaller file and of course have only one HTTP request.</p>
+<p>In fact, the final minified styles were ~2K, so I decided to inline them directly into the HTML. The overall performance of the page increases and I didn&rsquo;t block the rendering anymore. Google&rsquo;s PageSpeedInsights showed me the score of <code>91/100</code> for mobile and desktop. It was <code>74/100</code> before to start the optimization. </p>
+<p><img alt="WebPageTest screenshot" src="http://krasimirtsonev.com/blog/articles/performance/06.jpg" /></p>
+<p>Here is the waterfall view so far:</p>
+<p><img alt="WebPageTest screenshot" src="http://krasimirtsonev.com/blog/articles/performance/07.jpg" /></p>
+<h2 id="leverage-browser-caching"><a name="user-content-leverage-browser-caching" href="#leverage-browser-caching" class="headeranchor-link"  aria-hidden="true"><span class="headeranchor"></span></a>Leverage browser caching</h2>
+<p>It is good to optimize the first byte time, the number of requests or the file size, but there is nothing faster than the browser&rsquo;s cache. If our resources are loaded from there, then our application performs well. Sometimes the caching depends on the server&rsquo;s setup. Along with the CSS files or the images we may send different headers instructing the browser that the particular resource should be cached.</p>
+<p>Sadly, I&rsquo;m using a shared hosting, so I wasn&rsquo;t able to apply most of the possible optimizations. What I did is to play with the settings in my <code>.htaccess</code> file. For example, the following directive sent a <em>Cache-Control</em> header to the browser.</p>
+<pre><code>&lt;ifModule mod_headers.c&gt;
+  &lt;filesMatch &ldquo;\.(ico|jpe?g|png|gif|swf)$&rdquo;&gt;
+    Header set Cache-Control &ldquo;max-age=2592000, public&rdquo;
+  &lt;/filesMatch&gt;
+&lt;/ifModule&gt;</code></pre>
+<p>I digged a bit and found <a href="http://www.samaxes.com/2009/01/more-on-compressing-and-caching-your-site-with-htaccess/">this</a> blog post. I directly copied the code from there, and the result was surprising:</p>
+<p><img alt="WebPageTest screenshot" src="http://krasimirtsonev.com/blog/articles/performance/08.jpg" /></p>
+<p>The repeated view is shown almost immediately. Apparently all the resources are fetched from the cache.</p>
+<p>With the latest updates, I also reached <em>96/100</em> result in PageSpeedInsights.</p>
+<h2 id="image-optimization"><a name="user-content-image-optimization" href="#image-optimization" class="headeranchor-link"  aria-hidden="true"><span class="headeranchor"></span></a>Image optimization</h2>
+<p>One of the things that kill the sites&rsquo; performance is the images. It is good to compress them as much as possible. I used <a href="http://luci.criosweb.ro/riot/">RIOT</a> for the purpose. It&rsquo;s a free tiny image optimizer. After passing the images to the program and uploading them to the server I got one more point from PageSpeedInsights - <em>97/100</em>. </p>
+<h2 id="the-blog"><a name="user-content-the-blog" href="#the-blog" class="headeranchor-link"  aria-hidden="true"><span class="headeranchor"></span></a>The blog</h2>
+<p>The situation with <a href="http://krasimirtsonev.com/blog">krasimirtsonev.com/blog</a> is the same. Google gave me <em>72/100</em> and PageSpeedTest showed that the page is fully loaded for 3,5 seconds. That&rsquo;s a lot.</p>
+<p><img alt="WebPageTest screenshot" src="http://krasimirtsonev.com/blog/articles/performance/09.jpg" /></p>
+<p>In general, I applied the same techniques. </p>
+<ul>
+<li>I deleted the old CSS file and wrote a new one from scratch.</li>
+<li>I replaced Fontello icons with SVG inlined images.</li>
+<li>There was a search functionality that no one used. So, I removed all the HTML, CSS and JavaScript related to that.</li>
+<li>jQuery was used as a dependency because of two DOM elements&rsquo; selection. I removed it and used <code>document.querySelector</code> instead.</li>
+<li>The syntax highlighter that I used so far was <a href="https://google-code-prettify.googlecode.com/svn/trunk/README.html">Prettify</a>. I migrated to <a href="http://prismjs.com/">Prism</a>. The flickering effect is missing now because the Prism&rsquo;s JavaScript applies only colors to the code block. Most of the styling is done with pure CSS.</li>
+<li>The social networks&rsquo; share buttons were transformed to direct share URLs. There are no iframes or inlined script tags for that.</li>
+<li>There is a Twitter <em>follow</em> button. It is now displayed after the page&rsquo;s load.</li>
+</ul>
+<p>The final result looks like that:</p>
+<p><img alt="WebPageTest screenshot" src="http://krasimirtsonev.com/blog/articles/performance/10.jpg" /></p>
+<p>The <em>Start render</em> time is a little bit longer than before (~100ms more) but the overall performance of the blog looks much better. Here is the waterfall view:</p>
+<p><img alt="WebPageTest screenshot" src="http://krasimirtsonev.com/blog/articles/performance/11.jpg" /></p>
+<p>In general, the time for the first byte is a lot. That&rsquo;s because the crappy custom CMS that I&rsquo;m using. I hope to find some time to improve it.</p>
+<p>There are two other things that I&rsquo;m considering:</p>
+<ul>
+<li>Inline the CSS styles as I did for the <code>/main</code> site. The stylesheet of the blog is 7.5KB. It&rsquo;s not that much but placing them into the HTML means that the user will download these 7.5KB every time. If we leave the CSS in an external file, the browser will cache it and will get it from the user&rsquo;s device.</li>
+<li>There are some tricks to transfer the fonts into the local storage. It is a nice optimization technique initially used by <a href="http://www.theguardian.com/uk">TheGuardian</a> (I think). I may try doing it.</li>
+</ul>
+<h2 id="summary"><a name="user-content-summary" href="#summary" class="headeranchor-link"  aria-hidden="true"><span class="headeranchor"></span></a>Summary</h2>
+<p>The optimization of my website/blog was in my task list for a long time. What I did was changing only the CSS and adding few extra lines to the <code>.htaccess</code>. Luckily, this improved the overall performance significantly.</p>
