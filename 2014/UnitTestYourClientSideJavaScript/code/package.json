@@ -1,0 +1,11 @@
+{
+  "name": "test",
+  "version": "0.0.0",
+  "scripts": {
+    "test": "node ./node_modules/mocha/bin/mocha --ui tdd --recursive"
+  },
+  "dependencies": {
+    "mocha": "2.0.1",
+    "jsdom": "1.1.0"
+  }
+}

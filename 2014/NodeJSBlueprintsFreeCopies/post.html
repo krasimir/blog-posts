@@ -1,6 +1,33 @@
 <p>Readers  would be pleased to know that I have teamed up with Packt Publishing  to organize a Giveaway of a new book written by me - <a href="http://bit.ly/Xeb1RB" target="_blank">Node.js Blueprints</a>. And three lucky winners stand a chance to win 3 e-copies of this book. Keep reading to find out how you can be one of the Lucky Winners.</p>[STOP]
-<p>&nbsp;</p>
 <p><img alt="Node.js Blueprints book" src="http://nodejs.krasimirtsonev.com/cover.jpg" /></p>
+
+<h2 id="winners">The winners</h2>
+<p>Similarly like the <a href="http://krasimirtsonev.com/blog/article/Win-Free-Copies-of-the-new-book-Getting-Started-with-Grunt">contest for <b>Getting Started with Grunt</b> book</a>, I decided to use a script that shuffles the participants and randomly selects three of them. Here is the code that I used:</p>
+<pre><code>// http://stackoverflow.com/a/962890/642670
+var shuffle = function(array) {
+    var tmp, current, top = array.length;
+    if(top) while(--top) {
+    	current = Math.floor(Math.random() * (top + 1));
+    	tmp = array[current];
+    	array[current] = array[top];
+    	array[top] = tmp;
+    }
+    return array;
+}
+
+users = shuffle(users);
+for(var i=0; i<3; i++) {
+	console.log(users[i]);
+}</code></pre>
+
+<p>Aaaaand the winners are:</p>
+
+<ul>
+<li>Димитър Николов (https://plus.google.com/+ДимитърНиколовНиколов)</li>
+<li>Ioannis (@IOKaravasilis)</li>
+<li>neutraltone (@NeutralTone)</li>
+</ul>
+
 <h2 id="overview"><a name="user-content-overview" href="#overview" class="headeranchor-link"  aria-hidden="true"><span class="headeranchor"></span></a>Overview</h2>
 <ul>
 <li>Utilize libraries and frameworks to develop real-world applications using Node.js</li>
