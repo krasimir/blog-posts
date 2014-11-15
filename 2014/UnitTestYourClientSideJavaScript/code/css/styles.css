@@ -1,0 +1,6 @@
+label, input {
+  display: block;
+}
+.register-form {
+  display: none;
+}
