@@ -1,0 +1,77 @@
+<p>I like <a href="https://npmjs.org/">npm</a> and the fact that I can install tons of stuff. It&rsquo;s great piece of software and helps me solve problems everyday. Yesterday I had to use a <a href="https://docs.npmjs.com/misc/scripts"><code>postinstall</code></a> script and hit a problem.</p>[STOP]
+
+<h2 id="the-problem"><a name="user-content-the-problem" href="#the-problem" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>The problem</h2>
+<p>Let&rsquo;s say that we have a module <code>A</code> that depends on module <code>B</code>. We have a <code>package.json</code> file like the one below:</p>
+<pre><code>{
+  &quot;name&quot;: &quot;A&quot;
+  &quot;version&quot;: &quot;0.1.2&quot;,
+  &quot;dependencies&quot;: {
+    &quot;B&quot;: &quot;0.1.2&quot;
+  }
+}
+</code></pre>
+
+<p>When we run <code>npm install</code> we will get the following files/folder structure:</p>
+<pre><code>├── node_modules
+│   └── B
+├── package.json
+└── README.md
+</code></pre>
+
+<p>Now, let&rsquo;s say that both <code>A</code> and <code>B</code> depend on another <code>C</code> module. And not only that, they depend on same version of the module. Now it gets interesting. <code>npm</code> is smart enough to find out that <code>C</code> module should be installed on only one place and used equally by <code>A</code> and <code>B</code>. So it does the following:</p>
+<pre><code>├── node_modules
+│   ├── B
+│   │   ├── node_modules
+│   │   └── package.json
+│   └── C   
+├── package.json
+└── README.md
+</code></pre>
+
+<p>Everything seems ok. The <code>C</code> module is installed at the same level of <code>B</code> but <code>B</code> still has an access to it through <code>require('C')</code>. I believe that <code>npm</code> first checks in the local <code>node_modules</code> directory, then goes up and in the end checks the globally installed packages (not sure if that&rsquo;s the exact order). </p>
+<p>My problem is that I have a <code>postinstall</code> script in <code>node_modules/B/package.json</code> that uses the <code>C</code> module. Something like this:</p>
+<pre><code>{
+  &quot;name&quot;: &quot;B&quot;
+  &quot;version&quot;: &quot;0.1.2&quot;,
+  &quot;dependencies&quot;: {
+    &quot;C&quot;: &quot;0.0.1&quot;
+  },
+  &quot;scripts&quot;: {
+    &quot;postinstall&quot;: &quot;node ./node_modules/C make&quot;
+  }
+}
+</code></pre>
+
+<p>And of course after the installation the <code>B</code> module does not have <code>C</code> installed locally. It&rsquo;s in the upper directory.</p>
+<h2 id="the-solution"><a name="user-content-the-solution" href="#the-solution" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>The solution</h2>
+<p>The first thing that I tried is accessing the <code>C</code> module from a script and not directly like in the <code>package.json</code> above. I created a file `runMe.js` in the `B`'s directory:</p>
+<pre><code>// node_modules/B/runMe.js
+var C = require('C');
+C.make();
+</code></pre>
+
+<p>And I replaced</p>
+<pre><code>"postinstall": "node ./node_modules/C make"</code></pre> with <pre><code>"postinstall": "node ./runMe.js"</code></pre>
+<p>That doesn&rsquo;t work because the <code>C</code> module was not installed even in the upper directory when <code>npm</code> runs <code>node ./runMe.js</code>. We needed to wait a bit. In the end I just write the most hacky code for the day:</p>
+<pre><code>// node_modules/B/runMe.js
+var deps = ['C'], index = 0;
+(function doWeHaveAllDeps() {
+  if(index === deps.length) {
+    var C = require('C');
+    C.make();
+    return;
+  } else if(isModuleExists(deps[index])) {
+    index += 1;
+    doWeHaveAllDeps();
+  } else {
+    setTimeout(doWeHaveAllDeps, 500);
+  }
+})();
+
+function isModuleExists( name ) {
+  try { return !!require.resolve(name); }
+  catch(e) { return false }
+}
+</code></pre>
+
+<p>I described all the needed dependencies in an array and simply wait till they are accessible via <code>require.resolve</code>. Dummy but it worked. </p>
