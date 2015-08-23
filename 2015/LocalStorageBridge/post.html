@@ -1,0 +1,146 @@
+<p>So its been a few months since I published something here. It&rsquo;s not because I&rsquo;m lazy (that&rsquo;s true though) but because I was working on my <a href="https://www.packtpub.com/application-development/nodejs-example">second book</a>. Now the book is almost finished and I&rsquo;ll start actively blogging again. In this article we&rsquo;ll see how to use the <a href="http://diveintohtml5.info/storage.html">local storage</a> of the browser as a communication channel.</p>[STOP]
+<h2 id="the-problem"><a name="user-content-the-problem" href="#the-problem" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>The problem</h2>
+<p>What is this all about? I&rsquo;m working on a single page application that may be placed inside an iFrame. If you ever did that you probably know that working in such scenario is not the easiest thing on the planet. For example, we see the HTTP requests in the browser&rsquo;s console but <strike>we can&rsquo;t log anything</strike> (edit: <a href="http://devtoolsecrets.com/secret/console-changing-frame-focus.html" target="_blank">we can</a>). <i>My first idea was to use the solution in that context. However, after posting this article to <a href="http://www.reddit.com/r/javascript/comments/34ygdb/using_local_storage_as_a_communication_channel/">reddit</a> I found out that there is another simpler workaround. Still, such type of communication may be useful if we want to exchange data between two (or more) tabs in a same browser.</i></p>
+<p>For a short period of time I was thinking about things like reading location hash value or attaching methods to the iFrame&rsquo;s window object. Then I remembered about <a href="https://github.com/omphalos/earhorn"><strong>earhorn</strong></a> library. It&rsquo;s a piece of code that logs JavaScript executions. Really helpful but I&rsquo;m not going into that now. It&rsquo;s interesting how this tool produces its output. Shortly:</p>
+<ul>
+<li> We pass our source to <strong>earhorn</strong> and we get the same code but instrumented.</li>
+<li> In a new tab of the browser we load a page provided by the library.</li>
+<li> Then, with the same browser, we open our application containing the instrumented code and start using the app.</li>
+<li> If we go to the newly opened tab we&rsquo;ll see that our actions are logged.</li>
+</ul>
+<p>How is this possible? Our application is not making HTTP request and it&rsquo;s not wired to a <a href="http://krasimirtsonev.com/blog/article/Real-time-chat-with-NodeJS-Socketio-and-ExpressJS">socket server</a>. It looks like the two tabs are communicating somehow.</p>
+<h2 id="the-solution"><a name="user-content-the-solution" href="#the-solution" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>The solution</h2>
+<p><strong>earhorn</strong> uses the local storage of the browser to store and retrieve messages between the tabs. That is possible because we run the two pages inside one browser and they both read from the same place. So in theory:</p>
+<pre><code>page 1 (our app) | page 2 (earhorn)
+-----------------------------------
+&gt; writes to      | . checking localStorage
+  localStorage   | . checking localStorage
+                 | &gt; reads from
+                 |   localStorage
+                 | &gt; clears
+                 |   localStorage
+&gt; writes to      | . checking localStorage
+  localStorage   | . checking localStorage
+                 | ... and so on
+</code></pre>
+
+<p>The code in our application stores something in the local storage. The second page constantly checks if there is a value. If yes, fetch it and clears the storage so it doesn&rsquo;t get the same value twice.</p>
+<h2 id="the-implementation"><a name="user-content-the-implementation" href="#the-implementation" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>The implementation</h2>
+<p>Well, it&rsquo;s not that simple as it looks like. I spent half a day fine-tuning the process.</p>
+<p>Here is the API provided by the browser:</p>
+<ul>
+<li><code>localStorage.setItem(&lt;keyword&gt;, &lt;value&gt;)</code> - storing a key-value pair</li>
+<li><code>localStorage.getItem(&lt;keyword&gt;)</code> - fetching a value stored under <code>&lt;keyword&gt;</code></li>
+<li><code>localStorage.removeItem(&lt;keyword&gt;)</code></li>
+</ul>
+<p>The very first job to do is saving something in the storage. Sadly, the <code>&lt;value&gt;</code> from the list above could be only a string (or number). I&rsquo;d probably use object literals so the following function came to my mind:</p>
+<pre><code>api.send = function(namespace, data) {
+  var raw = '';
+  if(typeof data === 'function') { data = data(); }
+  if(typeof data === 'object') {
+    raw = JSON.stringify(data);
+  } else {
+    raw = data;
+  }
+  localStorage.setItem(namespace, raw);
+};
+</code></pre>
+
+<p>I leaved an option for passing function. If that&rsquo;s the case then we expect that the function returns the value.</p>
+<p>So, the saving is done. Now we have to listen (or subscribe) for changes in the storage so we fetch the data.</p>
+<p><pre><code>var listeners = {};
+api.subscribe = function(namespace, cb) {
+  if(!listeners[namespace]) {
+    listeners[namespace] = [];
+    buffer[namespace] = [];
+  }
+  listeners[namespace].push(cb);
+  if(!isLoopStarted) {
+    isLoopStarted = loop();
+  }
+};
+</code></pre><br />
+We may have different namespaces and subscribe to same namespace multiple times so I decided to introduce a helper variable <code>listeners</code>. It stores all callbacks into sections so if a particular value changes we loop through the items in the array and run the functions.</p>
+<p><code>isLoopStarted</code> acts as a flag so we don&rsquo;t run the <code>loop</code> method several times.</p>
+<p>The browsers provide a <code>storage</code> event which is dispatched when something is updated. I thought using it but apparently it&rsquo;s not fired properly in every browser. So I ended up with the good old <code>setTimeout</code> calls (the <code>loop</code> function below) in 100 milliseconds interval. </p>
+<p>The next snippet demonstrates the hacky time interval where we are constantly checking for new value in the storage. If there is such we try parsing it and at the end fire all the callbacks. There is also a <code>buffer</code> array that keeps the already fetched messages. We use it to prevent reading the same value twice.</p>
+<pre><code>var loop = function() {
+  for(var namespace in listeners) {
+    var data = localStorage.getItem(namespace);
+    if(data &amp;&amp; buffer[namespace] &amp;&amp; buffer[namespace].indexOf(data) === -1) {
+      buffer[namespace].push(data);
+      try {
+        var parsed = JSON.parse(data);
+        if(parsed) data = parsed;
+      } catch(e) {}
+      for(var i=0; i&lt;listeners[namespace].length; i++) {
+        listeners[namespace][i](data);
+      }
+    }
+  }
+  setTimeout(loop, interval);
+  return true;
+};
+</code></pre>
+
+<p>There is one problem with the code above. We are not removing the message from the local storage. If we run the function as it is our callbacks will be called multiple times. Sure, we can execute <code>localStorage.removeItem</code> just after the <code>for</code> loop. But that works if we have one client subscribing to those changes.</p>
+<p>While I was testing I created a simple page where I stored and retrived values. And because that page contains the two operations I was only able to receive the messages there. No information was read by the other tab in the browser. It looks like I have to leave the data in the storage till all the tabs fetched it. The very first solution that I thought was storing a giant JSON object keeping the state of everyting - the clients, the messages and who actually read them. But that&rsquo;s too complex for such small tool. I was afraid that I&rsquo;ll end up with a chat server.</p>
+<p>Fifteen minutes later the following code solved the problem:</p>
+<pre><code>if(!localStorage.getItem(namespace + '-removeit')) {
+  localStorage.setItem(namespace + '-removeit', '1');
+  setTimeout(function() {
+    localStorage.removeItem(namespace);
+    localStorage.removeItem(namespace + '-removeit');
+    buffer[namespace] = [];
+  }, intervalForRemoval);
+}
+</code></pre>
+
+<p>I placed it just after the <code>for</code> loop. The first client tha reads the value stores another key-value pair - <code>something-removeit: 1</code>. After that no one of the other tabs goes into the same thing because of the <code>if</code> clause. Even the page that created that record. After that we simply wait till all the clients read the message. And how we know that they actually read it. Well, we run the <code>loop</code> method every 100 milliseconds. So if we place the removal into another <code>setTimeout</code> with 500 milliseconds delay we &ldquo;may&rdquo; say that the subscribers read the value on time. Not ideal but it works.</p>
+<p>Here is the final version of the <code>loop</code> functions:</p>
+<pre><code>var loop = function() {
+  for(var namespace in listeners) {
+    var data = localStorage.getItem(namespace);
+    if(data &amp;&amp; buffer[namespace] &amp;&amp; buffer[namespace].indexOf(data) === -1) {
+      buffer[namespace].push(data);
+      try {
+        var parsed = JSON.parse(data);
+        if(parsed) data = parsed;
+      } catch(e) {}
+      for(var i=0; i&lt;listeners[namespace].length; i++) {
+        listeners[namespace][i](data);
+      }
+      if(!localStorage.getItem(namespace + '-removeit')) {
+        localStorage.setItem(namespace + '-removeit', '1');
+        (function(n) {
+          setTimeout(function() {
+            localStorage.removeItem(n);
+            localStorage.removeItem(n + '-removeit');
+            buffer[namespace] = [];
+          }, intervalForRemoval);
+        })(namespace);
+      }
+    } else if(!data) {
+      buffer[namespace] = [];
+    }
+  }
+  setTimeout(loop, interval);
+  return true;
+};
+</code></pre>
+
+<h2 id="the-library"><a name="user-content-the-library" href="#the-library" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>The library</h2>
+<p>And because that&rsquo;s not just a single function I decided to wrap the whole thing into a library called <a href="https://github.com/krasimir/lsbridge">lsbridge</a>. Of course the whole tricky logic is masked into a friendly API:</p>
+<pre><code>// sending a message
+lsbridge.send('my-namespace', { message: 'Hello world!' });
+
+// listening
+lsbridge.subscribe('my-namespace', function(data) {
+  console.log(data); // prints: { message: 'Hello world!'}
+});
+</code></pre>
+
+<p>The following animated GIF demonstrates the final result:</p>
+<p><img alt="lsbridge" src="http://work.krasimirtsonev.com/git/lsbridge/lsbridge.gif" /></p>
+<p>Source: <a href="https://github.com/krasimir/lsbridge"><a href="https://github.com/krasimir/lsbridge"><a href="https://github.com/krasimir/lsbridge">https://github.com/krasimir/lsbridge</a></a></a></p>
+<p><i>P.S.<br />Only scripts that are published on same host and port may read the same localStorage resource.</i></p>
