@@ -1,0 +1,144 @@
+<p>When <a href="http://www.commonjs.org/">CommonJS</a> was announced we all thought &ldquo;Finally something that will organize our code&rdquo;. However, there are some cons that we should be aware of. It&rsquo;s not only unicorns and rainbows. In this article we will see how a simple <code>require</code> line makes our code difficult to test.</p>[STOP]
+<h2 id="what-is-all-this-about"><a name="user-content-what-is-all-this-about" href="#what-is-all-this-about" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>What is all this about</h2>
+<p>Let me give you an example so we see what I&rsquo;m talking about. Consider the following <code>login.js</code> module:</p>
+<p><pre><code>// login.js
+var http = require('./http');
+
+module.exports = function(username, password) {
+  var url = '/api/login';
+  var credentials = {
+    username: username,
+    password: password
+  };
+
+  return http
+    .credentials(credentials)
+    .url(url)
+    .request();
+  }
+};
+</code></pre><br />
+<code>login.js</code> accepts <code>username</code> and <code>password</code>. It performs HTTP request to a given endpoint and returns a <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise">promise</a>. </p>
+<p>Here is another piece of code that uses the module that we just created:</p>
+<pre><code>// app.js
+var login = require('login');
+
+login('user', '1234')
+  .then(function(user) {
+    console.log('User ' + user.fullName + ' logged in.');
+  })
+  .catch(function(error) {
+    console.log('Ops, something goes wrong!');
+  });
+</code></pre>
+
+<p>There is one other bit that we didn&rsquo;t talk about. That is the <code>http</code> module. It is an utility module that contains the code for the actual request. The whole picture looks like that:</p>
+<pre><code>app.js
+  |
+  login.js
+    |
+    http.js
+</code></pre>
+
+<p>So far nothing unusual but if we start thinking about testing we will see that the solution is not easily testable. Let&rsquo;s say that <code>http.js</code> is a third party library and we are writing no tests for it. <code>app.js</code> is our orchestration code so we will cover it with <a href="https://en.wikipedia.org/wiki/System_testing">e2e</a> tests. The middle layer <code>login.js</code> is suitable for unit testing. If we have to write a test using <a href="https://github.com/cucumber/cucumber/wiki/Gherkin">Gherkin</a> language we&rsquo;ll end up with:</p>
+<p><pre><code>describe('Given the login module', function () {
+  describe('when we send correct username and password', function () {
+    it('should return a promise that resolves', function () {
+      // ...
+    });
+  });
+  describe('when we send wrong username and password', function () {
+    it('should return a promise that will be rejected', function () {
+      // ...
+    });
+  });
+});
+</code></pre><br />
+We will pull the login function from <code>login.js</code> and will run it with different parameters. However, the logic that decides the result of the whole operation is in <code>http.js</code>. We can&rsquo;t cover all the cases because we don&rsquo;t have control on all the parts.</p>
+<p><code>http.js</code> dependency makes our module difficult to test. We don&rsquo;t want to perform real HTTP requests and we want to control the promise that is returned by the module. Right now that&rsquo;s not exactly possible.</p>
+<p>Oh wait, what if <code>http.js</code> is an abstraction on top of <a href="https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest">XMLHttpRequest</a>. Isn&rsquo;t it possible mocking that global object and it&rsquo;s API?</p>
+<pre><code>|
+login.js
+  |
+  http.js
+    |
+    XMLHttpRequest (fake one)
+    Here we control the process.
+    We don't make actual HTTP request.
+</code></pre>
+
+<p>Sorry, no. That&rsquo;s an overkill. What we do is using context specific knowledge of the system to solve design problem. That&rsquo;s definitely a wrong approach because we may have similar dependency tree that ends with a module which we can&rsquo;t fake.</p>
+<h2 id="factory-pattern-to-the-rescue"><a name="user-content-factory-pattern-to-the-rescue" href="#factory-pattern-to-the-rescue" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Factory pattern to the rescue</h2>
+<p>The real problem is that we define the dependencies of <code>login.js</code> inside the module. By doing this we can&rsquo;t control them from the outside. <a href="http://addyosmani.com/resources/essentialjsdesignpatterns/book/#factorypatternjavascript">Factory design pattern</a> is one of the possible solutions here. Our module may be changed to the following:</p>
+<p><pre><code>// login.js
+module.exports = {
+  create: function (http) {
+    return function(username, password) {
+      var url = '/api/login';
+      var credentials = {
+        username: username,
+        password: password
+      };
+
+      return http
+        .credentials(credentials)
+        .url(url)
+        .request();
+      }
+    }
+  }
+}
+</code></pre><br />
+And we use it by sending the third party library in <code>app.js</code>;</p>
+<pre><code>// app.js
+var http = require('./http');
+var login = require('login').create(http);
+
+login('user', '1234')
+  .then(function(user) {
+    console.log('User ' + user.fullName + ' logged in.');
+  })
+  .catch(function(error) {
+    console.log('Ops, something goes wrong!');
+  });
+</code></pre>
+
+<p>After these changes <code>login.js</code> module is easily unit testable because we may mock the <em>used</em> API of <code>http.js</code>. </p>
+<p>The lines below are showing the complete test. I used a helper library called <a href="http://sinonjs.org/docs/">Sinon</a> to spy and stub modules but the same result may be achieved with vanilla JavaScript.</p>
+<pre><code>var sinon = require('sinon');
+var Login = require('../app/src/login');
+var createFakeHTTP = function (promise) {
+  return {
+    credentials: sinon.spy(),
+    url: sinon.spy(),
+    request: sinon.stub().returns(promise)
+  };
+};
+
+var success = new Promise(function(resolve, reject) {
+  resolve();
+});
+var fail = new Promise(function(resolve, reject) {
+  reject();
+});
+
+describe('Given the login module', function () {
+  describe('when we send correct username and password', function () {
+    it('should return a promise that resolves', function (done) {
+      var http = createFakeHTTP(success);
+      var login = Login.create(http);
+      login('user', '1234').then(done);
+    });
+  });
+  describe('when we send wrong username and password', function () {
+    it('should return a promise that will be rejected', function (done) {
+      var http = createFakeHTTP(fail);
+      var login = Login.create(http);
+      login('user', '1234').catch(done);
+    });
+  });
+});
+</code></pre>
+
+<h2 id="summary"><a name="user-content-summary" href="#summary" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Summary</h2>
+<p>It is clear that we can&rsquo;t write everything in one file and we should use <code>require</code> (or <code>import</code>). However, we should make sure that our code stays testable. Thankfully there are some design patterns that may help us. All we have to do is thinking about testing while designing our applications.</p>
