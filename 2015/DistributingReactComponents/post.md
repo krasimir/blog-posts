@@ -1,8 +1,12 @@
 # Distributing React components
 
-I'm working with React daily and really want to share my experience. While I was open sourcing [react-place](https://github.com/krasimir/react-place) I noticed that there is some complexity around preparing the component for releasing. I decided to document them here. A few steps that I took once the component was ready. You may be surprised but writing the working `jsx` file doesn't mean that the component is ready for releasing and is usable by other developers.
+I'm working with React daily and really want to share my experience. While I was open sourcing [react-place](https://github.com/krasimir/react-place) I noticed that there is some complexity around preparing the component for releasing. I decided to document it here. A few steps that I took once the component was ready. You may be surprised but writing the working `jsx` file doesn't mean that the component is ready for publishing and is usable for the other developers.
 
-[react-place](https://github.com/krasimir/react-place) is a component that renders an input field. The user starts typing a city name and the component makes predictions/suggestions. One of the possible React properties is a function called `onLocationSet`. It is fired once the user selects some of the suggestions and receives an object containing short description and the geo coordinates of the city. In a few words we have a communication with external API and a hard dependency involved. Let's see how the development went and why after finishing the component it wasn't ready for releasing.
+## The component
+
+[react-place](https://github.com/krasimir/react-place) is a component that renders an input field. The user starts typing a city name and the component makes predictions/suggestions. The component accepts a property called `onLocationSet`. It is fired once the user selects some of the suggestions. The function receives an object containing short description and geo coordinates of the city. We have a communication with external API (Google maps) and a hard dependency involved (autocomplete widget). Let's see how the development went and why after finishing the component it wasn't ready for publishing.
+
+## Toolset
 
 There are few things which are at the top of the wave right now. One of them is React and its [JSX syntax](https://facebook.github.io/react/docs/jsx-in-depth.html). Another one is the new ES6 spec and all these goodies that are going to land in our browsers. I want to use them as soon as possible but because they are not well supported everywhere we need a transpiler. [Babel](http://babeljs.io/) plays very well with React. So Babel will compile the JSX and ES6 files to plain ES5 JavaScript. However, we need a bundler too. A tool that will resolve the [imports](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/import) and will output a single file. My choice for that is [webpack](https://webpack.github.io/). 
 
@@ -52,7 +56,7 @@ I like to use NPM as a task runner so defining a new script makes a lot of sense
 }
 ```
 
-We start by getting 
+
 
 
 
