@@ -9,7 +9,7 @@
 <p>Last half a year I like to use NPM as a place to define the project&rsquo;s build tasks. Here are the NPM scripts that I was able to run in the beginning:</p>
 <p><pre><code>// in package.json
 &quot;scripts&quot;: {
-  &quot;dev&quot;: &quot;./node_modules/.bin/webpack --watch --inline&quot;,
+  &quot;dev&quot;: &quot;webpack --watch --inline&quot;,
   &quot;test&quot;: &quot;karma start&quot;,
   &quot;test:ci&quot;: &quot;watch 'npm run test' src/&quot;
 }
@@ -41,7 +41,7 @@
 <p>So, defining a new NPM script made a lot of sense. NPM even <a href="https://docs.npmjs.com/misc/scripts">has</a> a <code>prepublish</code> entry that runs before the package is published and local <code>npm install</code>. I continued with the following:</p>
 <pre><code>// package.json
 &quot;scripts&quot;: {
-  &quot;prepublish&quot;: &quot;./node_modules/.bin/babel ./src --out-dir ./lib --source-maps --presets es2015,react&quot;
+  &quot;prepublish&quot;: &quot;babel ./src --out-dir ./lib --source-maps --presets es2015,react&quot;
   ...
 }
 </code></pre>
@@ -72,7 +72,7 @@
 </code></pre>
 
 <p>Thankfully there is plugin <a href="https://www.npmjs.com/package/babel-plugin-add-module-exports">babel-plugin-add-module-exports</a> that solves the issue. I changed the script to:</p>
-<pre><code>./node_modules/.bin/babel ./src --out-dir ./lib 
+<pre><code>babel ./src --out-dir ./lib 
 --source-maps --presets es2015,react 
 --plugins babel-plugin-add-module-exports
 </code></pre>
@@ -80,7 +80,7 @@
 <h2 id="generating-browser-bundle"><a name="user-content-generating-browser-bundle" href="#generating-browser-bundle" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Generating browser bundle</h2>
 <p>The result of the previous section was a file which may be imported/required by any JavaScript project. Any bundling tool like webpack or <a href="http://browserify.org/">Browserify</a> will resolve the needed dependencies. The last bit that I had to take care is the case where the developer doesn&rsquo;t use a bundler. Let&rsquo;s say that I want an already generated JavaScript file add it to my page with a <code>&lt;script&gt;</code> tag. I assume that React is already loaded on the page and I need only the component with its autocomplete widget included.</p>
 <p>To achieve this I effectively used the file under the <code>lib</code> folder. I mentioned Browserify above so let&rsquo;s go with it:</p>
-<pre><code>./node_modules/.bin/browserify ./lib/Location.js 
+<pre><code>browserify ./lib/Location.js 
 -o ./build/react-place.js 
 --transform browserify-global-shim 
 --standalone ReactPlace
@@ -100,7 +100,7 @@ var _reactDom = (window.ReactDOM);
 </code></pre>
 
 <p>And when I talk about a component that is dropped as a <code>&lt;script&gt;</code> tag then I think we need a minification. In production we should use a compressed version of the same <code>build/react-place.js</code> file. <a href="https://www.npmjs.com/package/uglify-js">Uglifyjs</a> is a nice module for minifying JavaScript. Just after the Browserify call:</p>
-<pre><code>./node_modules/.bin/uglifyjs ./build/react-place.js 
+<pre><code>uglifyjs ./build/react-place.js 
 --compress --mangle 
 --output ./build/react-place.min.js 
 --source-map ./build/react-place.min.js.map
@@ -110,9 +110,9 @@ var _reactDom = (window.ReactDOM);
 <p>The final script is a combination of Babel, Browserify and Uglifyjs:</p>
 <p><pre><code>// package.json
 &quot;prepublish&quot;: &quot;
-  ./node_modules/.bin/babel ./src --out-dir ./lib --source-maps --presets es2015,react --plugins babel-plugin-add-module-exports &amp;&amp; 
-  ./node_modules/.bin/browserify ./lib/Location.js -o ./build/react-place.js --transform browserify-global-shim --standalone ReactPlace &amp;&amp; 
-  ./node_modules/.bin/uglifyjs ./build/react-place.js --compress --mangle --output ./build/react-place.min.js --source-map ./build/react-place.min.js.map
+  babel ./src --out-dir ./lib --source-maps --presets es2015,react --plugins babel-plugin-add-module-exports &amp;&amp; 
+  browserify ./lib/Location.js -o ./build/react-place.js --transform browserify-global-shim --standalone ReactPlace &amp;&amp; 
+  uglifyjs ./build/react-place.js --compress --mangle --output ./build/react-place.min.js --source-map ./build/react-place.min.js.map
 &quot;,
 </code></pre><br />
 <em>(notice that I added few new lines to make the script readable here but in the <a href="https://github.com/krasimir/react-place/blob/master/package.json#L25">original package.json</a> file everything is placed onto one line)</em></p>
