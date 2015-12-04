@@ -1,0 +1,74 @@
+<p><a href="https://help.github.com/articles/using-pull-requests/">GitHub&rsquo;s pull requests</a> are an important part of my/<a href="http://trialreach.com/">our</a> development process. That&rsquo;s why I was thinking about creating a template that will enforce the standards.</p>[STOP]
+<p>My goal is to fill the pull request&rsquo;s textarea with a predefined template. Ideally, when we open a PR we will start filling sections and not trying to remember what has to be added. Unfortunately GitHub doesn&rsquo;t offer such functionality. There is no way to define a template for pull requests. So I ended up by using a <a href="https://en.wikipedia.org/wiki/Bookmarklet">bookmarklet</a>. A small piece of JavaScript that will be run in the context of the GitHub&rsquo;s page.</p>
+<h2 id="how-to-write-and-use-bookmarklet"><a name="user-content-how-to-write-and-use-bookmarklet" href="#how-to-write-and-use-bookmarklet" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>How to write and use bookmarklet</h2>
+<p>Bookmarklets are actually bookmarks that point to a JavaScript code. For example:</p>
+<pre><code>&lt;a href=&quot;javascript:alert(location.href);&quot;&gt;
+  Drag me to your bookmarks toolbar
+&lt;/a&gt;
+</code></pre>
+
+<p>If we drag the link to our browser&rsquo;s toolbar it will become a normal bookmark. Once we click it we&rsquo;ll get the location of the current page. So, the writing of bookmarklet means writing one line JavaScript that we place in a link. Installing the bookmarklet is dragging the link to our bookmarks toolbar.</p>
+<p>Pretty powerful technique which I used for creating a pull request template.</p>
+<h2 id="the-template"><a name="user-content-the-template" href="#the-template" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>The template</h2>
+<p>What I want in the end is to populate the GitHub&rsquo;s textarea with the following:</p>
+<pre><code># Ticket
+
+# Task/Problem
+
+# Solution
+
+# Steps to reproduce
+
+# UAT steps:
+
+# Code review
+
+- [ ] Unit tests passed
+- [ ] System tests passed
+</code></pre>
+
+<p>And here is the JavaScript:</p>
+<pre><code>(function(){
+  var textareaId = '#pull_request_body';
+  var textarea = document.querySelector(textareaId);
+  var template = '';
+  var firstLine;
+
+  template += firstLine = 'Ticket: ';
+  template += '\n\n';
+  template += '## Task/Problem\n\n';
+  template += '## Solution\n\n';
+  template += '## Steps to reproduce\n\n';
+  template += '## UAT\n\n';
+  template += '## Code review\n\n\n';
+  template += '- [ ] Unit tests passed\n';
+  template += '- [ ] System tests passed\n';
+
+  if (textarea) {
+    textarea.value = template;
+    textarea.focus();
+    textarea.scrollTop = 0;
+    textarea.selectionStart = textarea.selectionEnd = firstLine.length;
+  } else {
+    alert('You are either not on the PR page or there is no ' + textareaId + ' element.');
+  }
+})();
+</code></pre>
+
+<p>The textarea of the pull request in GitHub has a <code>pull_request_body</code> as an id. Yes, you are right. If GitHub decides to change its markup then our bookmarklet will be broken. Unfortunately that&rsquo;s something that we have to live with.</p>
+<p><code>textarea.value = template;</code> is the place where we set the template. After that there are three lines of code that provide a little bit better developer experience. We bring the focus to the textarea, we scroll it to the top and place the cursor after <code>Ticket:</code> so we may start writing the PR directly. Without the need of clicking somewhere.</p>
+<p>The bookmarklet is ready but it&rsquo;s not a one liner. Let&rsquo;s use <a href="https://github.com/mishoo/UglifyJS">uglifyjs</a> for that.</p>
+<p><pre><code>npm install uglify-js@1 -g
+uglifyjs ./src/Pull_request_template.js &gt; Pull_request_template.min.js
+</code></pre><br />
+The minified code can not be used directly in the HTML page because it may contain quotes. For example:</p>
+<pre><code>&lt;a href=&quot;javascript: (function(){var a = &quot;test&quot;})()&quot;&gt;drag me&lt;/a&gt;
+</code></pre>
+
+<p>This will not work because the content of the <code>href</code> attribute is wrapped in double quotes and our bookmarklet contains double quotes too. So we need one more step to clean our JavaScript by replacing <code>"</code> with <code>'</code> (single quotes). I created a small repository for displaying bookmarklets and there is a function that does this job:</p>
+<pre><code>var filter = function (content) {
+  return content
+    .replace(/&quot;/g, &quot;'&quot;)
+    .replace(/\n/g, '');
+};
+</code></pre>
