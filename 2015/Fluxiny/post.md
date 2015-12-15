@@ -14,7 +14,64 @@ The actions are coming to the dispatcher either from the views or from other par
 
 A wrong data flow is one of the biggest pitfalls in flux. For example, we may have an access to the store in our views but we should never call store methods that mutate its internal state. This should only happen via actions. Or we may end up with a store that receives and action and dispatches another one.
 
+*(More or less the explanation above is based on my reading of the Flux's documentation and my day-to-day experience with the pattern. Have in mind that you may see other interpretations. And you better do :))*
+
 ## My two cents
 
-As every other popular concept Flux also has some [variations](https://medium.com/social-tables-tech/we-compared-13-top-flux-implementations-you-won-t-believe-who-came-out-on-top-1063db32fe73). I decided to give my two cents and write my own. One of the main goals was to be as simple as possible. That's how [Fluxiny](https://github.com/krasimir/fluxiny) was born. A good amount of time I invested in the name of the repository. Do you know how difficult is to come with a short library name which at the same time is not registered in NPM? (for the record Fluxiny = Flux + tiny)
+As every other popular concept Flux also has some [variations](https://medium.com/social-tables-tech/we-compared-13-top-flux-implementations-you-won-t-believe-who-came-out-on-top-1063db32fe73). I decided to give my two cents and write my own. One of the main goals was to be as simple as possible. That's how [Fluxiny](https://github.com/krasimir/fluxiny) was born. You may be surprised but I invested a good amount of time in naming the repository. Do you know how difficult is to come with a short library name which at the same time is not registered in NPM? *(For the record Fluxiny = Flux + tiny)*
+
+In the next few sections we'll see how I created [Fluxiny](https://github.com/krasimir/fluxiny). Why is that small and how I ended up having the code as it is.
+
+### The dispatcher
+
+In most of the cases we need a single dispatcher. Because it acts as a glue for the rest of the system's parts it makes sense that we have only one. There are two things coming to the dispatcher - actions and stores. The actions are simply forwarded to the stores so we don't necessary have to keep them. The stores however should be tracked inside the dispatcher:
+
+![the dispatcher](./fluxiny_the_dispatcher.jpg)
+
+That's what I started with:
+
+```
+var Dispatcher = function () {
+  return {
+    _stores: [],
+    register: function (store) {  
+      this._stores.push({ store: store });
+    },
+    dispatch: function (action) {
+      if (this._stores.length > 0) {
+        this._stores.forEach(function (entry) {
+          entry.store.update(action);
+        });
+      }
+    }
+  }
+};
+```
+
+The first thing that we notice is that we *expect* to see an `update` method in the passed stores. It will be nice to throw an error if such method is missing. Here is a smaller helper that we may use in other cases like this one:
+
+```
+var _has = function (obj, prop, error) {
+  if (!(prop in obj)) throw new Error(error);
+  return true;
+};
+```
+
+And the `register` method becomes:
+
+```
+register: function (store) {
+  if (_has(store, 'update', 'Every store should implement an `update` method')) {
+    this._stores.push({ store: store });
+  }
+}
+```
+
+These 20 lines of code may be enough right. I mean, we may register stores and send actions to them. Well, there is one thing that doesn't look good to me. The views should be somehow bound to the stores.
+
+### 
+
+
+
+
 
