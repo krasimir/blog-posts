@@ -1,4 +1,7 @@
 <p>I hope you know about <a href="https://en.wikipedia.org/wiki/Currying">currying</a>. If not then please read this <a href="https://github.com/MostlyAdequate/mostly-adequate-guide">book</a>. It&rsquo;s basically a process of calling a function with less parameters than it expects. Ok, not exactly <em>calling</em> the function but prepare another function that will run the original one. Some people call the returned function higher-order <strong>factory</strong> function. Really powerful concept.</p>[STOP]
+
+<p><i>After sharing the article in some places I learned that what I'm referring as <b>currying</b> may not be exactly what actually <b>currying</b> is. What I'm talking about is sometimes called <b>partial application</b>. The currying is more like consuming the arguments needed by a function in several steps. More about that <a href="https://medium.com/javascript-scene/curry-or-partial-application-8150044c78b8#.cie8qn6qn" target="_blank">here</a>.</i></p>
+
 <h2 id="creating-our-own-currying-helper"><a name="user-content-creating-our-own-currying-helper" href="#creating-our-own-currying-helper" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Creating our own currying helper</h2>
 <p>Let&rsquo;s see the following example:</p>
 <pre><code>var dictionaryA = {
