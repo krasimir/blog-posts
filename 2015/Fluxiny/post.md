@@ -1,4 +1,4 @@
-# Implement Flux architecture in 60 lines of code
+# Dissection of Flux architecture or how to write your own flux 
 
 I'm obsessed by making my code simpler. I didn't say *smaller* because having less code doesn't mean that is simple and easy to work with. I believe that big part of the problems in the software industry come from the unnecessary complexity. Complexity which is a result of our own abstractions. You know, we (the programmers) like to abstract. We like placing things in black boxes and hope that these boxes work together.
 
@@ -71,22 +71,105 @@ register: function (store) {
 
 ### Bounding the views and the stores
 
-The next logical step is to connect our views to the stores so we render when the state in the stores is changed.
+The next logical step is to connect our views to the stores so we rerender when the state in the stores is changed.
 
 ![Bounding the views and the stores](./fluxiny_store_view.jpg)
+
+
+#### Using a helper
 
 Some of the flux implementations available provide a helper function that does the job. For example:
 
 ```
-var detach = Framework.attachStore(view, store);
+var detach = Framework.attachToStore(view, store);
 ```
 
-However, I don't quite like this approach for several reasons:
+However, I don't quite like this approach. To make `attachStore` works we expect to see a specific API in the view and in the store. We kind of strictly define new public methods. Or in other words we say "Your views and store should have such APIs so we are able to connect them together". If we go down this road then we'll probably define our own base classes which could be extended so we don't bother the developer with Flux details. Then we say "All your classes should extend our classes". This doesn't sound good either because the developer may decide to switch to another Flux provider and he/she has to amend everything.
 
-* To make `attachStore` works we expect to see a specific API in the view. We kind of define a new public method in all the views. Or in other words we say "Your view should have such API so we are able to connect the store to it.". If we go down this road then we'll probably define our own view class which could be extended so we don't bother the developer with our flux stuff. Then we say "All your views should extend our class". This doesn't sound good either because we may decide to switch to another flux provider and we have to amend all the views.
-* React provide [mixins](https://facebook.github.io/react/docs/reusable-components.html#mixins). That's a "nice" way to define behavior of existing React component. So, in theory we may create a mixin that does the bounding for us. Well, I think that this is a bad idea. And not only me but [Facebook too](https://medium.com/@dan_abramov/mixins-are-dead-long-live-higher-order-components-94a0d2f9e750#.qvntyleij). My reason of not liking mixins is that they modify my components in a non-predictable way. I have no idea what is going on behind the scenes. So definitely I'm crossing this option.
+#### With a mixin
 
+What if we use React's [mixins](https://facebook.github.io/react/docs/reusable-components.html#mixins).
 
+```
+var View = React.createClass({
+  mixins: [Framework.attachToStore(store)]
+  ...
+});
+```
+
+That's a "nice" way to define behavior of existing React component. So, in theory we may create a mixin that does the bounding for us. To be honest, I don't think that this is a good idea. And [it looks](https://medium.com/@dan_abramov/mixins-are-dead-long-live-higher-order-components-94a0d2f9e750) like it's not only me. My reason of not liking mixins is that they modify the components in a non-predictable way. I have no idea what is going on behind the scenes. So I'm definitely crossing this option.
+
+#### Using a context
+
+Another technique that my answer to our question is React's [context](https://facebook.github.io/react/docs/context.html). It's a way to pass props to child components without the need to specify them in all the levels. Facebook suggests context in the cases where we have data that has to reach deeply nested compoments.
+
+> Occasionally, you want to pass data through the component tree without having to pass the props down manually at every level. React's "context" feature lets you do this.
+
+I see similarity with the mixins here. The context is defined somewhere at the top and magically serves props for all the children below. It's not immediately clear where the data comes from.
+
+#### Higher-Order components concept
+
+Higher-Order components pattern is [introduced](https://gist.github.com/sebmarkbage/ef0bf1f338a7182b6775) by Sebastian Markb&#229;ge and it's about creating a wrapper component that returns ours. However, while doing it it has the opportunity to send properties or apply additional logic. For example:
+
+```
+function attachToStore(Component, store, consumer) {
+  const Wrapper = React.createClass({
+    getInitialState() {
+      return consumer(this.props, store);
+    },
+    componentDidMount() {
+      store.onChangeEvent(this._handleStoreChange);
+    },
+    componentWillUnmount() {
+      store.offChangeEvent(this._handleStoreChange);
+    },
+    _handleStoreChange() {
+      if (this.isMounted()) {
+        this.setState(consumer(this.props, store));
+      }
+    },
+    render() {
+      return <Component {...this.props} {...this.state} />;
+    }
+  });
+  return Wrapper;
+};
+```
+
+`Component` is our component. The view that we want attached to the `store`. The `consumer` function says what part of the store's state should be fetched and send to the view. A simple usage of the above function could be:
+
+```
+class MyView extends React.Component {
+  ...
+}
+
+ProfilePage = connectToStores(MyView, store, (props, store) => ({
+  data: store.get('key')
+});
+
+```
+
+That's an interesting pattern because it shifts the responsibilities. It's the view fetching data from the store and not the store pushing something to the view. This of course has its own pros and cons. It is nice because it makes the store dummy. It only mutates the data and says "Oh, my state is changed". It is not responsible for sending anything. The downside of this approach is maybe the fact that we have one more component (the wrapper) and we need the three view, store and consumer in one place to fulfill the connection.
+
+#### What I decided to do
+
+The last option above, higher-order components, is really close to what I'm searching for. I like the fact that the view decides what it needs. That *knowledge* anyway exists in the component so it makes sense to keep it there. That's also why the functions that generate the higher-order components are usually kept in the same file as the view. What if we can use similar approach but not passing the store at all. Or in other words, a function that accepts only the consumer. And that function is called every time when there is a change in the store.
+
+So far our implementation interacts with the store only in the `register` method. 
+
+```
+register: function (store) {
+  if (_has(store, 'update', 'Every store should implement an `update` method')) {
+    this._stores.push({ store: store });
+  }
+}
+```
+
+By using `register` we keep a reference to the store inside the dispatcher. However, `register` returns nothing. So, it's a nice candidate for a function tha accepts our consumer.
+
+![Fluxiny - connect store and view](./fluxiny_store_view.jpg)
+
+I decided to send the whole store to the consumer function and not the data that the store keeps. Like in the higher-order components pattern the view should say what it needs. This makes the store really simple and there is no trace of presentational logic.
 
 
 
