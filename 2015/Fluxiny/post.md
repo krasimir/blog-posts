@@ -50,20 +50,13 @@ var Dispatcher = function () {
 };
 ```
 
-The first thing that we notice is that we *expect* to see an `update` method in the passed stores. It will be nice to throw an error if such method is missing. Here is a smaller helper that we may use in other cases like this one:
-
-```
-var _has = function (obj, prop, error) {
-  if (!(prop in obj)) throw new Error(error);
-  return true;
-};
-```
-
-And the `register` method becomes:
+The first thing that we notice is that we *expect* to see an `update` method in the passed stores. It will be nice to throw an error if such method is missing:
 
 ```
 register: function (store) {
-  if (_has(store, 'update', 'Every store should implement an `update` method')) {
+  if (!store || !store.update) {
+    throw new Error('You should provide a store that has an `update` method.');
+  } else {
     this._stores.push({ store: store });
   }
 }
@@ -159,7 +152,9 @@ So far our implementation interacts with the store only in the `register` method
 
 ```
 register: function (store) {
-  if (_has(store, 'update', 'Every store should implement an `update` method')) {
+  if (!store || !store.update) {
+    throw new Error('You should provide a store that has an `update` method.');
+  } else {
     this._stores.push({ store: store });
   }
 }
@@ -170,6 +165,230 @@ By using `register` we keep a reference to the store inside the dispatcher. Howe
 ![Fluxiny - connect store and view](./fluxiny_store_view.jpg)
 
 I decided to send the whole store to the consumer function and not the data that the store keeps. Like in the higher-order components pattern the view should say what it needs. This makes the store really simple and there is no trace of presentational logic.
+
+Here is how the register method looks like after the changes:
+
+```
+register: function (store) {
+  if (!store || !store.update) {
+    throw new Error('You should provide a store that has an `update` method.');
+  } else {
+    var consumers = [];
+    var subscribe = function (consumer) {
+      consumers.push(consumer);
+    };
+    
+    this._stores.push({ store: store });
+    return subscribe;
+  }
+  return false;
+}
+```
+
+The last bit in the story is how the store says that its internal state is changed. It's nice that we collect the consumer functions but right now there is no code that runs them. 
+
+According to the basic principles of the flux architecture the stores change their state in response of actions. So, in the `update` method we send `action` but also a function `change`. Calling that function should trigger the consumers:
+
+```
+register: function (store) {
+  if (!store || !store.update) {
+    throw new Error('You should provide a store that has an `update` method.');
+  } else {
+    var consumers = [];
+    var change = function () {
+      consumers.forEach(function (l) { 
+        l(store);
+      });
+    };
+    var subscribe = function (consumer) {
+      consumers.push(consumer);
+    };
+    
+    this._stores.push({ store: store, change: change });
+    return subscribe;
+  }
+  return false;
+},
+dispatch: function (action) {
+  if (this._stores.length > 0) {
+    this._stores.forEach(function (entry) {
+      entry.store.update(action, entry.change);
+    });
+  }
+}
+```
+
+<small>*Notice how we push `change` together with `store` inside the `_stores` array. Later in the `dispatch` method we call `update` by passing the `action` and the `change` function.*</small>
+
+A common use case is to fetch an initial state of the data. This is required usually at the first render of the view. In the context of our implementation this means firing all the consumers at least once. This could be easily done in the `subscribe` method:
+
+```
+var subscribe = function (consumer, noInit) {
+  consumers.push(consumer);
+  !noInit ? consumer(store) : null;
+};
+```
+
+Of course sometimes this is not needed so we add a flag which is by default falsy. Here is the final version of our dispatcher:
+
+```
+var Dispatcher = function () {
+  return {
+    _stores: [],
+    register: function (store) {
+      if (!store || !store.update) {
+        throw new Error('You should provide a store that has an `update` method.');
+      } else {
+        var consumers = [];
+        var change = function () {
+          consumers.forEach(function (l) { 
+            l(store);
+          });
+        };
+        var subscribe = function (consumer, noInit) {
+          consumers.push(consumer);
+          !noInit ? consumer(store) : null;
+        };
+        
+        this._stores.push({ store: store, change: change });
+        return subscribe;
+      }
+      return false;
+    },
+    dispatch: function (action) {
+      if (this._stores.length > 0) {
+        this._stores.forEach(function (entry) {
+          entry.store.update(action, entry.change);
+        });
+      }
+    }
+  }
+};
+```
+
+## The actions
+
+You probably noticed that we didn't talk about the actions. What are they? My opinion is that they should be simple objects having two properties - `type` and `payload`:
+
+```
+{
+  type: 'USER_LOGIN_REQUEST',
+  payload: {
+    username: '...',
+    password: '...'
+  }
+}
+```
+
+The `type` says what exactly the action is all about and the `payload` contains the information associated with the event. And in some cases we may leave the `payload` empty. 
+
+It's interesting that the `type` is well known in the beginning. We know what type of actions should be floating in our app, who is dispatching them and which of the stores is interested. Thus, we can apply [partial application](http://krasimirtsonev.com/blog/article/a-story-about-currying-bind) and avoid passing the action object here and there. For example:
+
+```
+var createAction = function (type) {
+  if (!type) {
+    throw new Error('Please, provide action\'s type.');
+  } else {
+    return function (payload) {
+      return dispatcher.dispatch({ type: type, payload: payload });
+    }
+  }
+}
+```
+
+`createAction` leads to the following benefits:
+
+* We no more need to remember the exact type of the action. We now have a function which we call passing only the payload.
+* We no more need an access to the dispatcher which is a huge benefit. Otherwise, think about how we have to pass it to every single place where we need to dispatch an action. In the end we don't have to deal with objects but with functions which is much nicer. The objects are *static* while the functions describe a *process*.
+
+![Fluxiny actions creators](./fluxiny_action_creator.jpg)
+
+This approach for creating actions is actually really popular and functions like the one above are usually called **action creators**.
+
+## The final code
+
+In the section above we successfully hid the dispatcher while submitting actions. We may do it again for the store's registration: 
+
+```
+var createSubscriber = function (store) {
+  return dispatcher.register(store);
+}
+```
+
+And instead of exporting the dispatcher we may export only these two functions `createAction` and `createSubscriber`. Here is how the final code looks like:
+
+
+```
+var Dispatcher = function () {
+  return {
+    _stores: [],
+    register: function (store) {
+      if (!store || !store.update) {
+        throw new Error('You should provide a store that has an `update` method.');
+      } else {
+        var consumers = [];
+        var change = function () {
+          consumers.forEach(function (l) { 
+            l(store);
+          });
+        };
+        var subscribe = function (consumer, noInit) {
+          consumers.push(consumer);
+          !noInit ? consumer(store) : null;
+        };
+        
+        this._stores.push({ store: store, change: change });
+        return subscribe;
+      }
+      return false;
+    },
+    dispatch: function (action) {
+      if (this._stores.length > 0) {
+        this._stores.forEach(function (entry) {
+          entry.store.update(action, entry.change);
+        });
+      }
+    }
+  }
+};
+
+module.exports = {
+  create: function () {
+    var dispatcher = Dispatcher();
+
+    return {
+      createAction: function (type) {
+        if (!type) {
+          throw new Error('Please, provide action\'s type.');
+        } else {
+          return function (payload) {
+            return dispatcher.dispatch({ type: type, payload: payload });
+          }
+        }
+      },
+      createSubscriber: function (store) {
+        return dispatcher.register(store);
+      }
+    }
+  }
+};
+
+```
+
+53 lines of code, 1.45KB plain or 741 bytes after minification JavaScript.
+
+## Wrapping up
+
+Ok, we have a module that provides methods for using Flux. Let's write a simple example that not involves React. We'll need some UI to interact with it so:
+
+```
+
+```
+
+
+
+
+
 
 
 
