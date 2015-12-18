@@ -1,4 +1,6 @@
-# Dissection of Flux architecture or how to write your own flux 
+# Dissection of Flux architecture or how to write your own 
+
+*The Flux implementation discussed in the article is available here [https://github.com/krasimir/fluxiny](https://github.com/krasimir/fluxiny). It's distributed as a NPM module called Fluxiny.*
 
 I'm obsessed by making my code simpler. I didn't say *smaller* because having less code doesn't mean that is simple and easy to work with. I believe that big part of the problems in the software industry come from the unnecessary complexity. Complexity which is a result of our own abstractions. You know, we (the programmers) like to abstract. We like placing things in black boxes and hope that these boxes work together.
 
@@ -375,15 +377,104 @@ module.exports = {
 
 ```
 
-53 lines of code, 1.45KB plain or 741 bytes after minification JavaScript.
+If we add the support of AMD, CommonJS and global usage we end up with 66 lines of code, 1.7KB plain or 795 bytes after minification JavaScript.
 
 ## Wrapping up
 
-Ok, we have a module that provides methods for using Flux. Let's write a simple example that not involves React. We'll need some UI to interact with it so:
+We have a module that provides two helpers for building a Flux project. Let's write a simple counter app that doesn't involve React so we see the pattern in action.
+
+### The markup
+
+We'll need some UI to interact with it so:
 
 ```
+<div id="counter">
+  <span></span>
+  <button>increase</button>
+  <button>decrease</button>
+</div>
+```
+
+The `span` will be used for displaying the current value of our counter. The buttons will change that value.
+
+### The view
 
 ```
+const View = function (subscribeToStore, increase, decrease) {
+  var value = null;
+  var el = document.querySelector('#counter');
+  var display = el.querySelector('span');
+  var [ increaseBtn, decreaseBtn ] = Array.from(el.querySelectorAll('button'));
+  
+  var render = () => display.innerHTML = value;
+  var updateState = (store) => value = store.getValue();
+  
+  subscribeToStore([updateState, render]);
+  
+  increaseBtn.addEventListener('click', increase);
+  decreaseBtn.addEventListener('click', decrease);
+};
+```
+
+It accepts a store subscriber function and two action function for increasing and decreasing the value. The first few lines of the view are just fetching the DOM elements. 
+
+After that we define a `render` function which puts the value inside the `span` tag. `updateState` will be called every time when the store changes. So, we pass these two functions to `subscribeToStore` because we want to get the view updated and we want to get an initial rendering. Remember how our consumers are called at least once by default.
+
+The last bit is calling the action functions when we press the buttons.
+
+### The store
+
+Every action has a type. It's a good practice to create constants for these types so we don't deal with raw strings.
+
+
+```
+const INCREASE = 'INCREASE';
+const DECREASE = 'DECREASE';
+```
+
+Very often we have only one instance of every store. For the sake of simplicity we'll create ours as a singleton.
+
+```
+const CounterStore = {
+  _data: { value: 0 },
+  getValue: function () {
+    return this._data.value;
+  },
+  update: function (action, change) {
+    if (action.type === INCREASE) {
+      this._data.value += 1;
+    } else if (action.type === DECREASE) {
+      this._data.value -= 1;
+    }
+    change();
+  }
+};
+```
+
+`_data` is the internal state of the store. `update` is the well known method that our dispatcher calls. We process the action inside and say `change()` when we are done. `getValue` is a public method used by the view so it reaches the needed info. In our case this is just the value of the counter.
+
+### Wiring all the pieces
+
+So, we have the store waiting for actions from the dispatcher. We have the view defined. Let's create the store subscriber, the actions and run everything.
+
+```
+const { createAction, createSubscriber } = Fluxiny.create();
+const counterStoreSubscriber = createSubscriber(CounterStore);
+const actions = {
+  increase: createAction(INCREASE),
+  decrease: createAction(DECREASE)
+};
+
+View(counterStoreSubscriber, actions.increase, actions.decrease);
+```
+
+And that's it. Our view is subscribed to the store and it renders by default because one of our consumers is actually the `render` method.
+
+### A live demo
+
+A live demo could be seen in the JSBin below. If that's not enough and it seems too simple for you please checkout the example in [Fluxiny](https://github.com/krasimir/fluxiny) repository [here](https://github.com/krasimir/fluxiny/tree/master/example).
+
+<a class="jsbin-embed" href="http://jsbin.com/koxidu/embed?js,output">JS Bin on jsbin.com</a><script src="http://static.jsbin.com/js/embed.min.js?3.35.5"></script>
 
 
 
