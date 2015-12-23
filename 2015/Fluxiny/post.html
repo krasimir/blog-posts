@@ -1,0 +1,379 @@
+<p><em>The Flux implementation discussed in this article is available here <a href="https://github.com/krasimir/fluxiny">github.com/krasimir/fluxiny</a>. Feel free to use it in a browser <a href="https://github.com/krasimir/fluxiny/tree/master/lib">directly</a> or as a <a href="https://www.npmjs.com/package/fluxiny">npm dependency</a>.</em></p>
+<p>I&rsquo;m obsessed by making my code simpler. I didn&rsquo;t say <em>smaller</em> because having less code doesn&rsquo;t mean that is simple and easy to work with. I believe that big part of the problems in the software industry come from the unnecessary complexity. Complexity which is a result of our own abstractions. You know, we (the programmers) like to abstract. We like placing things in black boxes and hope that these boxes work together.</p>
+[STOP]<p><a href="http://facebook.github.io/flux/">Flux</a> is an architectural design pattern for building user interfaces. It was introduced by Facebook at their <a href="https://youtu.be/nYkdrAPrdcw?t=568">F8</a> conference. Since then, lots of companies adopted the idea and it seems like a good pattern for building front-end apps. Flux is very often used with <a href="http://facebook.github.io/react/">React</a>. Another library released by Facebook. I myself use React+Flux in my <a href="http://trialreach.com/">daily job</a> and I could say that the simplicity is one of the main benefits. This combination helps creating apps faster and at the same time keeps the code well organized.</p>
+<h2 id="flux-architecture-and-its-main-characteristics"><a name="user-content-flux-architecture-and-its-main-characteristics" href="#flux-architecture-and-its-main-characteristics" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Flux architecture and its main characteristics</h2>
+<p><img alt="Basic flux architecture" src="http://krasimirtsonev.com/blog/articles/fluxiny/fluxiny_basic_flux_architecture.jpg" /></p>
+<p>The main actor in this pattern is the <strong>dispatcher</strong>. It acts as a hub for all the events in the system. It&rsquo;s job is to receive notifications that we call <strong>actions</strong> and bypass them to all the <strong>stores</strong>. The store decides if it is interested or not and reacts by changing its internal state. The change is passed to the <strong>views</strong> which are (in my case) React components. If we have to compare Flux to the well known MVC we may say that the store is similar to the model. It keeps the data and its mutations.</p>
+<p>The actions are coming to the dispatcher either from the views or from other part of the system like services. For example a module that performs a HTTP request. When it receives the result it may fire an action saying that the request was successful and attach the received data.</p>
+<p>A wrong data flow is one of the biggest pitfalls in flux. For example, we may have an access to the store in our views but we should never call store methods that mutate its internal state. This should only happen via actions. Or we may end up with a store that receives an action and dispatches another one.</p>
+<p><em>(More or less the explanation above is based on my reading of the Flux&rsquo;s documentation and my day-to-day experience with the pattern. Have in mind that you may see other interpretations. And you better do :))</em></p>
+<h2 id="my-two-cents"><a name="user-content-my-two-cents" href="#my-two-cents" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>My two cents</h2>
+<p>As every other popular concept Flux also has some <a href="https://medium.com/social-tables-tech/we-compared-13-top-flux-implementations-you-won-t-believe-who-came-out-on-top-1063db32fe73">variations</a>. I decided to try and write my own. One of the main goals was to be as simple as possible. That&rsquo;s how <a href="https://github.com/krasimir/fluxiny">Fluxiny</a> was born.</p>
+<p>In the next few sections we&rsquo;ll see how I created the library. Why is that small and how I ended up having the code as it is.</p>
+<h3 id="the-dispatcher"><a name="user-content-the-dispatcher" href="#the-dispatcher" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>The dispatcher</h3>
+<p>In most of the cases we need a single dispatcher. Because it acts as a glue for the rest of the system&rsquo;s parts it makes sense that we have only one. There are two inputs to the dispatcher - actions and stores. The actions are simply forwarded to the stores so we don&rsquo;t necessary have to keep them. The stores however should be tracked inside the dispatcher:</p>
+<p><img alt="the dispatcher" src="http://krasimirtsonev.com/blog/articles/fluxiny/fluxiny_the_dispatcher.jpg" /></p>
+<p>That&rsquo;s what I started with:</p>
+<pre><code>var Dispatcher = function () {
+  return {
+    _stores: [],
+    register: function (store) {  
+      this._stores.push({ store: store });
+    },
+    dispatch: function (action) {
+      if (this._stores.length &gt; 0) {
+        this._stores.forEach(function (entry) {
+          entry.store.update(action);
+        });
+      }
+    }
+  }
+};
+</code></pre>
+
+<p>The first thing that we notice is that we <em>expect</em> to see an <code>update</code> method in the passed stores. It will be nice to throw an error if such method is missing:</p>
+<pre><code>register: function (store) {
+  if (!store || !store.update) {
+    throw new Error('You should provide a store that has an `update` method.');
+  } else {
+    this._stores.push({ store: store });
+  }
+}
+</code></pre>
+
+<h3 id="bounding-the-views-and-the-stores"><a name="user-content-bounding-the-views-and-the-stores" href="#bounding-the-views-and-the-stores" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Bounding the views and the stores</h3>
+<p>The next logical step is to connect our views to the stores so we rerender when the state in the stores is changed.</p>
+<p><img alt="Bounding the views and the stores" src="http://krasimirtsonev.com/blog/articles/fluxiny/fluxiny_store_change_view.jpg" /></p>
+<h4 id="using-a-helper"><a name="user-content-using-a-helper" href="#using-a-helper" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Using a helper</h4>
+<p>Some of the flux implementations available provide a helper function that does the job. For example:</p>
+<pre><code>Framework.attachToStore(view, store);
+</code></pre>
+
+<p>However, I don&rsquo;t quite like this approach. To make <code>attachStore</code> works we expect to see a specific API in the view and in the store. We kind of strictly define new public methods. Or in other words we say &ldquo;Your views and store should have such APIs so we are able to connect them together&rdquo;. If we go down this road then we&rsquo;ll probably define our own base classes which could be extended so we don&rsquo;t bother the developer with Flux details. Then we say &ldquo;All your classes should extend our classes&rdquo;. This doesn&rsquo;t sound good either because the developer may decide to switch to another Flux provider and he/she has to amend everything.</p>
+<h4 id="with-a-mixin"><a name="user-content-with-a-mixin" href="#with-a-mixin" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>With a mixin</h4>
+<p>What if we use React&rsquo;s <a href="https://facebook.github.io/react/docs/reusable-components.html#mixins">mixins</a>.</p>
+<pre><code>var View = React.createClass({
+  mixins: [Framework.attachToStore(store)]
+  ...
+});
+</code></pre>
+
+<p>That&rsquo;s a &ldquo;nice&rdquo; way to define behavior of existing React component. So, in theory we may create a mixin that does the bounding for us. To be honest, I don&rsquo;t think that this is a good idea too. And <a href="https://medium.com/@dan_abramov/mixins-are-dead-long-live-higher-order-components-94a0d2f9e750">it looks</a> like it&rsquo;s not only me. My reason of not liking mixins is that they modify the components in a non-predictable way. I have no idea what is going on behind the scenes. So I&rsquo;m crossing this option.</p>
+<h4 id="using-a-context"><a name="user-content-using-a-context" href="#using-a-context" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Using a context</h4>
+<p>Another technique that my answer to the question is React&rsquo;s <a href="https://facebook.github.io/react/docs/context.html">context</a>. It&rsquo;s a way to pass props to child components without the need to specify them in every level of the tree. Facebook suggests context in the cases where we have data that has to reach deeply nested components.</p>
+<blockquote>
+<p>Occasionally, you want to pass data through the component tree without having to pass the props down manually at every level. React&rsquo;s &ldquo;context&rdquo; feature lets you do this.</p>
+</blockquote>
+<p>I see similarity with the mixins here. The context is defined somewhere at the top and magically serves props for all the children below. It&rsquo;s not immediately clear where the data comes from.</p>
+<h4 id="higher-order-components-concept"><a name="user-content-higher-order-components-concept" href="#higher-order-components-concept" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Higher-Order components concept</h4>
+<p>Higher-Order components pattern is <a href="https://gist.github.com/sebmarkbage/ef0bf1f338a7182b6775">introduced</a> by Sebastian Markb&#229;ge and it&rsquo;s about creating a wrapper component that returns ours. However, while doing it it has the opportunity to send properties or apply additional logic. For example:</p>
+<pre><code>function attachToStore(Component, store, consumer) {
+  const Wrapper = React.createClass({
+    getInitialState() {
+      return consumer(this.props, store);
+    },
+    componentDidMount() {
+      store.onChangeEvent(this._handleStoreChange);
+    },
+    componentWillUnmount() {
+      store.offChangeEvent(this._handleStoreChange);
+    },
+    _handleStoreChange() {
+      if (this.isMounted()) {
+        this.setState(consumer(this.props, store));
+      }
+    },
+    render() {
+      return &lt;Component {...this.props} {...this.state} /&gt;;
+    }
+  });
+  return Wrapper;
+};
+</code></pre>
+
+<p><code>Component</code> is the view that we want attached to the <code>store</code>. The <code>consumer</code> function says what part of the store&rsquo;s state should be fetched and send to the view. A simple usage of the above function could be:</p>
+<pre><code>class MyView extends React.Component {
+  ...
+}
+
+ProfilePage = connectToStores(MyView, store, (props, store) =&gt; ({
+  data: store.get('key')
+});
+
+</code></pre>
+
+<p>That&rsquo;s an interesting pattern because it shifts the responsibilities. It&rsquo;s the view fetching data from the store and not the store pushing something to the view. This of course has its own pros and cons. It is nice because it makes the store dummy. A store that only mutates the data and says &ldquo;Oh, my state is changed&rdquo;. It is not responsible for sending anything. The downside of this approach is maybe the fact that we have one more component (the wrapper) involved. We also need the three bits - view, store and consumer in one place to fulfill the connection.</p>
+<h4 id="my-choice"><a name="user-content-my-choice" href="#my-choice" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>My choice</h4>
+<p>The last option above, higher-order components, is really close to what I&rsquo;m searching for. I like the fact that the view decides what it needs. That <em>knowledge</em> anyway exists in the component so it makes sense to keep it there. That&rsquo;s also why the functions that generate higher-order components are usually kept in the same file as the view. What if we can use similar approach but not passing the store at all. Or in other words, a function that accepts only the consumer. And that function is called every time when there is a change in the store.</p>
+<p>So far our implementation interacts with the store only in the <code>register</code> method. </p>
+<pre><code>register: function (store) {
+  if (!store || !store.update) {
+    throw new Error('You should provide a store that has an `update` method.');
+  } else {
+    this._stores.push({ store: store });
+  }
+}
+</code></pre>
+
+<p>By using <code>register</code> we keep a reference to the store inside the dispatcher. However, <code>register</code> returns nothing. And instead of nothing it may return a <strong>subscriber</strong> that will accept our consumer functions.</p>
+<p><img alt="Fluxiny - connect store and view" src="http://krasimirtsonev.com/blog/articles/fluxiny/fluxiny_store_view.jpg" /></p>
+<p>I decided to send the whole store to the consumer function and not the data that the store keeps. Like in the higher-order components pattern the view should say what it needs by using store&rsquo;s getters. This makes the store really simple and there is no trace of presentational logic.</p>
+<p>Here is how the register method looks like after the changes:</p>
+<pre><code>register: function (store) {
+  if (!store || !store.update) {
+    throw new Error('You should provide a store that has an `update` method.');
+  } else {
+    var consumers = [];
+    var subscribe = function (consumer) {
+      consumers.push(consumer);
+    };
+
+    this._stores.push({ store: store });
+    return subscribe;
+  }
+  return false;
+}
+</code></pre>
+
+<p>The last bit in the story is how the store says that its internal state is changed. It&rsquo;s nice that we collect the consumer functions but right now there is no code that runs them. </p>
+<p>According to the basic principles of the flux architecture the stores change their state in response of actions. In the <code>update</code> method we send the <code>action</code> but we could also send a function <code>change</code>. Calling that function should trigger the consumers:</p>
+<pre><code>register: function (store) {
+  if (!store || !store.update) {
+    throw new Error('You should provide a store that has an `update` method.');
+  } else {
+    var consumers = [];
+    var change = function () {
+      consumers.forEach(function (l) { 
+        l(store);
+      });
+    };
+    var subscribe = function (consumer) {
+      consumers.push(consumer);
+    };
+
+    this._stores.push({ store: store, change: change });
+    return subscribe;
+  }
+  return false;
+},
+dispatch: function (action) {
+  if (this._stores.length &gt; 0) {
+    this._stores.forEach(function (entry) {
+      entry.store.update(action, entry.change);
+    });
+  }
+}
+</code></pre>
+
+<p><small><em>Notice how we push <code>change</code> together with <code>store</code> inside the <code>_stores</code> array. Later in the <code>dispatch</code> method we call <code>update</code> by passing the <code>action</code> and the <code>change</code> function.</em></small></p>
+<p>A common use case is to render the view with the initial state of the store. In the context of our implementation this means firing all the consumers at least once when they land in the library. This could be easily done in the <code>subscribe</code> method:</p>
+<pre><code>var subscribe = function (consumer, noInit) {
+  consumers.push(consumer);
+  !noInit ? consumer(store) : null;
+};
+</code></pre>
+
+<p>Of course sometimes this is not needed so we add a flag which is by default falsy. Here is the final version of our dispatcher:</p>
+<pre><code>var Dispatcher = function () {
+  return {
+    _stores: [],
+    register: function (store) {
+      if (!store || !store.update) {
+        throw new Error('You should provide a store that has an `update` method.');
+      } else {
+        var consumers = [];
+        var change = function () {
+          consumers.forEach(function (l) { 
+            l(store);
+          });
+        };
+        var subscribe = function (consumer, noInit) {
+          consumers.push(consumer);
+          !noInit ? consumer(store) : null;
+        };
+
+        this._stores.push({ store: store, change: change });
+        return subscribe;
+      }
+      return false;
+    },
+    dispatch: function (action) {
+      if (this._stores.length &gt; 0) {
+        this._stores.forEach(function (entry) {
+          entry.store.update(action, entry.change);
+        });
+      }
+    }
+  }
+};
+</code></pre>
+
+<h2 id="the-actions"><a name="user-content-the-actions" href="#the-actions" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>The actions</h2>
+<p>You probably noticed that we didn&rsquo;t talk about the actions. What are they? My opinion is that they should be simple objects having two properties - <code>type</code> and <code>payload</code>:</p>
+<pre><code>{
+  type: 'USER_LOGIN_REQUEST',
+  payload: {
+    username: '...',
+    password: '...'
+  }
+}
+</code></pre>
+
+<p>The <code>type</code> says what exactly the action is all about and the <code>payload</code> contains the information associated with the event. And in some cases we may leave the <code>payload</code> empty. </p>
+<p>It&rsquo;s interesting that the <code>type</code> is well known in the beginning. We know what type of actions should be floating in our app, who is dispatching them and which of the stores is interested. Thus, we can apply <a href="http://krasimirtsonev.com/blog/article/a-story-about-currying-bind">partial application</a> and avoid passing the action object here and there. For example:</p>
+<pre><code>var createAction = function (type) {
+  if (!type) {
+    throw new Error('Please, provide action\'s type.');
+  } else {
+    return function (payload) {
+      return dispatcher.dispatch({ type: type, payload: payload });
+    }
+  }
+}
+</code></pre>
+
+<p><code>createAction</code> leads to the following benefits:</p>
+<ul>
+<li>We no more need to remember the exact type of the action. We now have a function which we call passing only the payload.</li>
+<li>We no more need an access to the dispatcher which is a huge benefit. Otherwise, think about how we have to pass it to every single place where we need to dispatch an action. In the end we don&rsquo;t have to deal with objects but with functions which is much nicer. The objects are <em>static</em> while the functions describe a <em>process</em>.</li>
+</ul>
+<p><img alt="Fluxiny actions creators" src="http://krasimirtsonev.com/blog/articles/fluxiny/fluxiny_action_creator.jpg" /></p>
+<p>This approach for creating actions is actually really popular and functions like the one above are usually called <strong>action creators</strong>.</p>
+<h2 id="the-final-code"><a name="user-content-the-final-code" href="#the-final-code" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>The final code</h2>
+<p>In the section above we successfully hid the dispatcher while submitting actions. We may do it again for the store&rsquo;s registration: </p>
+<pre><code>var createSubscriber = function (store) {
+  return dispatcher.register(store);
+}
+</code></pre>
+
+<p>And instead of exporting the dispatcher we may export only these two functions <code>createAction</code> and <code>createSubscriber</code>. Here is how the final code looks like:</p>
+<pre><code>var Dispatcher = function () {
+  return {
+    _stores: [],
+    register: function (store) {
+      if (!store || !store.update) {
+        throw new Error('You should provide a store that has an `update` method.');
+      } else {
+        var consumers = [];
+        var change = function () {
+          consumers.forEach(function (l) { 
+            l(store);
+          });
+        };
+        var subscribe = function (consumer, noInit) {
+          consumers.push(consumer);
+          !noInit ? consumer(store) : null;
+        };
+
+        this._stores.push({ store: store, change: change });
+        return subscribe;
+      }
+      return false;
+    },
+    dispatch: function (action) {
+      if (this._stores.length &gt; 0) {
+        this._stores.forEach(function (entry) {
+          entry.store.update(action, entry.change);
+        });
+      }
+    }
+  }
+};
+
+module.exports = {
+  create: function () {
+    var dispatcher = Dispatcher();
+
+    return {
+      createAction: function (type) {
+        if (!type) {
+          throw new Error('Please, provide action\'s type.');
+        } else {
+          return function (payload) {
+            return dispatcher.dispatch({ type: type, payload: payload });
+          }
+        }
+      },
+      createSubscriber: function (store) {
+        return dispatcher.register(store);
+      }
+    }
+  }
+};
+
+</code></pre>
+
+<p>If we add the support of AMD, CommonJS and global usage we end up with 66 lines of code, 1.7KB plain or 795 bytes after minification JavaScript.</p>
+<h2 id="wrapping-up"><a name="user-content-wrapping-up" href="#wrapping-up" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Wrapping up</h2>
+<p>We have a module that provides two helpers for building a Flux project. Let&rsquo;s write a simple counter app that doesn&rsquo;t involve React so we see the pattern in action.</p>
+<h3 id="the-markup"><a name="user-content-the-markup" href="#the-markup" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>The markup</h3>
+<p>We&rsquo;ll need some UI to interact with it so:</p>
+<pre><code>&lt;div id=&quot;counter&quot;&gt;
+  &lt;span&gt;&lt;/span&gt;
+  &lt;button&gt;increase&lt;/button&gt;
+  &lt;button&gt;decrease&lt;/button&gt;
+&lt;/div&gt;
+</code></pre>
+
+<p>The <code>span</code> will be used for displaying the current value of our counter. The buttons will change that value.</p>
+<h3 id="the-view"><a name="user-content-the-view" href="#the-view" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>The view</h3>
+<pre><code>const View = function (subscribeToStore, increase, decrease) {
+  var value = null;
+  var el = document.querySelector('#counter');
+  var display = el.querySelector('span');
+  var [ increaseBtn, decreaseBtn ] = Array.from(el.querySelectorAll('button'));
+
+  var render = () =&gt; display.innerHTML = value;
+  var updateState = (store) =&gt; value = store.getValue();
+
+  subscribeToStore([updateState, render]);
+
+  increaseBtn.addEventListener('click', increase);
+  decreaseBtn.addEventListener('click', decrease);
+};
+</code></pre>
+
+<p>It accepts a store subscriber function and two action function for increasing and decreasing the value. The first few lines of the view are just fetching the DOM elements. </p>
+<p>After that we define a <code>render</code> function which puts the value inside the <code>span</code> tag. <code>updateState</code> will be called every time when the store changes. So, we pass these two functions to <code>subscribeToStore</code> because we want to get the view updated and we want to get an initial rendering. Remember how our consumers are called at least once by default.</p>
+<p>The last bit is calling the action functions when we press the buttons.</p>
+<h3 id="the-store"><a name="user-content-the-store" href="#the-store" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>The store</h3>
+<p>Every action has a type. It&rsquo;s a good practice to create constants for these types so we don&rsquo;t deal with raw strings.</p>
+<pre><code>const INCREASE = 'INCREASE';
+const DECREASE = 'DECREASE';
+</code></pre>
+
+<p>Very often we have only one instance of every store. For the sake of simplicity we&rsquo;ll create ours as a singleton.</p>
+<pre><code>const CounterStore = {
+  _data: { value: 0 },
+  getValue: function () {
+    return this._data.value;
+  },
+  update: function (action, change) {
+    if (action.type === INCREASE) {
+      this._data.value += 1;
+    } else if (action.type === DECREASE) {
+      this._data.value -= 1;
+    }
+    change();
+  }
+};
+</code></pre>
+
+<p><code>_data</code> is the internal state of the store. <code>update</code> is the well known method that our dispatcher calls. We process the action inside and say <code>change()</code> when we are done. <code>getValue</code> is a public method used by the view so it reaches the needed info. In our case this is just the value of the counter.</p>
+<h3 id="wiring-all-the-pieces"><a name="user-content-wiring-all-the-pieces" href="#wiring-all-the-pieces" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Wiring all the pieces</h3>
+<p>So, we have the store waiting for actions from the dispatcher. We have the view defined. Let&rsquo;s create the store subscriber, the actions and run everything.</p>
+<pre><code>const { createAction, createSubscriber } = Fluxiny.create();
+const counterStoreSubscriber = createSubscriber(CounterStore);
+const actions = {
+  increase: createAction(INCREASE),
+  decrease: createAction(DECREASE)
+};
+
+View(counterStoreSubscriber, actions.increase, actions.decrease);
+</code></pre>
+
+<p>And that&rsquo;s it. Our view is subscribed to the store and it renders by default because one of our consumers is actually the <code>render</code> method.</p>
+<h3 id="a-live-demo"><a name="user-content-a-live-demo" href="#a-live-demo" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>A live demo</h3>
+<p>A live demo could be seen in the <a target="_blank" href="https://jsfiddle.net/krasimir/w0ne11bh/">JSFiddle</a> below. If that&rsquo;s not enough and it seems too simple for you please checkout the example in <a href="https://github.com/krasimir/fluxiny">Fluxiny</a> repository <a href="https://github.com/krasimir/fluxiny/tree/master/example">here</a>. It uses React as a view layer.</p>
+<p><iframe width="100%" height="300" src="//jsfiddle.net/krasimir/w0ne11bh/3/embedded/result,js,html/" allowfullscreen="allowfullscreen" frameborder="0"></iframe></p>
+<p>Here is a ES5 version of the same JSFiddle - <a href="https://jsfiddle.net/krasimir/exz2tyyL/" target="_blank">jsfiddle.net/krasimir/exz2tyyL</a></p>
