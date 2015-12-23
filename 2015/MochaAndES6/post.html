@@ -1,0 +1,57 @@
+<p>The new ES6 specification of JavaScript simply works better for me. It helps expressing my ideas in a shorter and cleaner way. So, I want to write ES6 everywhere. Even while I&rsquo;m testing my applications.</p>[STOP]
+<p>As a testing framework I like using <a href="http://mochajs.org/">Mocha</a>. There are tons of plugins for it and the reporters are nice. The problem is that it doesn&rsquo;t accept ES6 written JavaScript out of the box. We need some setup before that. Here is how the process looked like so far:</p>
+<pre><code>           spec files written in
+           plain ES5 JavaScript
+             |
+             |
+mocha ---&gt; reading the files and
+           running the tests
+             |
+             |
+           test results
+</code></pre>
+
+<p>However, if I write my tests in ES6 this doesn&rsquo;t work anymore because Mocha don&rsquo;t understand the input. </p>
+<p>The best transpiler of ES6 to ES5 is <a href="http://babeljs.io/">Babel</a>. And that&rsquo;s what I used at the end. The script that I added to my <code>package.json</code> file looked like that:</p>
+<pre><code>// package.json
+&quot;scripts&quot;: {
+  &quot;test&quot;: &quot;mocha --compilers js:babel-core/register ./test/**/*.spec.js&quot;
+}
+</code></pre>
+
+<p>The final bit was adding a <code>.babelrc</code> file to my root directory. As you may guess this is a configuration file for babel. The latest versions of the transpiler are no longer bundled with compilers by default. We need to install and use them separately. </p>
+<pre><code>// .babelrc
+{
+  &quot;presets&quot;: [&quot;es2015&quot;]
+}
+</code></pre>
+
+<p>Once we run <code>mocha</code> in the terminal we get the following workflow:</p>
+
+<pre><code>           spec files written in
+           plain ES6 JavaScript
+             |
+             |
+mocha ---> reading the files
+             |
+babel ---> compiles the files
+           from ES6 to ES5
+             |            
+mocha ---> running the tests
+             |
+             |
+           test results
+</code></pre>
+
+<p>The full list of dependencies is placed below. <code>babel-preset-es2015</code> contains several plugins that cover the most used ES6 features. If you are interested check out <a href="https://babeljs.io/docs/plugins/preset-es2015/" target="_blank">this link</a>.</p>
+<pre><code>// package.json
+&quot;devDependencies&quot;: {
+  &quot;babel&quot;: &quot;6.3.13&quot;,
+  &quot;babel-core&quot;: &quot;6.1.18&quot;,
+  &quot;babel-preset-es2015&quot;: &quot;6.3.13&quot;,
+  &quot;mocha&quot;: &quot;2.3.4&quot;
+  ...
+}
+</code></pre>
+
+<p><em>Notice the versions of babel and mocha. If you come to this article after a month you may see the API of these two modules changed.</em></p>
