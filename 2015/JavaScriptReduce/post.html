@@ -1,0 +1,102 @@
+<p>I love using functions like <code>map</code>, <code>filter</code> or <code>reduce</code>. They are an important part of my arsenal and I simply can&rsquo;t stop using them. Today I had to solve an interesting problem and I ended up using <code>reduce</code>.</p>[STOP]
+<h2 id="the-task"><a name="user-content-the-task" href="#the-task" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>The task</h2>
+<p>I was writing a test for <a href="https://github.com/krasimir/navigo">Navigo</a> and I had to check if a specific helper function works as expected. It&rsquo;s called <code>getRoot</code> and its signature is as follows:</p>
+<pre><code>function getRoot(url, patterns = []) { ... }
+</code></pre>
+
+<p>So the purpose of the test was to attack the function with different URLs with a combination with different patterns. And because the actual assertions will be the same I decided to define my cases in an array and loop through them.</p>
+<pre><code>const cases = [
+  { 
+    source: 'http://site.com/',
+    expected: 'http://site.com',
+    patterns: []
+  },
+  ...
+];
+
+describe('Given the getRoot helper', function () {
+  cases.forEach(testCase =&gt; {
+    describe(`when passing ${testCase.source} with patterns ${testCase.patterns.join(', ')}`, () =&gt; {
+        it(`should return ${testCase.expected}`, () =&gt; {
+          expect(getRoot(testCase.source, testCase.patterns)).to.be.equal(testCase.expected);
+        });
+      });
+  });
+});
+</code></pre>
+
+<p>Everything was going fine. I was adding more and more test cases. However, at some point I wanted to run only one of them. And because I was being &ldquo;smart&rdquo; I now can&rsquo;t use <code>describe.only</code> because I&rsquo;m generating those <code>describe</code> calls. It makes sense that we add <code>only: true</code> to the specific case and we see only one test running. For example:</p>
+<pre><code>const cases = [
+  { 
+    source: 'http://site.com/',
+    expected: 'http://site.com',
+    patterns: []
+  },
+  { 
+    source: 'http://site.com',
+    expected: 'http://site.com',
+    patterns: [],
+    only: true // &lt;----
+  },
+  { 
+    source: 'https://site.com/',
+    expected: 'https://site.com',
+    patterns: []
+  },
+  ...
+}
+</code></pre>
+
+<p>First, I was thinking using <code>filter</code> and excluding those cases where we don&rsquo;t have <code>only: true</code>. However, this approach doesn&rsquo;t work in the scenario where I run all the tests because none of the items in the array have <code>only</code> as a property.</p>
+<p>I ended up using <code>reduce</code>. According to <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/Reduce">MDN</a>:</p>
+<blockquote>
+<p>The reduce() method applies a function against an accumulator and each value of the array (from left-to-right) to reduce it to a single value.</p>
+</blockquote>
+<p>Or in other words, we may convert the array to something else by iterating over all the elements. There are set of rules based on which we have to implement the solution:</p>
+<ul>
+<li>If there is no <code>only: true</code> set then we return all the elements</li>
+<li>If there is <code>only: true</code> then we return an array with one element</li>
+<li>There could be only one element with <code>only: true</code></li>
+</ul>
+<h2 id="the-solution"><a name="user-content-the-solution" href="#the-solution" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>The solution</h2>
+<p><code>reduce</code> accepts two parameters - the first one is a callback that will be run against every element and the second one is an initial value. For example:</p>
+<pre><code>var arr = [1, 2, 3];
+var result = arr.reduce((sum, current, index, arr) =&gt; {
+  sum += current;
+  return sum;
+}, 100);
+console.log(result); // outputs 106
+</code></pre>
+
+<p>The snippet uses <code>100</code> as a starting point and adds to it every of the elements in the array.</p>
+<p>My experience with <code>reduce</code> shows me that it is good to have a <a href="https://en.wikipedia.org/wiki/Pure_function">pure function</a> as a callback. Which means that we can&rsquo;t have an external variable to store state while looping through the test cases. And we need such state because we have to know if <code>only: true</code> exists or not. If yes then we should return an array with only one element.</p>
+<p>And here is the answer:</p>
+<pre><code>cases
+  .reduce((state, current) =&gt; {
+    if (!state.onlyOne) {
+      state.all.push(current);
+      if (current.only === true) {
+        state.onlyOne = true;
+        state.all = [ current ];
+      }
+    }
+    return state;
+  }, { all: [], onlyOne: false })
+  .all
+  .forEach(testCase =&gt; {
+    describe(`when passing ${testCase.source} with patterns ${testCase.patterns.join(', ')}`, () =&gt; {
+      it(`should return ${testCase.expected}`, () =&gt; {
+        expect(getRoot(testCase.source, testCase.patterns)).to.be.equal(testCase.expected);
+      });
+    });
+  });
+</code></pre>
+
+<p>The initial value is <code>{ all: [], onlyOne: false }</code> where <code>all</code> keeps the test cases which should be run and <code>onlyOne</code> tells us if some of the elements contains <code>only: true</code>. The important bit is</p>
+<pre><code>if (current.only === true) {
+  state.onlyOne = true;
+  state.all = [ current ];
+}
+</code></pre>
+
+<p>where we fulfill the result with only one test case and make sure that <code>state.all.push(current)</code> will not be reached anymore.</p>
