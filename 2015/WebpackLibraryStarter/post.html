@@ -1,0 +1,269 @@
+<p>Two months ago I <a href="http://krasimirtsonev.com/blog/article/a-modern-react-starter-pack-based-on-webpack">published</a> a starter pack for React based on <a href="https://webpack.github.io/">webpack</a>. Today I found out that I need almost the same thing but without the React bit. This simplifies the setup but there are still some tricky parts. So, I made a brand new repository <a href="https://github.com/krasimir/webpack-library-starter">webpack-library-starter</a> and placed all the stuff that we need for creating a JavaScript library.</p>[STOP]
+<h2 id="first-of-all-what-i-meant-by-saying-library"><a name="user-content-first-of-all-what-i-meant-by-saying-library" href="#first-of-all-what-i-meant-by-saying-library" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>First of all, what I meant by saying &ldquo;library&rdquo;</h2>
+<p>My definition for library in the context of JavaScript is a piece of code that provides specific functionality. It does one thing and it is doing it well. In the ideal case should not depend on another library or framework. A good example for library is jQuery. <a href="https://facebook.github.io/react/">React</a> and <a href="http://vuejs.org/">Vue.js</a> could be also considered a library.</p>
+<p>The library should:</p>
+<ul>
+<li>Be available for in-browser use. Understand including the library via <code>&lt;script&gt;</code> tag.</li>
+<li>Be accessible through <a href="https://www.npmjs.com/">npm</a></li>
+<li>Be compatible with ES6(ES2015) module system, <a href="http://www.commonjs.org/">commonjs</a> and <a href="https://github.com/amdjs/amdjs-api/blob/master/AMD.md">amd</a> specifications.</li>
+</ul>
+<p>It doesn&rsquo;t matter what is used for developing the library. What is important is the file that is distributed. It should match the above requirements. I prefer to see libraries written in vanilla JavaScript though. It simply makes the contribution easier.</p>
+<h2 id="directory-structure"><a name="user-content-directory-structure" href="#directory-structure" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Directory structure</h2>
+<p>I choose the following directory structure:</p>
+<pre><code>+-- lib
+|   +-- library.js
+|   +-- library.min.js
++-- src
+|   +-- index.js
++-- test
+</code></pre>
+
+<p>Where <code>src</code> contains the source files and <code>lib</code> the final compiled version. This means that the entry point of the library is the file under <code>lib</code> and not <code>src</code>.</p>
+<h2 id="the-starter"><a name="user-content-the-starter" href="#the-starter" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>The starter</h2>
+<p>I really enjoy the new ES6 specification. The bad thing is that there is some significant tooling around it. Some day we&rsquo;ll probably write such JavaScript without the need of transpiler but today that&rsquo;s not the case. Usually we need some sort of <a href="http://babeljs.io/">Babel</a> integration. Babel can convert our ES6 files to ES5 format but it is not meant to create bundles. Or in other words, if we have the following files:</p>
+<pre><code>+-- lib
++-- src
+    +-- index.js (es6)
+    +-- helpers.js (es6)
+</code></pre>
+
+<p>And we apply Babel we&rsquo;ll get:</p>
+<pre><code>+-- lib
+|   +-- index.js (es5)
+|   +-- helpers.js (es5)
++-- src
+    +-- index.js (es6)
+    +-- helpers.js (es6)
+</code></pre>
+
+<p>Or in other words Babel do not resolve the imports/requires. So we need a bundler and as you may guess my choice for that is <a href="https://webpack.github.io/">webpack</a>. What I want to achieve at the end is:</p>
+<pre><code>+-- lib
+|   +-- library.js (es5)
+|   +-- library.min.js (es5)
++-- src
+    +-- index.js (es6)
+    +-- helpers.js (es6)
+</code></pre>
+
+<h3 id="npm-commands"><a name="user-content-npm-commands" href="#npm-commands" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>npm commands</h3>
+<p>npm provides a nice mechanism for running tasks - <a href="https://docs.npmjs.com/misc/scripts">scripts</a>. There should be at least three of those registered:</p>
+<pre><code>&quot;scripts&quot;: {
+  &quot;build&quot;: &quot;...&quot;,
+  &quot;dev&quot;: &quot;...&quot;,
+  &quot;test&quot;: &quot;...&quot;
+}
+</code></pre>
+
+<ul>
+<li><code>npm run build</code> - this should produce a final minified version of our library</li>
+<li><code>npm run dev</code> - the same as <code>build</code> but do not minify the result and keeps working in a watching mode</li>
+<li><code>npm run test</code> - runs the tests</li>
+</ul>
+<h3 id="building-the-development-version"><a name="user-content-building-the-development-version" href="#building-the-development-version" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Building the development version</h3>
+<p><code>npm run dev</code> should fire webpack and should produce <code>lib/library.js</code> file. We start from the webpack&rsquo;s configuration file:</p>
+<pre><code>// webpack.config.js
+
+var webpack = require('webpack');
+var path = require('path');
+var libraryName = 'library';
+var outputFile = libraryName + '.js';
+
+var config = {
+  entry: __dirname + '/src/index.js',
+  devtool: 'source-map',
+  output: {
+    path: __dirname + '/lib',
+    filename: outputFile,
+    library: libraryName,
+    libraryTarget: 'umd',
+    umdNamedDefine: true
+  },
+  module: {
+    loaders: [
+      {
+        test: /(\.jsx|\.js)$/,
+        loader: 'babel',
+        exclude: /(node_modules|bower_components)/
+      },
+      {
+        test: /(\.jsx|\.js)$/,
+        loader: &quot;eslint-loader&quot;,
+        exclude: /node_modules/
+      }
+    ]
+  },
+  resolve: {
+    root: path.resolve('./src'),
+    extensions: ['', '.js']
+  }
+};
+
+module.exports = config;
+</code></pre>
+
+<p>Even if you don&rsquo;t have experience with webpack you may say what is this config file doing. We define the input (<code>entry</code>) and the output (<code>output</code>) of the compilation. The <code>module</code> property says what should be applied against every file during processing. In our case this is babel and <a href="http://eslint.org/">ESLint</a> where ESLint is a used for checking the syntax and correctness of our code. </p>
+<p>There is one tricky part where I spent couple of ours. It&rsquo;s related to <code>library</code>, <code>libraryTarget</code> and <code>umdNamedDefine</code> properties. First I tried without using them and the output of the library was something like this:</p>
+<pre><code>(function(modules) {
+  var installedModules = {};
+
+  function __webpack_require__(moduleId) {
+    if(installedModules[moduleId]) return installedModules[moduleId].exports;
+
+    var module = installedModules[moduleId] = {
+      exports: {},
+      id: moduleId,
+      loaded: false
+    };
+    modules[moduleId].call(module.exports, module, module.exports, __webpack_require__);
+    module.loaded = true;
+    return module.exports;
+  }
+
+  __webpack_require__.m = modules;
+  __webpack_require__.c = installedModules;
+  __webpack_require__.p = &quot;&quot;;
+
+  return __webpack_require__(0);
+})([
+  function(module, exports) {
+    // ... my code here
+  }
+]);
+</code></pre>
+
+<p>This is how every webpack compiled code looks like. It uses similar approach like <a href="http://browserify.org/">browserify</a>. There is a self-invoking function which receives all the modules used in our application. Every of them stays behind an index of the <code>modules</code> array. In the code above we have only one and <code>__webpack_require__(0)</code> effectively runs the code in our <code>src/index.js</code> file.</p>
+<p>Having a bundle like this one do not fulfill all the requirements mentioned in the beginning of this article because we do not export anything. The file is meant to be dropped in a web page. However, adding <code>library</code>, <code>libraryTarget</code> and <code>umdNamedDefine</code> makes webpack injecting a really nice snippet at the top:</p>
+<pre><code>(function webpackUniversalModuleDefinition(root, factory) {
+  if(typeof exports === 'object' &amp;&amp; typeof module === 'object')
+    module.exports = factory();
+  else if(typeof define === 'function' &amp;&amp; define.amd)
+    define(&quot;library&quot;, [], factory);
+  else if(typeof exports === 'object')
+    exports[&quot;library&quot;] = factory();
+  else
+    root[&quot;library&quot;] = factory();
+})(this, function() {
+return (function(modules) {
+ ...
+ ...
+</code></pre>
+
+<p>Setting <code>libraryTarget</code> to <code>umd</code> means using <a href="https://github.com/umdjs/umd">universal module definition</a> for the final result. And indeed, this piece of code recognizes the environment and provides a proper  bootstrapping mechanism for our library. </p>
+<h3 id="building-production-version"><a name="user-content-building-production-version" href="#building-production-version" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Building production version</h3>
+<p>The only one difference between development and production mode for webpack is the minification. Running <code>npm run build</code> should produce a minified version - <code>library.min.js</code>. webpack has a nice build-in plugin for that:</p>
+<pre><code>// webpack.config.js
+
+...
+var UglifyJsPlugin = webpack.optimize.UglifyJsPlugin;
+var env = process.env.WEBPACK_ENV;
+
+var libraryName = 'library';
+var plugins = [], outputFile;
+
+if (env === 'build') {
+  plugins.push(new UglifyJsPlugin({ minimize: true }));
+  outputFile = libraryName + '.min.js';
+} else {
+  outputFile = libraryName + '.js';
+}
+
+var config = {
+  entry: __dirname + '/src/index.js',
+  devtool: 'source-map',
+  output: { ... },
+  module: { ... },
+  resolve: { ... },
+  plugins: plugins
+};
+
+module.exports = config;
+</code></pre>
+
+<p><code>UglifyJsPlugin</code> does the job if we add it to the <code>plugins</code> array. There is something else that we have to clarify. We need some conditional logic where we instruct webpack what kind of bundle to produce (production or development). One of the popular approaches is to define an environment variable and pass it from the command line. For example:</p>
+<pre><code>// package.json
+
+&quot;scripts&quot;: {
+  &quot;build&quot;: &quot;WEBPACK_ENV=build webpack&quot;,
+  &quot;dev&quot;: &quot;WEBPACK_ENV=dev webpack --progress --colors --watch&quot;
+}
+</code></pre>
+
+<p>(Notice the <code>--watch</code> option. It makes webpack continuously running and watching for changes)</p>
+<h3 id="testing"><a name="user-content-testing" href="#testing" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Testing</h3>
+<p>I&rsquo;m usually using <a href="http://mochajs.org/">Mocha</a> and <a href="http://chaijs.com/">Chai</a> for testing and that&rsquo;s what I added in the starter. Again there was a tricky part making Mocha understands ES6 files but thankfully to Babel the problem was resolved.</p>
+<pre><code>// package.json
+&quot;scripts&quot;: {
+  ...
+  &quot;test&quot;: &quot;mocha --compilers js:babel-core/register --colors -w ./test/*.spec.js&quot;
+}
+</code></pre>
+
+<p>The important bit is the <code>--compilers</code> option. It allows us to process the incoming file before running it.</p>
+<h2 id="a-few-other-configuration-file-added-to-the-starter"><a name="user-content-a-few-other-configuration-file-added-to-the-starter" href="#a-few-other-configuration-file-added-to-the-starter" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>A few other configuration files</h2>
+<p>Babel received some major changes in the newest version 6. We now have something called <code>presets</code> where we describe what kind of transformation we want. One of the easiest ways to configure that is with a <code>.babelrc</code> file:</p>
+<pre><code>// .babelrc
+{
+  &quot;presets&quot;: [&quot;es2015&quot;],
+  &quot;plugins&quot;: [&quot;babel-plugin-add-module-exports&quot;]
+}
+</code></pre>
+
+<p>ESLint provides the same thing and we have <code>.eslintrc</code>:</p>
+<pre><code>// .eslintrc
+{
+  &quot;ecmaFeatures&quot;: {
+    &quot;globalReturn&quot;: true,
+    &quot;jsx&quot;: true,
+    &quot;modules&quot;: true
+  },
+  &quot;env&quot;: {
+    &quot;browser&quot;: true,
+    &quot;es6&quot;: true,
+    &quot;node&quot;: true
+  },
+  &quot;globals&quot;: {
+    &quot;document&quot;: false,
+    &quot;escape&quot;: false,
+    &quot;navigator&quot;: false,
+    &quot;unescape&quot;: false,
+    &quot;window&quot;: false,
+    &quot;describe&quot;: true,
+    &quot;before&quot;: true,
+    &quot;it&quot;: true,
+    &quot;expect&quot;: true,
+    &quot;sinon&quot;: true
+  },
+  &quot;parser&quot;: &quot;babel-eslint&quot;,
+  &quot;plugins&quot;: [],
+  &quot;rules&quot;: {
+    // ... lots of lots of rules here
+  }
+}
+</code></pre>
+
+<h2 id="links"><a name="user-content-links" href="#links" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Links</h2>
+<p>The starter is available in GitHub here <a href="https://github.com/krasimir/webpack-library-starter">github.com/krasimir/webpack-library-starter</a>.</p>
+<p>Used tools:</p>
+<ul>
+<li><a href="https://webpack.github.io/">webpack</a></li>
+<li><a href="http://babeljs.io">Babel</a></li>
+<li><a href="http://eslint.org/">ESLint</a></li>
+<li><a href="http://mochajs.org/">Mocha</a>, <a href="http://chaijs.com/">Chai</a></li>
+<li><a href="https://github.com/umdjs/umd">UMD</a></li>
+</ul>
+<p>Dependencies:</p>
+<pre><code>// package.json
+&quot;devDependencies&quot;: {
+  &quot;babel&quot;: &quot;6.3.13&quot;,
+  &quot;babel-core&quot;: &quot;6.1.18&quot;,
+  &quot;babel-eslint&quot;: &quot;4.1.3&quot;,
+  &quot;babel-loader&quot;: &quot;6.1.0&quot;,
+  &quot;babel-plugin-add-module-exports&quot;: &quot;0.1.2&quot;,
+  &quot;babel-preset-es2015&quot;: &quot;6.3.13&quot;,
+  &quot;chai&quot;: &quot;3.4.1&quot;,
+  &quot;eslint&quot;: &quot;1.7.2&quot;,
+  &quot;eslint-loader&quot;: &quot;1.1.0&quot;,
+  &quot;mocha&quot;: &quot;2.3.4&quot;,
+  &quot;webpack&quot;: &quot;1.12.9&quot;
+}
+</code></pre>
