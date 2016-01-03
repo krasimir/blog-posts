@@ -1,0 +1,204 @@
+<p><small><em>(This blog post is inspired by <a href="http://krasimirtsonev.com/blog/article/A-modern-JavaScript-router-in-100-lines-history-api-pushState-hash-url">A modern JavaScript router in 100 lines</a> and heavily related to <a href="http://work.krasimirtsonev.com/git/navigo/">Navigo</a> router project)</em></small></p>
+<p>If you build single page applications you probably know that one of the must-have parts is the router. The bit that knows how to tweak the content of the address bar and notifies the rest of the system for URL changes. In this article we will discuss the various aspects of the routing in the browser.</p>[STOP]
+<h2 id="the-client-side-routing-is-not-a-new-thing"><a name="user-content-the-client-side-routing-is-not-a-new-thing" href="#the-client-side-routing-is-not-a-new-thing" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>The client-side routing is not a new thing</h2>
+<p>I used to develop <a href="http://www.adobe.com/en/products/flash.html">Flash</a> based applications back in the days. The biggest problem was the fact that they run in a plugin, in a black box. So, the browser is not aware of the changes that happen inside. And again we had different pages, we had to keep state and all these stuff which we now write with JavaScript. To make the project browseable from the outside we used a technique called <em>deep linking</em>. I even blog about that, <a href="http://krasimirtsonev.com/blog/article/deep-linking-in-flash-with-as3-and-javascript">five years ago</a>. There is a library <a href="http://www.asual.com/swfaddress/">SWFAddress</a> which was used everywhere and all companies adopted the idea. Even Adobe. The funny thing is that today, five years later, we have to do the same thing. If we have to support IE9 and below we have to use the same hash based routing.</p>
+<h2 id="hash-based-routing"><a name="user-content-hash-based-routing" href="#hash-based-routing" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Hash-based routing</h2>
+<p>What we meant by hash-based routing is using the anchor part of the URL to simulate different content. For example <code>http://site.com/#/products/list</code> leads to displaying a list of products. We have to mention that the <code>#/products/list</code> bit is never sent to the server. and we are completely operating in the client-side. The routing is possible because changes in the hash don&rsquo;t trigger page reload.</p>
+<h3 id="reading-the-route"><a name="user-content-reading-the-route" href="#reading-the-route" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Reading the route</h3>
+<p>To read the anchor bit from the URL we may use the following code:</p>
+<pre><code>var hash = window.location.hash;
+
+// or extracting the hash from the entire URL
+var hash = window.location.href.split('#')[1] || '';
+</code></pre>
+
+<p>The rest is applying a regular expression against the string and mapping the result to a handler. We will see how this works in the next sections.</p>
+<h3 id="changing-the-path"><a name="user-content-changing-the-path" href="#changing-the-path" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Changing the path</h3>
+<p>As we mentioned above changing only the hash doesn&rsquo;t reload the page. The following helper will update the URL without firing a new request:</p>
+<pre><code>var navigate = function (path) {
+  var current = window.location.href;
+  window.location.href = current.replace(/#(.*)$/, '') + '#' + path;
+}
+</code></pre>
+
+<h3 id="subscribing-for-changes"><a name="user-content-subscribing-for-changes" href="#subscribing-for-changes" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Subscribing for changes</h3>
+<p>Knowing the URL and having a function for updating it is not enough. The URL could be changed by using the navigation buttons of the browser. For example clicking on the <em>back</em> or <em>forward</em> button. In the past the only one way to catch those cases was to call a function at given time-interval. For example:</p>
+<pre><code>var url = null;
+var getCurrent = function () {
+  return window.location.hash;
+};
+var listen = function () {
+  var current = getCurrent();
+  if (current !== url) {
+    console.log('URL changed to ' + current);
+    url = current;
+  }
+  setTimeout(listen, 200);
+};
+listen();
+</code></pre>
+
+<p>For several years code like the one above helped us producing shareable URLs. Even then was possible to create an app that lives entirely in the browser but still has different pages.</p>
+<p>Then something else happen, a new API was introduced - <a href="https://developer.mozilla.org/en-US/docs/Web/API/History_API">History API</a>. </p>
+<h2 id="a-routing-revolution-with-pushstate"><a name="user-content-a-routing-revolution-with-pushstate" href="#a-routing-revolution-with-pushstate" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>A routing revolution with pushState</h2>
+<p>We have a <code>window.history</code> object which provides several methods for manipulating the history of the browser. We have for example <code>window.history.back()</code> for moving a step back or <code>window.history.forward()</code> to do the opposite. More interestingly there is <a href="https://developer.mozilla.org/en-US/docs/Web/API/History/pushState"><code>window.history.pushState</code></a> method:</p>
+<pre><code>var stateObj = { foo: &quot;bar&quot; };
+history.pushState(stateObj, &quot;page 2&quot;, &quot;bar.html&quot;);
+</code></pre>
+
+<p>That&rsquo;s how we create a new entry in the history of the browser. In the snippet above we pass a state, title (which is ignored by some browsers) and an URL. The browser immediately replaces the current URL with the provided one. If we later go back to the same entry a <a href="https://developer.mozilla.org/en-US/docs/Web/Events/popstate"><code>popstate</code></a> event is fired where we may fetch the state object.</p>
+<pre><code>window.onpopstate = function (event) {
+  console.log('state: ' + JSON.stringify(event.state));
+};
+</code></pre>
+
+<p>The effect of <code>pushState</code> is indeed really cool but it comes with a price. To use this method for routing we need to make some changes in the server that hosts our app.</p>
+<h2 id="client-side-routing-is-not-exactly-only-client-side"><a name="user-content-client-side-routing-is-not-exactly-only-client-side" href="#client-side-routing-is-not-exactly-only-client-side" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Client-side routing is not exactly only client-side</h2>
+<p>Client-side routing means using JavaScript to switch the pages in our application. It&rsquo;s tempting because we don&rsquo;t have to send a request to the server. The whole process happen in the same session. However, this is kind of problematic if we don&rsquo;t have an access to the server and its configuration. Or at least some option to forward requests.</p>
+<p>If we shift the routing to the front-end then we should have all the request landing in one place. Otherwise we have to create a HTML file for every single route. </p>
+<pre><code>                                  ----- server ------
+              http://site.com --&gt; |                 | 
+                                  |   /index.html   |
+                   index.html &lt;-- |                 |
+                                  -------------------
+
+                                  ----- server ------
+http://site.com/products/list --&gt; |                 | 
+                                  |   /index.html   |
+           404 page not found &lt;-- |                 |
+                                  -------------------
+
+</code></pre>
+
+<p>We know that most servers open <code>index.html</code> file if physically exists at the requested path. In the image above we requested <code>http://site.com</code> and we receive <code>/index.html</code>. Let&rsquo;s say that at some point we click on a link and we use the History API to change the URL with <code>http://site.com/products/list</code>. We update the content of the page and everything seems ok. The problem is that if we refresh the browser or copy and paste the new URL we&rsquo;ll get nothing (probably 404 page not found error). It&rsquo;s like that because there is no (physically) <code>/products/list/index.html</code> file on the server. </p>
+<p>The problem could be solved if we amend the configuration of the server and forward all the requests to the same <code>index.html</code> file. JavaScript has an access to the current page&rsquo;s URL so we may resolve the path and map it to some logic in our app. </p>
+<p>If we use <a href="https://httpd.apache.org/">Apache</a> as a server we may <a href="http://krasimirtsonev.com/blog/article/apache-htaccess-for-html5-push-state-manipulations">easily use a <code>.htaccess</code></a> file:</p>
+<pre><code>&lt;ifModule mod_rewrite.c&gt;
+  Options +FollowSymLinks
+  IndexIgnore */*
+  RewriteEngine On
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule (.*) index.html
+&lt;/ifModule&gt;
+</code></pre>
+
+<p>If we use hash based routing we may leave our server untouched though. Very often the routers in JavaScript take this way because the History API is <a href="http://caniuse.com/#search=pushState">not supported</a> in IE9 and below.</p>
+<h2 id="navigo-my-exercice-router-implementation"><a name="user-content-navigo-my-exercice-router-implementation" href="#navigo-my-exercice-router-implementation" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Navigo - my exercice router implementation</h2>
+<p>It took me several months to wrap my experience about client-side routing in a library format. Not because it&rsquo;s so complicated but because I didn&rsquo;t have enough time &hellip; and of course I&rsquo;ve been lazy. <a href="http://work.krasimirtsonev.com/git/navigo/">Navigo</a> is a client-side router that uses the History API by default but fallbacks to hash based routing in older browsers. I&rsquo;ll not describe the whole process here but will mention a few tricky parts.</p>
+<h3 id="regular-expressions"><a name="user-content-regular-expressions" href="#regular-expressions" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Regular expressions</h3>
+<p>In the beginning it looked easy because I converted the passed route string to a RegExp object and try matching it with the current URL.</p>
+<pre><code>var url = 'http://site.com/users/list';
+var route = '/users/list';
+var r = new RegExp(route);
+var match = url.match(r);
+</code></pre>
+
+<p>However, I decided to use TDD for this part of the library and listed several cases. Well &hellip; it&rsquo;s not that easy as it looked like. First I had to append <code>(?:\/|$)</code> at the end because it was possible to capture only part of the URL which is not exactly valid in my case.</p>
+<pre><code>// this was considered a matching rule while it shouldn't
+var route = '/users/list';
+'http://site.com/users/listing'.match(new RegExp(route));
+
+// this works better
+var route = '/users/list' + '(?:\/|$)';
+'http://site.com/users/listing'.match(new RegExp(route));
+</code></pre>
+
+<p>It was important to use a non-capturing group <code>(?:)</code> because later I was going to use the capturing group for the URL variables.</p>
+<p>Every router needs to support parameterization. These are routes that have variables inside. For example <code>/user/:id/save</code>. The <code>:id</code> bit could be anything so we can&rsquo;t use a static string. In some router implementation this is defined as <code>@id</code> or <code>{id}</code> but I think the most common format is <code>:[variable name]</code>. So, receiving such string we have to convert it to a regular expression. The tricky part is to keep the name of the variable and later map it to the actual value.</p>
+<pre><code>var variableNames = [];
+var route = '/user/:id/:action'.replace(/([:*])(\w+)/g, function (full, dots, name) {
+  variableNames.push(name);
+  return '([^\/]+)';
+}) + '(?:\/|$)';
+var match = 'http://site.com/user/42/save'.match(new RegExp(route));
+
+// At this point
+//   variableNames=[&quot;id&quot;, &quot;action&quot;];
+//   match = [
+//    &quot;/user/42/save&quot;,
+//    &quot;42&quot;,
+//    &quot;save&quot;,
+//    index: 15,
+//    input: &quot;http://site.com/user/42/save&quot;
+//  ]
+
+var params = match
+  .slice(1, match.length)
+  .reduce((params, value, index) =&gt; {
+    if (params === null) params = {};
+    params[variableNames[index]] = value;
+    return params;
+  }, null);
+
+// params = {id: &quot;42&quot;, action: &quot;save&quot;}
+</code></pre>
+
+<p>At the end if we have a matching rule the library fires a handler and passes the <code>params</code> object.</p>
+<p>The last thing which I did with regular expression was the support of wild cards. Or in other words a variable in the URL but something which I&rsquo;m not interested in. The wild cards are usually represented by <code>*</code> which should be replaced with <code>(?:.*)</code>. For example:</p>
+<pre><code>var route = '/some/page/*/interesting/bit';
+route = route.replace(/\*/g, '(?:.*)');
+'http://site.com/some/page/blah/dah/doh/interesting/bit'
+  .match(new RegExp(route));
+</code></pre>
+
+<p><em>(A nice place to try regular expressions could be found <a href="http://www.rubular.com/">here</a>.)</em></p>
+<h3 id="navigating-to-a-new-page"><a name="user-content-navigating-to-a-new-page" href="#navigating-to-a-new-page" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Navigating to a new page</h3>
+<p>If we use hash based routing this is really easy. We know exactly which part of the URL should be replaced. However, with the History API is a bit different. Let&rsquo;s say that we have our application hosted under <code>http://site.com/app</code> and we use the following lines to change the page:</p>
+<pre><code>window.history.pushState({}, '', 'users/list');
+// 2 minutes later
+window.history.pushState({}, '', 'products');
+</code></pre>
+
+<p>We&rsquo;ll end up seeing <code>http://site.com/app/users/users/products</code> in the address bar which is wrong. Should be <code>http://site.com/app/products</code>.</p>
+<p>A quick way to solve this problem is to use absolute routes like <code>/app/users/list</code> and <code>/app/products</code>. But then we can&rsquo;t move our application easily because once we change <code>app</code> with something else we have to update all the routes.</p>
+<p>So if we use <code>pushState</code> to change the URL we should always know the root path of our application. Now the question is how to get that dynamically. We anyway touch something on the server to make the History API works so we may get it from there.</p>
+<pre><code>&lt;?php
+
+  $path = str_replace('index.php', '' , $_SERVER['SCRIPT_NAME']);
+  $root = &quot;http://&quot;.$_SERVER['HTTP_HOST'].$path;
+
+?&gt;
+</code></pre>
+
+<p>Remember how every request is passed to a single file. Well, the location of this file is our root path. In PHP <code>$_SERVER['SCRIPT_NAME']</code> returns exactly what we need. The rest is just passing the <code>$root</code> variable to the HTML bit and initialize the route with it. That&rsquo;s one way to solve the problem.</p>
+<p>Instead of involving a back-end script I decided to do something else - <a href="http://work.krasimirtsonev.com/git/navigo/">Navigo</a> is using the registered routes. In theory we should be able to extract the root path based on the passed patterns. What is not matching in those patterns is either the home page or a page which should be considered missing (not found).</p>
+<pre><code>function root(url, routes) {
+  var matched = ...;
+  var fallbackURL = url;
+
+  if (matched.length &gt; 0) {
+    return matched
+      .map(m =&gt; url.substr(0, m.match.index))
+      .reduce((root, current) =&gt; {
+        return current.length &lt; root.length ? current : root;
+      }, fallbackURL);
+  }
+  return fallbackURL;
+};
+</code></pre>
+
+<p>If we have all the valid routes we may map them to a string containing only the first bit of the match and see which one is the shortest. </p>
+<pre><code>var url = 'http://site.com/app/users/list';
+var match = url.match(new RegExp('/users/list'));
+var root = url.substr(0, match.index);
+
+// root = http://site.com/app
+</code></pre>
+
+<p>Unfortunately this approach has another side effect - it&rsquo;s difficult to cover the <em>page not found</em> situation. That&rsquo;s because we always fall back to the current URL and we&rsquo;ll probably always show the home page. However, I personally prefer using this technique because I may drop my app everywhere and don&rsquo;t worry about updating or even having a back-end code.</p>
+<h3 id="check-if-there-is-a-history-api"><a name="user-content-check-if-there-is-a-history-api" href="#check-if-there-is-a-history-api" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Check if there is a History API</h3>
+<p>In the very beginning of the router we have to decide whether we are going to use the History API or the hash based routing. Here is how the constructor looks like:</p>
+<pre><code>function Navigo(r, useHash) {
+  this.root = r || null;
+  this._ok = !useHash &amp;&amp; !!(
+    typeof window !== 'undefined' &amp;&amp;
+    window.history &amp;&amp;
+    window.history.pushState
+  );
+};
+</code></pre>
+
+<p>Notice that we give an option for having strict root path or directly use hashes over <code>pushState</code>.</p>
+<h2 id="wrapping-up"><a name="user-content-wrapping-up" href="#wrapping-up" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Wrapping up</h2>
+<p>Thanks for reading this article. My idea was to be a short one but &hellip; well there are lots of stuff about client-side routing. If you are interested in the details please check <a href="http://work.krasimirtsonev.com/git/navigo/">Navigo</a> and its <a href="https://github.com/krasimir/navigo">repository in GitHub</a>. As we all like to say &ldquo;Pull request are welcome&rdquo; :).</p>
