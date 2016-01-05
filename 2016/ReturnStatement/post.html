@@ -1,0 +1,41 @@
+<p>Well, I kind of lied in the title of this article. Of course that it is the end of the function. Once we call <code>return</code> everything else after that is simply not executed. Ops &hellip; I did it again, I kind of lied again.</p>[STOP]
+<p>I was browsing some Babel <a href="https://github.com/babel/babel/blob/master/packages/babel-helper-builder-react-jsx/src/index.js">code</a> and I noticed something like that:</p>
+<pre><code>function doSomething (a, b) {
+  var result = format(a + b);
+
+  return result;
+
+  function format(n) {
+    return 'Result is: ' + n;
+  }
+
+}
+</code></pre>
+
+<p>Notice how we use the <code>format</code> function before calling <code>return</code> but its definition is after that. This is possible because of the JavaScript <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/var#var_hoisting">hoisting</a>. It is important to define the function like <code>function name</code> (function declaration) and not <code>var name = function</code> (function expression). The following code for example doesn&rsquo;t work:</p>
+<pre><code>function doSomething (a, b) {
+  var result = format(a + b);
+
+  return result;
+
+  var format = function(n) {
+    return 'Result is: ' + n;
+  }
+
+}
+</code></pre>
+
+<p>We get <code>Uncaught TypeError: format is not a function</code> error. When we use function expression the defined variable is indeed hoisted but its value not. Consider we have another snippet:</p>
+<pre><code>function doSomething () {
+  console.log(format, nothing);
+
+  return result;
+
+  var format = function() {
+    return 'Hello world';
+  }
+}
+</code></pre>
+
+<p>If we run it we&rsquo;ll get <code>ReferenceError: nothing is not defined</code> because format is hoisted. Yes, its value is <code>undefined</code> but it is defined in the scope of the current function.</p>
+<p>So, why we are talking about this stuff. Well, I think using function declaration after the return statement makes the code difficult to understand. We have to jump back and forth in the function&rsquo;s body to understand what is going on. We read from top to bottom (normally) so it makes sense to see something defined and then used. Can this be considered as a anti-pattern?</p>
