@@ -1,0 +1,49 @@
+<p>I like reading code of other developers. It&rsquo;s a nice way to learn patterns, techniques and small tricks. Recently I found something about <code>Array.prototype.length</code> which caught my attention.</p>[STOP]
+<p>We all know that while working with Arrays <code>.length</code> returns the number of the added items. For example:</p>
+<pre><code>var arr = ['a', 'b', 'c', 'd'];
+arr.length; // 4
+</code></pre>
+
+<p>However, it turns out that <code>length</code> is not just a read-only property. We may set values to it. (<a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/length">MDN</a>) </p>
+<p><img alt="Array.prototype.length" src="http://krasimirtsonev.com/blog/articles/ArrayLength/mdn.jpg" /></p>
+<p>What happen if we have four elements in the array and we set length to five:</p>
+<pre><code>var arr = ['a', 'b', 'c', 'd'];
+arr.length = 5;
+arr; // [&quot;a&quot;, &quot;b&quot;, &quot;c&quot;, &quot;d&quot;, undefined]
+</code></pre>
+
+<p>We added one item at the end of the array. It&rsquo;s value is <code>undefined. We may set</code>length<code>to ten and we'll get six more</code>undefined` elements. Incrementing works as well:</p>
+<pre><code>var arr = ['a', 'b', 'c', 'd'];
+arr.length += 3;
+arr; // [&quot;a&quot;, &quot;b&quot;, &quot;c&quot;, &quot;d&quot;, undefined × 3]
+</code></pre>
+
+<p>The more interesting use case is decreasing the length or setting it to a number less then the actual elements&rsquo; count. </p>
+<pre><code>var arr = ['a', 'b', 'c', 'd'];
+arr.length -= 1;
+arr; // [&quot;a&quot;, &quot;b&quot;, &quot;c&quot;]
+</code></pre>
+
+<p>We deleted the last element of the array. We may of course say <code>arr.length -= 3</code> and we&rsquo;ll end up with only one item <code>["a"]</code>. Yes, we have a <code>pop</code> method which also removes the latest record from the array but decreasing the length allow us erasing multiple elements.</p>
+<p>Can we use the same technique to pull elements from the beginning of the array? The answer is yes. It&rsquo;s ugly but it is possible:</p>
+<pre><code>var arr = ['a', 'b', 'c', 'd'];
+arr.reverse().length -= 2;
+arr.reverse();
+arr; // [&quot;c&quot;, &quot;d&quot;]
+</code></pre>
+
+<p>Every string may be converted to an array right. Having the array we may apply the learned above to truncate the text at a given word. For example:</p>
+<pre><code>var str = 'Brown fox jump over the lazy dog';
+
+function truncate (text, word) {
+  var words = text.split(' ');
+  var pos = words.indexOf(word);
+
+  if (pos === -1) return text;
+  words.length = pos;
+  return words.join(' ') + ' ...';
+}
+
+truncate(str, 'over'); // Brown fox jump ...
+truncate(str, 'nope'); // Brown fox jump over the lazy dog
+</code></pre>
