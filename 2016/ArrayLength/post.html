@@ -12,12 +12,28 @@ arr.length = 5;
 arr; // [&quot;a&quot;, &quot;b&quot;, &quot;c&quot;, &quot;d&quot;, undefined]
 </code></pre>
 
-<p>We added one item at the end of the array. It&rsquo;s value is <code>undefined. We may set</code>length<code>to ten and we'll get six more</code>undefined` elements. Incrementing works as well:</p>
-<pre><code>var arr = ['a', 'b', 'c', 'd'];
-arr.length += 3;
-arr; // [&quot;a&quot;, &quot;b&quot;, &quot;c&quot;, &quot;d&quot;, undefined × 3]
+<p><strike>We added one item at the end of the array. It&rsquo;s value is undefined. We may set length to ten and we'll get six more undefined elements.</strike> We are not actually adding a new element. We simply say that the value of <code>length</code> property of<code>arr</code>is 5. If we try looping with <code>forEach</code> we&rsquo;ll see that there is no additional element.</p>
+<pre><code>arr.forEach((item, i) =&gt; {
+  console.log(i, typeof item);
+});
+// 0 &quot;string&quot;
+// 1 &quot;string&quot;
+// 2 &quot;string&quot;
+// 3 &quot;string&quot;
 </code></pre>
 
+<p>However, if we use a <code>for</code> loop we&rsquo;ll get one more <code>undefined</code> at the end:</p>
+<pre><code>for(var i=0; i&lt;arr.length; i++) {
+  console.log(i, arr[i]);
+}
+// 0 &quot;a&quot;
+// 1 &quot;b&quot;
+// 2 &quot;c&quot;
+// 3 &quot;d&quot;
+// 4 undefined
+</code></pre>
+
+<p>And that&rsquo;s not because we added one more record but because there is nothing at <code>arr[4]</code>. <em>(Thanks to <a href="https://twitter.com/simevidas">&#352;ime Vidas</a> for spotting this fact)</em></p>
 <p>The more interesting use case is decreasing the length or setting it to a number less then the actual elements&rsquo; count. </p>
 <pre><code>var arr = ['a', 'b', 'c', 'd'];
 arr.length -= 1;
