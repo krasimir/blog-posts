@@ -1,0 +1,106 @@
+<p>Destructuring is one of my favorite ES6(ES2015) features. It just shortens my code and helps me be more explicit with my statements. Let&rsquo;s see it in action.</p>[STOP]
+<h2 id="whats-destructuring-assignment"><a name="user-content-whats-destructuring-assignment" href="#whats-destructuring-assignment" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>What&rsquo;s destructuring assignment</h2>
+<p>Destructuring assignment is a new syntax that allows us extract needed information from objects or arrays. We mimic the creation of those. For example:</p>
+<pre><code>var data = { question: '...', answer: 42 };
+var { answer } = data; // answer = 42
+
+var list = ['A', 'B', 'C'];
+var [ first ] = list; // first = A
+</code></pre>
+
+<p>The idea is that we specify what portion of the object/array is assigned to the variables on the left side. Apparently this is a really powerful feature.</p>
+<h2 id="the-good-old-options-as-object-case"><a name="user-content-the-good-old-options-as-object-case" href="#the-good-old-options-as-object-case" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>The good old options-as-object case</h2>
+<p>Sometimes we store our data in an object literal. That object travels through our functions and we use what we need from it. Not everything but just a specific properties.</p>
+<pre><code>function showList(options) {
+  var enabled = options.enabled;
+  return options.files.forEach(function (file) {
+    if (enabled) {
+      // ...
+    }
+  });
+}
+</code></pre>
+
+<p>Let&rsquo;s say that <code>options</code> contains the whole configuration of our application but we are interested only in <code>enabled</code> and <code>files</code>. And instead of writing <code>var prop = options.prop</code> every time we may use destructuring directly in the definition of the function:</p>
+<pre><code>function showList({ enabled, files }) {
+  return files.forEach(function (file) {
+    if (enabled) {
+      // ...
+    }
+  });
+}
+</code></pre>
+
+<p>The body of the function now becomes simple and easy to read.</p>
+<h2 id="better-naming-and-default-values"><a name="user-content-better-naming-and-default-values" href="#better-naming-and-default-values" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Better naming and default values</h2>
+<p>There are couple of other features that may come handy if we need better naming. We may give another name to the newly created variable while destructuring.</p>
+<pre><code>function showList({ enabled: isReady, files: attachments }) {
+  return attachments.forEach(function (file) {
+    if (isReady) {
+      // ...
+    }
+  });
+}
+</code></pre>
+
+<p>There are cases where the properties of the object are just too generic. And using an alias makes total sense. Like in the snippet above we have the knowledge that <code>enabled</code> means that <em>component is ready</em> but that is not clear by just reading the function. So <em>renaming</em> <code>enabled</code> to <code>isReady</code> clarifies what stands behind that boolean.</p>
+<p>We may use default values while destructuring too:</p>
+<pre><code>function showList({ enabled: isReady, files: attachments = []}) {
+  return attachments.forEach(function (file) {
+    if (isReady) {
+      // ...
+    }
+  });
+}
+</code></pre>
+
+<h2 id="give-me-all-but-not"><a name="user-content-give-me-all-but-not" href="#give-me-all-but-not" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Give me all but not &hellip;</h2>
+<p>Recently I was working with fat object containing lots of properties. And the thing was that I used the same object to perform a HTTP request. However, some of the fields should be removed before submitting. Otherwise I end up sending unnecessary data over the wire. Let&rsquo;s say that the object below is my POST data.</p>
+<pre><code>var data = {
+  username: 'Joe',
+  userId: 34,
+  sectionTitle: 'Attachments',
+  accessTo: ['section1', 'section2']
+}
+</code></pre>
+
+<p>Because of some bad design decisions which I&rsquo;ve made I now have the <code>username</code> and <code>userId</code> together with the data that should be saved in the database. Instead of creating a brand new object literal and writing something like <code>newObj.sectionTitle = data.sectionTitle</code> we may use destructuring:</p>
+<pre><code>var { username, userId, ...dataToSend } = data;
+</code></pre>
+
+<p>And indeed <code>dataToSend</code> contains only <code>sectionTitle</code> and <code>accessTo</code>.</p>
+<h2 id="working-with-arrays"><a name="user-content-working-with-arrays" href="#working-with-arrays" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Working with arrays</h2>
+<p>So far we saw examples using objects. Well, the same feature works for arrays too. In the beginning of the article we saw how to extract the first element of an array:</p>
+<pre><code>var list = ['A', 'B', 'C'];
+var [ first ] = list; // first = A
+</code></pre>
+
+<p>It&rsquo;s possible to use the <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Spread_operator">spread operator</a> to cut of the array and get everything but not the first two items:</p>
+<pre><code>var list = ['A', 'B', 'C', 'D'];
+var [ first, second, ...other ] = list;
+
+// other = ['C', 'D']
+</code></pre>
+
+<p>I like using destructuring when accessing DOM nodes with <code>document.querySelectorAll</code>. Very often I know exactly how many elements I&rsquo;m querying and their order. Having this knowledge I&rsquo;m able to define variables in just one line:</p>
+<pre><code>var [ username, password ] = Array.from(document.querySelectorAll('input'));
+
+// we need Array.from because querySelector returns
+// a non-iterable object
+</code></pre>
+
+<h2 id="the-unknown-property"><a name="user-content-the-unknown-property" href="#the-unknown-property" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>The unknown property</h2>
+<p>At the end, one use case which is not so popular but but it&rsquo;s still quite interesting. What if we have an object and we are interested in one of its properties but we don&rsquo;t really know the name of it. We have it in a variable:</p>
+<pre><code>// we have the weird property name in a variable
+var id = 'A34fG33a21';
+
+var data = {
+  'A34fG33a21': 'Destructuring is cool'
+}
+var { [id]: fact } = data;
+console.log(fact); // outputs &quot;Destructuring is cool&quot;
+</code></pre>
+
+<h2 id="summary"><a name="user-content-summary" href="#summary" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Summary</h2>
+<p>Destructuring may seem like a syntax sugar but I think it&rsquo;s a nice way to simplify the code and get rid of all those temporary variables and statements that we have to write. So, use it wisely and happy destructuring&rdquo; :)</p>
+<p><em>A good resource for the destructung assignment is <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Destructuring_assignment">MDN page</a>. So make sure to read that as well.</em></p>
