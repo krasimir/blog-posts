@@ -1,0 +1,98 @@
+<p>Node has a wonderful <a href="https://nodejs.org/api/debugger.html">debugger</a>. As a front-end developer I&rsquo;m mainly using Chrome&rsquo;s tools but sometimes I run things in Node environment and this native feature comes handy. In this article we&rsquo;ll see how to debug in the terminal using Node&rsquo;s debugger.</p>[STOP]
+
+
+<h2 id="when-to-use-nodes-debugger"><a name="user-content-when-to-use-nodes-debugger" href="#when-to-use-nodes-debugger" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>When to use Node&rsquo;s debugger</h2>
+<p>The native debugger is useful when we run Node programs trough the terminal and we want to see how they behave. We can run something in the console and expect what&rsquo;s doing line by line. As most debuggers out there we have breakpoints, variable or expression watching, step-by-step execution.</p>
+<h2 id="how-to-run-the-debugger"><a name="user-content-how-to-run-the-debugger" href="#how-to-run-the-debugger" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>How to run the debugger</h2>
+<p>All we have to do is adding <code>debug</code> to our command. Let&rsquo;s get the following simple script:</p>
+<pre><code>// script.js
+
+var Counter = function (text) {
+  this.text = text;
+  this.data = {
+    words: 1,
+    letters: 0
+  }
+};
+Counter.prototype = {
+  count: function () {
+    for (var i=0; i &lt; this.text.length; i++) {
+      if (this.text.charAt(i) === ' ') {
+        ++this.data.words;
+      } else {
+        ++this.data.letters;
+      }
+    }
+    return this;
+  },
+  print: function () {
+    console.log('Words: ' + this.data.words);
+    console.log('Letters: ' + this.data.letters);
+  }
+};
+
+(new Counter('Debugging in Node')).count().print();
+</code></pre>
+
+<p>It&rsquo;s a small program that counts the words in a sentence and all the characters but not spaces. If we run the program now we&rsquo;ll get the following result:</p>
+<p><img alt="Debugging in Node.js" src="http://krasimirtsonev.com/blog/articles/debuggingInNode/01_01.jpg" /></p>
+<p>Let&rsquo;s assume that there is a problem with the script and we want to run it in debug mode. We have to use <code>node debug ./script.js</code>:</p>
+<p><img alt="Debugging in Node.js" src="http://krasimirtsonev.com/blog/articles/debuggingInNode/01_02.jpg" /></p>
+<p>Now our program is paused at the very first line and the debugger expects our input. Notice that the debugger is listeninig on specific port. This means that we can control it remotely and that&rsquo;s what (I believe) <a href="https://github.com/node-inspector/node-inspector">node-inspector</a> is using.</p>
+<h2 id="available-commands"><a name="user-content-available-commands" href="#available-commands" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Available commands</h2>
+<p>While we are in debug mode we have several commands available. Let&rsquo;s use the example above and see the most popular ones.</p>
+<h3 id="next-step-next-or-n"><a name="user-content-next-step-next-or-n" href="#next-step-next-or-n" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Next step (<code>next</code> or <code>n</code>)</h3>
+<p><code>next</code> or <code>n</code> is used for moving one step forward. In our case the second step in the program is the prototype definition. After that we reach the point where we create an instance of the <code>Counter</code> <em>class</em>.</p>
+<p><img alt="Debugging in Node.js" src="http://krasimirtsonev.com/blog/articles/debuggingInNode/01_03.jpg" /></p>
+<p>Notice the red arrows. They are showing where I typed <code>n</code> and pressed <code>Enter</code>.</p>
+<h3 id="step-in-step-or-s"><a name="user-content-step-in-step-or-s" href="#step-in-step-or-s" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Step in (<code>step</code> or <code>s</code>)</h3>
+<p>Just moving one step forward is not always enough. That&rsquo;s because <em>next step</em> means next step but in the context of the current function. Sometimes we want to dive into another method. In such cases we use <em>step in</em> command.</p>
+<p><img alt="Debugging in Node.js" src="http://krasimirtsonev.com/blog/articles/debuggingInNode/01_04.jpg" /></p>
+<p>We use <code>n</code> till we reach the line that creates an instance of our <code>Counter</code> class. Sending <code>s</code> forces the debugger to jump inside the <code>Counter</code> function.</p>
+<h3 id="step-out-out-or-o"><a name="user-content-step-out-out-or-o" href="#step-out-out-or-o" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Step out (<code>out</code> or <code>o</code>)</h3>
+<p>Once we finish inspecting a function we may want to go out and continue the program&rsquo;s execution. Following the example above and sending <code>o</code> moves the debugger to the <code>count()</code> call.</p>
+<p><img alt="Debugging in Node.js" src="http://krasimirtsonev.com/blog/articles/debuggingInNode/01_05.jpg" /></p>
+<h3 id="continue-execution-cont-or-c"><a name="user-content-continue-execution-cont-or-c" href="#continue-execution-cont-or-c" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Continue execution (<code>cont</code> or <code>c</code>)</h3>
+<p>When we debug complex applications we have lots of stuff happening. Very often we have long execution path and in order to reach the interesting part we have to pass several functions. <code>next</code> command is not working well in such cases simply because we have to run it multiple times. It&rsquo;s better to use <code>cont</code> or <code>c</code>. It tells to the debugger &ldquo;Continue till you find a breakpoint&rdquo;. We didn&rsquo;t set any breakpoints so far so typing <code>c</code> as a first command executes the whole program and we see the result.</p>
+<p><img alt="Debugging in Node.js" src="http://krasimirtsonev.com/blog/articles/debuggingInNode/01_06.jpg" /></p>
+<h3 id="setting-a-breakpoint"><a name="user-content-setting-a-breakpoint" href="#setting-a-breakpoint" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Setting a breakpoint</h3>
+<p>To be honest I&rsquo;m not using commands to set breakpoints. This is possible by using <code>setBreakpoint()</code> or <code>sb()</code> which sets a breakpoint at the current line. Same functions accept a line number so we can break at specific line. What I&rsquo;m doing is adding <code>debugger;</code> statement in my code. This acts as a breaking point (it works in a browser too). </p>
+<p>Let&rsquo;s say that we want to inspect the loop that reads the words in my sentence. In the very beginning of the <code>count</code> function we add <code>debugger;</code>:</p>
+<pre><code>count: function () {
+  debugger; // &lt;---- breakpoint
+  for (var i=0; i &lt; this.text.length; i++) {
+    if (this.text.charAt(i) === ' ') {
+      ++this.data.words;
+    } else {
+      ++this.data.letters;
+    }
+  }
+  return this;
+},
+</code></pre>
+
+<p>If we run the debugger it will pause at the first line of the script. Then pressing <code>c</code> will instruct the debugger to continue till it finds a breakpoint or the program finishes.</p>
+<p><img alt="Debugging in Node.js" src="http://krasimirtsonev.com/blog/articles/debuggingInNode/01_07.jpg" /></p>
+<h3 id="increase-visibility"><a name="user-content-increase-visibility" href="#increase-visibility" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Increase visibility</h3>
+<p>You probably noticed that we see just five lines of our program at a time. Sometimes we want to see more. <code>list</code> command is exactly about that. It accepts a digit and that&rsquo;s the number of the visible code lines. For example:</p>
+<p><img alt="Debugging in Node.js" src="http://krasimirtsonev.com/blog/articles/debuggingInNode/01_08.jpg" /></p>
+<h3 id="watching"><a name="user-content-watching" href="#watching" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Watching</h3>
+<p>The last command that we&rsquo;ll check in details is <code>watch</code>. It accepts an expression and it is printing it out at every debugging step. To illustrate how it works we&rsquo;ll use the following expression:</p>
+<pre><code>watch(&quot;this.text.charAt(i)&quot;)
+</code></pre>
+
+<p>Of course <code>this.text</code> doesn&rsquo;t makes sense everywhere. It is available in the <code>count</code> function and that&rsquo;s where it returns a proper value. In the first steps we just get <code>&lt;error&gt;</code> displayed.</p>
+<p><img alt="Debugging in Node.js" src="http://krasimirtsonev.com/blog/articles/debuggingInNode/01_09.jpg" /></p>
+<p>However, if we move forward and reach the <code>for</code> loop we&rsquo;ll see the exact character read.</p>
+<p><img alt="Debugging in Node.js" src="http://krasimirtsonev.com/blog/articles/debuggingInNode/01_10.jpg" /></p>
+
+<h3 id="other-commands"><a name="user-content-other-commands" href="#other-commands" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Other commands</h3>
+<p>There are some other commands which I personally don&rsquo;t use. A full list of the available ones could be found <a href="https://nodejs.org/api/debugger.html">here</a>.</p>
+
+<h2 id="alternatives"><a name="user-content-alternatives" href="#alternatives" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Alternatives</h2>
+<p>There are some other alternatives for debugging Node.js scripts. Most of the them involve GUI.</p>
+<ul>
+<li><a href="https://www.npmjs.com/package/node-inspector">node-inspector</a></li>
+<li><a href="https://github.com/s-a/iron-node">icon-node</a></li>
+<li><a href="https://github.com/Jam3/devtool">devtool</a></li>
+</ul>

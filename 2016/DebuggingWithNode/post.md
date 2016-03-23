@@ -1,18 +1,16 @@
 # Debugging with Node
 
-Node has a wonderful [debugger](https://nodejs.org/api/debugger.html). As a front-end developer I'm mainly using Chrome's tools but sometimes I run things only in Node and this native feature comes handy. In this article we'll see how to debug in the terminal using Node's debugger.
+Node has a wonderful [debugger](https://nodejs.org/api/debugger.html). As a front-end developer I'm mainly using Chrome's tools but sometimes I run things in Node environment and this native feature comes handy. In this article we'll see how to debug in the terminal using Node's debugger.
 
 ## When to use Node's debugger
 
-The native debugger is useful when we run Node programs trough the terminal and we want to see how they behave. We can run something in the console and expect what's doing line by line. There are plenty of stuff available - breakpoints, variable or expression watching, step-by-step execution.
-
-*There is another popular module for that [node-inspector](https://github.com/node-inspector/node-inspector) but in some cases it gets tricky running it. I ended up using the native one and I'm pretty satisfied with the result.*
+The native debugger is useful when we run Node programs trough the terminal and we want to see how they behave. We can run something in the console and expect what's doing line by line. As most debuggers out there we have breakpoints, variable or expression watching, step-by-step execution.
 
 ## How to run the debugger
 
 All we have to do is adding `debug` to our command. Let's get the following simple script:
 
-```js
+```
 // script.js
 
 var Counter = function (text) {
@@ -50,7 +48,7 @@ Let's assume that there is a problem with the script and we want to run it in de
 
 ![Debugging in Node.js](./imgs/01_02.jpg)
 
-Now our program is paused in the very first one and the debugger expects our input. Notice that the debugger is listens on specific port. This means that we can control it remotely and that's what (I believe) node-inspector is using. We may use another tool that connects on port 5858 and send commands to the debugger.
+Now our program is paused at the very first line and the debugger expects our input. Notice that the debugger is listeninig on specific port. This means that we can control it remotely and that's what (I believe) [node-inspector](https://github.com/node-inspector/node-inspector) is using.
 
 ## Available commands
 
@@ -80,7 +78,7 @@ Once we finish inspecting a function we may want to go out and continue the prog
 
 ### Continue execution (`cont` or `c`)
 
-When we debug complex applications we have lots of stuff happening. Very often we have long execution path and in order to reach the interesting part we have to pass several functions. `next` command is not working well in such cases simply because we have to run it multiple times. It's better to use `count` or `c`. It tells to the debugger "Continue till you find a breakpoint". We didn't set any breakpoints so far so typing `c` as a first command executes the whole program and we see the result.
+When we debug complex applications we have lots of stuff happening. Very often we have long execution path and in order to reach the interesting part we have to pass several functions. `next` command is not working well in such cases simply because we have to run it multiple times. It's better to use `cont` or `c`. It tells to the debugger "Continue till you find a breakpoint". We didn't set any breakpoints so far so typing `c` as a first command executes the whole program and we see the result.
 
 ![Debugging in Node.js](./imgs/01_06.jpg)
 
@@ -90,7 +88,7 @@ To be honest I'm not using commands to set breakpoints. This is possible by usin
 
 Let's say that we want to inspect the loop that reads the words in my sentence. In the very beginning of the `count` function we add `debugger;`:
 
-```js
+```
 count: function () {
   debugger; // <---- breakpoint
   for (var i=0; i < this.text.length; i++) {
@@ -122,7 +120,7 @@ The last command that we'll check in details is `watch`. It accepts an expressio
 watch("this.text.charAt(i)")
 ```
 
-Of course `this.text` doesn't makes sense everywhere. It is available in the `count` function and that's where it returns a proper value. In the first steps we just get `<error>` string.
+Of course `this.text` doesn't makes sense everywhere. It is available in the `count` function and that's where it returns a proper value. In the first steps we just get `<error>` displayed.
 
 ![Debugging in Node.js](./imgs/01_09.jpg)
 
@@ -134,7 +132,14 @@ However, if we move forward and reach the `for` loop we'll see the exact charact
 
 There are some other commands which I personally don't use. A full list of the available ones could be found [here](https://nodejs.org/api/debugger.html).
 
-## Debugging front-end code
+## Alternatives
+
+There are some other alternatives for debugging Node.js scripts. Most of the them involve GUI.
+
+* [node-inspector](https://www.npmjs.com/package/node-inspector)
+* [icon-node](https://github.com/s-a/iron-node)
+* [devtool](https://github.com/Jam3/devtool)
+
 
 
 
