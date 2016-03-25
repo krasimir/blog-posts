@@ -1,0 +1,16 @@
+<p>You probably heard about <a href="http://www.theregister.co.uk/2016/03/23/npm_left_pad_chaos/?mt=1458733182820">Kik, NPM and left-pad</a> saga this week. Shortly, a company <a href="https://www.kik.com/">Kik</a> asked a developer <a href="https://twitter.com/azerbike">Azer Ko&ccedil;ulu</a> to give the ownership on a <a href="https://www.npmjs.com/">NPM</a> module. The module name matches the name of the company. The developer refuses and the company reaches the registry (NPM). The module was transfered to the company based on a NPM policy. The developer then decided to remove all his modules from the registry. The bad thing is that one of these modules <code>left-pad</code> is a dependency of many other modules. As a result of the un-publishing all the packages that depend on <code>left-pad</code> can not be built. Some really popular tools like Babel and React started getting broken builds. </p>[STOP]
+<p>All the parties:</p>
+<ul>
+<li><a href="https://medium.com/@azerbike/i-ve-just-liberated-my-modules-9045c06be67c">Azer&rsquo;s point</a></li>
+<li><a href="https://medium.com/@mproberts/a-discussion-about-the-breaking-of-the-internet-3d4d2a83aa4d#.t4rrly86w">Kik&rsquo;s response</a></li>
+<li><a href="http://blog.npmjs.org/post/141577284765/kik-left-pad-and-npm">NPM&rsquo;s response</a></li>
+</ul>
+<p>To be honest I can&rsquo;t take a side because I didn&rsquo;t read the TM of NPM and I have no idea how such cases are handled in US. However, I see that there are some <a href="http://uk.businessinsider.com/npm-left-pad-controversy-explained-2016-3?r=US&amp;IR=T">really wrong interpretations</a> of the situation. And I feel that we need to clarify few things:</p>
+<ul>
+<li>No one broke the Internet. The un-publishing of NPM module broke the building process of JavaScript libraries. That&rsquo;s definitely not breaking the Internet. The worst thing that could happen is not getting your JavaScript bundle which means that you can&rsquo;t deploy your application. Even if this happens there are workarounds.</li>
+<li>No one broke Node. Node as an environment is stable and it works as expected.</li>
+<li>The dispute between Azer and Kik is unclear and it is maybe a matter of policy and trademark documents. The real problem is in Node&rsquo;s package manager. Not the company NPM but the package manager and how it is designed. Maybe we shouldn&rsquo;t be able to un-publish a package if it is used by someone or there are dependent modules. Maybe we should install packages in the format of <code>@owner/module</code> then we could have <code>@kik/kik</code> and <code>@azer/kik</code> all thogether.</li>
+</ul>
+<p>I think that no one installs modules blindly. No one is going to run <code>npm install kik</code> without checking what&rsquo;s the content of the package. I wish Kik simply created <code>kik-chat</code> and not bother with a single developer or going to NPM. Maybe there is a law that forces them to protect their brand and they really <em>must</em> own <code>kik</code>, who knows.</p>
+<p>P.S.<br />
+And I hope that their back-end is not written in Ruby because there is a <a href="https://rubygems.org/gems/kik">kik</a> gem.</p>
