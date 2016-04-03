@@ -1,0 +1,64 @@
+<p>Last week I landed on an article by <a href="https://twitter.com/manuelwieser">Manuel Wieser</a> called <a href="https://manu.ninja/dominant-colors-for-lazy-loading-images">Dominant Colors for Lazy-Loading Images</a> and I found the topic really interesting. It&rsquo;s about lazy-loading of images. Something that <a href="https://jmperezperez.com/medium-image-progressive-loading-placeholder/">Medium</a> is using.</p>[STOP]
+<p>I didn&rsquo;t know but most browsers handle image resizing pretty well. They blur the image and it doesn&rsquo;t look so bad. Check out the image below. That&rsquo;s how the browsers render the 3x3 version of the original image. </p>
+<p><img alt="browsers resizing" src="http://krasimirtsonev.com/blog/articles/coloor/browsers.jpg" /></p>
+<p>Firefox didn&rsquo;t blur the image as the other browsers but this could be solved by apply a <a href="http://codepen.io/jmperez/pen/PPOXzY/">CSS blurring</a>.</p>
+<p>So, it is fine serving a tiny image and then lazy load the big one with JavaScript. The most trivial implementation of such loading could be:</p>
+<pre><code>var img = new Image();
+img.onload = function () {
+  // ... swap the tiny image with the big one
+}
+img.src = 'path/to/photo.jpg';
+</code></pre>
+
+<p>What Manuel was suggesting in his <a href="https://manu.ninja/dominant-colors-for-lazy-loading-images">article</a> is using node (or PHP) to generate the small equivalents. The interesting part for me was not using an actual file but producing a base64 encoded string. For example:</p>
+<pre><code>var gm = require('gm');
+
+gm('test.jpg')
+  .resize(3, 3)
+  .toBuffer('GIF', function (error, buffer) {
+      console.log('data:image/gif;base64,' + buffer.toString('base64'));
+  });
+</code></pre>
+
+<p>Where <a href="https://www.npmjs.com/package/gm"><code>gm</code></a> is a GraphicsMagick and ImageMagick for node. The image above encoded in a base64 string looks like that:</p>
+<pre><code>data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAMAAAADCAYAAABWKLW/AAAAAklEQVR4AewaftIAAAAuSURBVGNUt+D+r+vIxfDk8Q8GJi4uJoYvrxgYHt/8zcDEycXEIK/AxcDw/x8DAO3IC6w6YFW8AAAAAElFTkSuQmCC
+</code></pre>
+
+<p>It&rsquo;s tempting working with a string instead of a file because we are saving HTTP requests. It&rsquo;s a good optimization if we have to display icons or vector graphics. SVGs are very often inlined too. </p>
+<h2 id="meeting-coloor"><a name="user-content-meeting-coloor" href="#meeting-coloor" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Meeting Coloor</h2>
+<p>So, knowing the stuff above and hunting about image processing in node I decided to create <a href="https://github.com/krasimir/coloor">Coloor</a>. It&rsquo;s a HTML preprocessor that decorates the <code>&lt;img&gt;</code> tags with base64 version of the image. It uses <a href="https://www.npmjs.com/package/jimp">jimp</a> to transform the image and get its dimensions. Jimp is an image processing library written entirely in JavaScript which means that we don&rsquo;t have to setup ImageMagic or GraphicMagic separately.</p>
+<p>To use the module we should run <code>npm i coloor -D</code>. Then in our build process we pass our markup and directory (or directories) where our images stay.</p>
+<pre><code>var Coloor = require('coloor');
+
+Coloor(
+  '&lt;html string&gt;',
+  ['&lt;img files dir&gt;', '&lt;img files dir&gt;'],
+  function (decoratedHTML) {
+    // ...
+  }
+);
+</code></pre>
+
+<p>The decorated HTML for <code>&lt;img src="../photos/img.jpg" alt="image 1" /&gt;</code> is:</p>
+<pre><code>&lt;img 
+  data-coloor=&quot;../photos/img.jpg&quot;
+  data-coloor-size=&quot;640x480&quot; 
+  src=&quot;data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAMAAAACCAYAAACddGYaAAAAAklEQVR4AewaftIAAAAjSURBVAEaAOX/Ab24tf+42PMA09zsAAL6+fkACwH3AOPq8QDUQg74d7o9lAAAAABJRU5ErkJggg==&quot;
+  alt=&quot;image 1&quot; /&gt;
+</code></pre>
+
+<p>The <code>src</code> attribute gets the base64 string so the browser shows the preview immediately. The actual path to the file is stored in <code>data-coloor</code> so we can preload it with JavaScript. Which happens with the following snippet:</p>
+<p><pre><code>function Coloor(){var d=document;var ce=&quot;createElement&quot;;var ga=&quot;getAttribute&quot;;function isCanvasSupported(){var elem=d[ce](&quot;canvas&quot;);return!!(elem.getContext&amp;&amp;elem.getContext(&quot;2d&quot;))}function preload(image){var src,pi,li,w,h,size;if(!isCanvasSupported()){image.src=src;return}src=image[ga](&quot;data-coloor&quot;);size=image[ga](&quot;data-coloor-size&quot;).split(&quot;x&quot;);w=parseInt(size[0]);h=parseInt(size[1]);pi=new Image;li=new Image;pi.onload=function(){var canvas=d[ce](&quot;canvas&quot;);var ctx=canvas.getContext(&quot;2d&quot;);canvas.width=w;canvas.height=h;ctx.drawImage(pi,0,0,w,h);image.src=canvas.toDataURL(&quot;image/png&quot;)};pi.src=image[ga](&quot;src&quot;);li.onload=function(){image.src=src};li.src=src}var images=d.querySelectorAll(&quot;img[data-coloor]&quot;);for(var i=0;i&lt;images.length;i++){preload(images[i])}}Coloor();
+</code></pre><br />
+<em>(The uncompessed version of this code could be seen <a href="https://github.com/krasimir/coloor/blob/master/src/preload/index.js">here</a>)</em></p>
+<p>Adding it in the page will automatically preload all the decorated images and will replace the tiny ones with the original images.</p>
+<p>When I started working on <a href="https://github.com/krasimir/coloor">Coloor</a> I realized that there is an issue when rending the image&rsquo;s preview. Changing the <code>src</code> attribute means that the browser renders an image with completely different dimensions. This may result in layout shifts when the original image finishes loading. The problem could be solved by styling the <code>&lt;img&gt;</code> tag with absolute sizes but we know that very often we rely on responsive layouts. This made me think for a slightly different approach:</p>
+<ul>
+<li>We decorate the image with base64 encoded string but also original image size</li>
+<li>At runtime we load the small preview in a canvas and resize it to the original dimensions</li>
+<li>At the end we export the resized version to base64 and apply it to the <code>src</code> attribute</li>
+</ul>
+<p>Following this workflow we are sure that the <code>&lt;img&gt;</code> tags contain previews that match the original images by size. So we don&rsquo;t have layout shifts.</p>
+<p>Checkout the demo here <a href="http://krasimir.github.io/coloor/example/">krasimir.github.io/coloor/example</a>. The preloading will work only the first time because the browser caches the images.</p>
+<p>Use the network throttling in Chrome to simulate slow internet connection.</p>
+<p><img alt="network throttling in Chrome" src="http://krasimirtsonev.com/blog/articles/coloor/demo.jpg" /></p>
