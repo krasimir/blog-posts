@@ -6,27 +6,27 @@
 <li>Providing a <code>&lt;script&gt;</code> tag that injects markup</li>
 </ul>
 <p>So, the question is which one of the two methods fits better. They both have pros and cons so let&rsquo;s explore.</p>
-<h2 id="iframe-unicorns-and-rainbows"><a name="user-content-iframe-unicorns-and-rainbows" href="#iframe-unicorns-and-rainbows" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>iFrame, unicorns and rainbows</h2>
+<h2 id="iframe-unicorns-and-rainbows"><a name="user-content-iframe-unicorns-and-rainbows" href="#iframe-unicorns-and-rainbows" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>iframe, unicorns and rainbows</h2>
 <p>The <code>&lt;iframe&gt;</code> tag may seem like an ancient technology but there are some goodies:</p>
 <p><strong>Security</strong></p>
-<p>The <code>&lt;iframe&gt;</code> tag is considered the safer approach. Mainly because the JavaScript inside the iFrame is running in the context of another page. Of course there are always <a href="http://stackoverflow.com/questions/7289139/why-are-iframes-considered-dangerous-and-a-security-risk">security risks</a> but it is definitely better then including an external JavaScript that has a direct access to our DOM tree (and not only).</p>
+<p>The <code>&lt;iframe&gt;</code> tag is considered the safer approach. Mainly because the JavaScript inside the iframe is running in the context of another page. Of course there are always <a href="http://stackoverflow.com/questions/7289139/why-are-iframes-considered-dangerous-and-a-security-risk">security risks</a> but it is definitely better then including an external JavaScript that has a direct access to our DOM tree (and not only).</p>
 <p><strong>Doesn&rsquo;t block the rendering</strong></p>
-<p>The iFrame is not blocking the rendering. We may still get our page while the external content is loading.</p>
+<p>The iframe is not blocking the rendering. We may still get our page while the external content is loading.</p>
 <p><strong>It&rsquo;s not blocked by the main page&rsquo;s JavaScript failure</strong></p>
-<p>Imagine that we develop our awesome widget and we place it somewhere following the non-iframe solution. It&rsquo;s a JavaScript driven. Now imagine that something else on the page fails before the browser reaches our JavaScript file. We&rsquo;ll fail delivering our content. By using an iFrame we base the injecting only on HTML rendering, not JavaScript execution.</p>
+<p>Imagine that we develop our awesome widget and we place it somewhere following the non-iframe solution. It&rsquo;s a JavaScript driven. Now imagine that something else on the page fails before the browser reaches our JavaScript file. We&rsquo;ll fail delivering our content. By using an iframe we base the injecting only on HTML rendering, not JavaScript execution.</p>
 <p><strong>Easy to update / versioning</strong></p>
 <p>At some point we will need to update the widget. If we distribute our widget as a JavaScript snippet we are not directly controlling the injection. It&rsquo;s a piece of code that we can&rsquo;t contribute to and changing it means reaching every single developer that uses it.</p>
 <p><strong>Our own styling</strong></p>
 <p>It&rsquo;s our own page so the only ones styles that apply are coming from our own stylesheet. This could be a disadvantage if the widget needs to be customizable but that&rsquo;s another story.</p>
 <p><strong>Testing</strong></p>
-<p>To test if our widget works we&rsquo;ll probably have to create a dummy page and simply put the iFrame there. Because our page lives in a sandbox we don&rsquo;t really care what&rsquo;s on that dummy page. The most common bugs that we may encounter are layout related only.</p>
-<h2 id="iframe-the-bad-parts"><a name="user-content-iframe-the-bad-parts" href="#iframe-the-bad-parts" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>iFrame, the bad parts</h2>
+<p>To test if our widget works we&rsquo;ll probably have to create a dummy page and simply put the iframe there. Because our page lives in a sandbox we don&rsquo;t really care what&rsquo;s on that dummy page. The most common bugs that we may encounter are layout related only.</p>
+<h2 id="iframe-the-bad-parts"><a name="user-content-iframe-the-bad-parts" href="#iframe-the-bad-parts" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>iframe, the bad parts</h2>
 <p><strong>In parallel</strong></p>
-<p>Indeed the iFrame&rsquo;s content is loaded in parallel with main page&rsquo;s content. However, what third party data is <a href="http://www.stevesouders.com/blog/2009/06/03/using-iframes-sparingly/">blocking</a> is the <code>onload</code> event. All the iFrames on the page use <a href="http://www.stevesouders.com/blog/2009/06/03/using-iframes-sparingly/">the same</a> connection pool. And because we have a limited number of connections we may block the main content. The browsers open just a few connections in parallel to a given web server.</p>
+<p>Indeed the iframe&rsquo;s content is loaded in parallel with main page&rsquo;s content. However, what third party data is <a href="http://www.stevesouders.com/blog/2009/06/03/using-iframes-sparingly/">blocking</a> is the <code>onload</code> event. All the iframes on the page use <a href="http://www.stevesouders.com/blog/2009/06/03/using-iframes-sparingly/">the same</a> connection pool. And because we have a limited number of connections we may block the main content. The browsers open just a few connections in parallel to a given web server.</p>
 <p><strong>Responsiveness</strong></p>
-<p>iFrames are not exactly responsive. By definition we <strong>have to</strong> provide width and height. Otherwise the browser is rendering nothing. Even though there are some <a href="https://www.smashingmagazine.com/2014/02/making-embedded-content-work-in-responsive-design/">workarounds</a> the size of the iFrame is always an issue. Especially on mobile devices where we can change the orientation.</p>
+<p>iframes are not exactly responsive. By definition we <strong>have to</strong> provide width and height. Otherwise the browser is rendering nothing. Even though there are some <a href="https://www.smashingmagazine.com/2014/02/making-embedded-content-work-in-responsive-design/">workarounds</a> the size of the iframe is always an issue. Especially on mobile devices where we can change the orientation.</p>
 <p><strong>Configuration</strong></p>
-<p>Very often we provide settings for our widgets. The communication between the main page and the iFrame is not always an easy task. There is a <a href="https://developer.mozilla.org/en-US/docs/Web/API/Window/postMessage"><code>postMessage</code></a> API or we may pass GET parameters to the iFrame&rsquo;s page but it&rsquo;s not that straightforward as with the JavaScript-only approach.</p>
+<p>Very often we provide settings for our widgets. The communication between the main page and the iframe is not always an easy task. There is a <a href="https://developer.mozilla.org/en-US/docs/Web/API/Window/postMessage"><code>postMessage</code></a> API or we may pass GET parameters to the iframe&rsquo;s page but it&rsquo;s not that straightforward as with the JavaScript-only approach.</p>
 <h2 id="javascript-only-unicorns-and-rainbows"><a name="user-content-javascript-only-unicorns-and-rainbows" href="#javascript-only-unicorns-and-rainbows" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>JavaScript-only, unicorns and rainbows</h2>
 <p>In this approach we provide a <code>&lt;script&gt;</code> with (or without) some JavaScript that injects DOM elements. Our code is run in the context of the main page and it&rsquo;s basically part of it.</p>
 <p><strong>Flexibility</strong></p>
@@ -35,7 +35,7 @@
 <p>Whatever page styles we have they apply for the widget&rsquo;s HTML. It depends of the goal but very often this is considered a plus. JavaScript-only widgets are just easy to style.</p>
 <p><strong>No layout issues</strong></p>
 <p>Because our markup is part of the current page we don&rsquo;t have so big layout issues. No cut of content, we have proper media queries and responsive images and the fluid layout is just working.</p>
-<h2 id="javascripti-only-the-bad-parts"><a name="user-content-javascripti-only-the-bad-parts" href="#javascripti-only-the-bad-parts" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>JavaScripti-only, the bad parts</h2>
+<h2 id="javascripti-only-the-bad-parts"><a name="user-content-javascripti-only-the-bad-parts" href="#javascripti-only-the-bad-parts" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>JavaScript-only, the bad parts</h2>
 <p>Unfortunately (in our case) this solution comes with more technical issues then advantages. Here are some of the main ones:</p>
 <p><strong>CSS and JavaScript conflicts</strong></p>
 <p>This is the biggest issue. If we want a specific representation we have to (first) reset the styles for our bit and (second) beat the <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/Specificity">specificity</a> of the current page&rsquo;s rules. This will probably lead to lots of inline styling which may need additional efforts.</p>
@@ -52,7 +52,7 @@
 <p>The testing of JavaScript-only widgets may mean replicating the host page. This could be challenging because we have to copy the exact scripting and styling.</p>
 <h2 id="an-experiment"><a name="user-content-an-experiment" href="#an-experiment" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>An experiment</h2>
 <p>Even though the above sections tells me that the <code>&lt;iframe&gt;</code> is more appropriate (in our case) I decided to create an example of JavaScript-only widget. It&rsquo;s available in GitHub <a href="https://github.com/krasimir/third-party-react-widget">here</a> and it&rsquo;s a small React app that looks like that:</p>
-<p><img alt="iFrame or not" src="http://krasimirtsonev.com/blog/articles/iframe/img1.jpg" /></p>
+<p><img alt="iframe or not" src="http://krasimirtsonev.com/blog/articles/iframe/img1.jpg" /></p>
 <p><em>(The green box is the widget.)</em></p>
 <p>The example is built of the following markup:</p>
 <pre><code>&lt;div class=&quot;container&quot;&gt;
@@ -124,7 +124,7 @@ p {
 <p>Now, if we check the image in the beginning of this section we&rsquo;ll see that the applied font in our widget is <code>Courier New</code>. We may not want that and in order to fix it we have to overwrite the body&rsquo;s <code>font-family</code>. The second clash is the margin of the paragraph. We do have <code>margin-left: 3em;</code> coming from the page. In our React component we set a value to <code>margin-bottom</code> only so we get the left spacing applied and our nice widget layout looks weird.</p>
 <p><strong>JavaScript conflicts</strong></p>
 <p>I used browserify to create the bundle that contains React library and the component above. I used <code>0.14.7</code> in the widget and at the same time I included <code>0.11.0</code> on the page. Nothing bad happens. There are two versions of React on the same page and to prove that I printed two messages in the console - one from within the widget and one from the page.</p>
-<p><img alt="iFrame or not" src="http://krasimirtsonev.com/blog/articles/iframe/img2.jpg" /></p>
+<p><img alt="iframe or not" src="http://krasimirtsonev.com/blog/articles/iframe/img2.jpg" /></p>
 <p>I didn&rsquo;t go further by including more libraries or modifying native prototypes. What I know for sure is that if we use a bundler that packs the dependencies we may solve part or the JavaScript conflicts problem.</p>
 <h2 id="conclusion"><a name="user-content-conclusion" href="#conclusion" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Conclusion</h2>
 <p>As a conclusion I would say that if the widget is a simple one we may use the JavaScript-only solution. Like for example a call-to-action button or just a small ad. However, if we are delivering a complex logic with series of screens then we better go with the <code>&lt;iframe&gt;</code>. There are still issues to handle but definitely less then with the non-iframe approach.</p>
