@@ -61,24 +61,27 @@ And here I started thinking that the flexibility of npm's semver and semver rang
 
 The issue above was caused by [peer dependencies](https://nodejs.org/en/blog/npm/peer-dependencies/) definition in `karma-browserify`. The `peerDependencies` property allows us to specify modules that our library depends on. It's widely used in the cases where we have a tool and plugins to it. The plugins obviously work with specific version of the host package. The idea is not bad but:
 
-* I don't want to see my build failing because of this. Warning is fine but not failing. If the there is something broken I'll probably see it in the process after that (when I run my `build` script).
-* It's probably fine saying "My plugin works with version 10". But is adding a range like `>=10.0.0 <=13.0.0` a good approach. Without a super clear roadmap of the main module how you know that your plugin is compatible with version 12. That's a fairly big assumption.
+* I don't want to see my build failing because of this. Warning is fine but not failing. If there is something broken I'll probably see it in the process after that (when I run my `build` script).
+* It's probably fine saying "My plugin works with version 10". But is adding a range like `>=10.0.0 <=13.0.0` good approach? Without a super clear roadmap of the main module how you know that your plugin is compatible with version 12 for example. That's a very big assumption.
 
 ### Post-install scripts
 
-[Post-install](https://docs.npmjs.com/misc/scripts) scripts are handy when we want to perform an action after our module is downloaded on the client's machine. It's very often used for compiling native code or producing transpiled code. There are modules that depend on C++ libraries. So, the most common approach is to get the code and compile it once it is downloaded so we get the binary which is later used from node. My problem here is that the process is slow and it needs some additional stuff installed. Locally it's probably fine because we have powerful machines but in my virtual machine or the development servers it takes time.
+[Post-install](https://docs.npmjs.com/misc/scripts) scripts are handy when we want performing an action after our module is downloaded on the client's machine. It's very often used for compiling native libs or producing transpiled code. There are modules that depend on C++ binaries and the most common approach is to get the source code and compile it once it is downloaded. My problem here is that the process is slow and it needs some additional stuff installed on the client machine. Locally it's probably fine because we have power and root access but what about virtual machines or development servers where we have limited resources. It simply takes time.
 
 Instead of compiling C++ code I would suggest to download the binary from a trusted source. Like it's done in `phantomjs-prebuilt` package [here](https://github.com/Medium/phantomjs). It may take few minutes but it's just downloading, not compiling.
 
 ## The dependency tree hell
 
-I was using Windows before and sometimes when I wanted to delete the `node_modules` folder I wasn't able to do it. The reason was because the file path was so long that Windows [can't handle it](https://github.com/npm/npm/issues/3697). So many folders nested to each other. I think we all agree that JavaScript and node exploded in the last years and there are new modules published all the time. We saw what happen with the [kik package drama](http://krasimirtsonev.com/blog/article/the-earthquake-in-the-javascript-community). And to be honest the problem is not in npm. It's in us. We tend to create modules for everything. We got this decision not npm. The giant net of packages that we use as a base for our applications is not really stable.
+I was using Windows before and sometimes when I wanted to delete the `node_modules` folder I wasn't able to do it. The reason was because the file path was so long that Windows [can't handle it](https://github.com/npm/npm/issues/3697). Lot's of folders nested into each other. That's because we tend to create separate modules for every small task which leads to deep nesting. We saw what happen with the [kik package drama](http://krasimirtsonev.com/blog/article/the-earthquake-in-the-javascript-community). And to be honest the problem is not in NPM. It's us, the developers. We got this decision, not NPM. The giant net of packages that we use as a base for our applications is not stable anymore.
 
-I have few ideas that are floating in my mind recently:
+I have few ideas that are floating in my mind:
 
 * We should try minimizing the dependencies in our modules. Less dependencies, less modules to download, less problems.
-* We should really distribute a bundle. If our node module is pure JavaScript why not merged it into a single file with a bundler like browserify. Then the consumer of the package will install zero dependencies of our work. No tree at all, no conflicts.
+* We should try distributing a bundle where it is possible. If our node module is pure JavaScript why not merged it into a single file with a bundler like [browserify](http://browserify.org/). Then the consumer of the package will install zero dependencies of our work. No tree at all, no conflicts.
 * We should start using `.npmignore` and stop publishing files that are not needed. This will speed up the `npm install` command.
+
+P.S.
+*We should mention [npm-shrinkwrap](https://docs.npmjs.com/cli/shrinkwrap) here. It helps us to lock down the versions of the dependencies. When our system is in a *stable* state we run the command and it outputs a `npm-shrinkwrap.json` file that contains the exact module versions installed. Later during `npm install` the manager uses this file knowing the exact versions of the dependencies. Kind of solves the problems with semver variations.*
 
 
 

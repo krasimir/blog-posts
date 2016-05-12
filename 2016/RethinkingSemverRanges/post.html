@@ -1,0 +1,65 @@
+<p>If you are front-end developer dealing with single page applications you probably know that JavaScript ecosystem is not perfect at all. A few things may go wrong and break your build. In this article I&rsquo;ll go through those <em>features</em>. Features which are, by my humble opinion, problematic.</p>[STOP]
+<h2 id="semantic-versioning"><a name="user-content-semantic-versioning" href="#semantic-versioning" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Semantic versioning</h2>
+<p><a href="http://semver.org/">Semantic versioning</a> is a way to describe what is our release about. It&rsquo;s a version number that by specification has three groups - Major.Minor.Patch. While we write a module and publish it on <a href="https://docs.npmjs.com/getting-started/semantic-versioning">npm</a> (Node.js&rsquo;s package manager) we use semantic versioning to say what we&rsquo;ve changed. </p>
+<blockquote>
+<ul>
+<li>Bug fixes and other minor changes: Patch release, increment the last number, e.g. 1.0.1</li>
+<li>New features which don&rsquo;t break existing features: Minor release, increment the middle number, e.g. 1.1.0</li>
+<li>Changes which break backwards compatibility: Major release, increment the first number, e.g. 2.0.0</li>
+</ul>
+</blockquote>
+<p>We have these simple rules and we have to follow them so we provide a sane updates of our work. Especially today, where most of the complex JavaScript apps are <em>house of cards</em> this is really important. We have lots of dependencies and these dependencies have their own dependencies and so on.</p>
+<p>Here is what currently broke our build:</p>
+<p>Our project has the following dependencies in its <code>package.json</code> file:</p>
+<pre><code>{
+  &quot;devDependencies&quot;: {
+    &quot;browserify&quot;: &quot;~13.0.0&quot;,
+    &quot;karma-browserify&quot;: &quot;~5.0.1&quot;
+  }
+}
+</code></pre>
+
+<p>It was fine for months. We run <code>npm install</code> lots of times locally and on our servers. However, a new version of <code>browserify</code> was published. Nothing big, just a patch release and the new one became <code>13.0.1</code>. Then we suddenly started getting builds failures. We didn&rsquo;t change anything, it was working in the morning and it didn&rsquo;t after lunch. The error that appeared in the terminal was:</p>
+<pre><code>error code EPEERINVALID
+error peerinvalid The package browserify@13.0.1 does not satisfy its siblings' peerDependencies requirements!
+error peerinvalid Peer karma-browserify@5.0.4 wants browserify@&gt;=10.0.0 &lt;=13.0.0
+</code></pre>
+
+<p>The message is pretty clear. We opened the <code>package.json</code> file of <code>karma-browserify</code> and we found:</p>
+<pre><code>&quot;devDependencies&quot;: {
+  &quot;browserify&quot;: &quot;^13.0.0&quot;,
+  ...
+},
+&quot;peerDependencies&quot;: {
+  &quot;browserify&quot;: &quot;&gt;=10.0.0 &lt;=13.0.0&quot;,
+  ...
+}
+</code></pre>
+
+<p>And because we used <code>~13.0.0</code> we got <code>13.0.1</code> which is not satisfying <code>&gt;=10.0.0 &lt;=13.0.0</code> requirement. The fix from our side was to use a strict version (<code>13.0.0</code>) of browserify or quickly use strict version of karma-browserify (<code>5.0.5</code>) where the issue is resolved by bumping the peer dependency to <code>"&gt;=10 &lt;14"</code>.</p>
+<p>And here I started thinking that the flexibility of npm&rsquo;s semver and semver ranges are not always a good thing. To be honest I don&rsquo;t like using <code>~</code> or <code>^</code> or versions like <code>2.3.x</code>. I prefer relying on specific versions. I see the points of having these features which are around the idea that we can get fixes and improvements almost for free. We don&rsquo;t have to update our <code>package.json</code> file. We get the latest and the greatest version of our dependency without explicitly asking for it. Well, we all know that that&rsquo;s not the case. I ended up with the following conclusions:</p>
+<ul>
+<li>Not everyone is following semantic versioning strictly. There are cases where we see a patch release that contains breaking changes. Or minor release that is adding a feature but breaks an existing one.</li>
+<li>I personally don&rsquo;t care about bug fixes. I like of course using a bug-free software but I prefer to rely on stable libraries and if I hit a bug I&rsquo;ll check if it is fixed, in which versions and what this version comes up with. Many times I got a new release downloaded fixing a bug in a feature that I never used. So, I prefer strict versioning where I install the same version every time. Version that I know it works. We are all now fans of pure functions right. <em>A pure function always returns the same result given same parameters.</em> Well, <code>npm install</code> is definitely not a pure-ish process.</li>
+</ul>
+<h2 id="what-about-the-package-manager"><a name="user-content-what-about-the-package-manager" href="#what-about-the-package-manager" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>What about the package manager</h2>
+<p><code>npm</code> as a tool is awesome. Don&rsquo;t get me wrong. I like it and I use it every day. However, there are some areas which need tweaking and features that are bringing more problems then solving.</p>
+<h3 id="peer-dependencies"><a name="user-content-peer-dependencies" href="#peer-dependencies" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Peer dependencies</h3>
+<p>The issue above was caused by <a href="https://nodejs.org/en/blog/npm/peer-dependencies/">peer dependencies</a> definition in <code>karma-browserify</code>. The <code>peerDependencies</code> property allows us to specify modules that our library depends on. It&rsquo;s widely used in the cases where we have a tool and plugins to it. The plugins obviously work with specific version of the host package. The idea is not bad but:</p>
+<ul>
+<li>I don&rsquo;t want to see my build failing because of this. Warning is fine but not failing. If there is something broken I&rsquo;ll probably see it in the process after that (when I run my <code>build</code> script).</li>
+<li>It&rsquo;s probably fine saying &ldquo;My plugin works with version 10&rdquo;. But is adding a range like <code>&gt;=10.0.0 &lt;=13.0.0</code> good approach? Without a super clear roadmap of the main module how you know that your plugin is compatible with version 12 for example. That&rsquo;s a very big assumption.</li>
+</ul>
+<h3 id="post-install-scripts"><a name="user-content-post-install-scripts" href="#post-install-scripts" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Post-install scripts</h3>
+<p><a href="https://docs.npmjs.com/misc/scripts">Post-install</a> scripts are handy when we want performing an action after our module is downloaded on the client&rsquo;s machine. It&rsquo;s very often used for compiling native libs or producing transpiled code. There are modules that depend on C++ binaries and the most common approach is to get the source code and compile it once it is downloaded. My problem here is that the process is slow and it needs some additional stuff installed on the client machine. Locally it&rsquo;s probably fine because we have power and root access but what about virtual machines or development servers where we have limited resources. It simply takes time.</p>
+<p>Instead of compiling C++ code I would suggest to download the binary from a trusted source. Like it&rsquo;s done in <code>phantomjs-prebuilt</code> package <a href="https://github.com/Medium/phantomjs">here</a>. It may take few minutes but it&rsquo;s just downloading, not compiling.</p>
+<h2 id="the-dependency-tree-hell"><a name="user-content-the-dependency-tree-hell" href="#the-dependency-tree-hell" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>The dependency tree hell</h2>
+<p>I was using Windows before and sometimes when I wanted to delete the <code>node_modules</code> folder I wasn&rsquo;t able to do it. The reason was because the file path was so long that Windows <a href="https://github.com/npm/npm/issues/3697">can&rsquo;t handle it</a>. Lot&rsquo;s of folders nested into each other. That&rsquo;s because we tend to create separate modules for every small task which leads to deep nesting. We saw what happen with the <a href="http://krasimirtsonev.com/blog/article/the-earthquake-in-the-javascript-community">kik package drama</a>. And to be honest the problem is not in NPM. It&rsquo;s us, the developers. We got this decision, not NPM. The giant net of packages that we use as a base for our applications is not stable anymore.</p>
+<p>I have few ideas that are floating in my mind:</p>
+<ul>
+<li>We should try minimizing the dependencies in our modules. Less dependencies, less modules to download, less problems.</li>
+<li>We should try distributing a bundle where it is possible. If our node module is pure JavaScript why not merged it into a single file with a bundler like <a href="http://browserify.org/">browserify</a>. Then the consumer of the package will install zero dependencies of our work. No tree at all, no conflicts.</li>
+<li>We should start using <code>.npmignore</code> and stop publishing files that are not needed. This will speed up the <code>npm install</code> command.</li>
+</ul>
+<p>P.S.<br />
+<em>We should mention <a href="https://docs.npmjs.com/cli/shrinkwrap">npm-shrinkwrap</a> here. It helps us to lock down the versions of the dependencies. When our system is in a </em>stable<em> state we run the command and it outputs a <code>npm-shrinkwrap.json</code> file that contains the exact module versions installed. Later during <code>npm install</code> the manager uses this file knowing the exact versions of the dependencies. Kind of solves the problems with semver variations.</em></p>
