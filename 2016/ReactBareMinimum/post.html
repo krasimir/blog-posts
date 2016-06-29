@@ -1,0 +1,158 @@
+<p>Half an year ago I published <a href="http://krasimirtsonev.com/blog/article/a-modern-react-starter-pack-based-on-webpack">A modern React starter pack based on webpack</a>. The starter provides the basic tooling around React. However, I noticed that very often I need even less stuff than that. That&rsquo;s usually when I want to hack something quickly. In this blog post we&rsquo;ll see what&rsquo;s the bare minimum to work with React.</p>[STOP]
+<p>Let&rsquo;s get the following <code>jsx</code> file</p>
+<pre><code>// component.jsx
+import React from 'react';
+import ReactDOM from 'react-dom';
+
+class App extends React.Component {
+  render() {
+    return &lt;h1&gt;Hello world&lt;/h1&gt;;
+  }
+};
+
+ReactDOM.render(&lt;App /&gt;, document.querySelector('#container'));
+</code></pre>
+
+<p>and see how we can convert it to a single file that works in the browser.</p>
+<h2 id="the-syntax"><a name="user-content-the-syntax" href="#the-syntax" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>The syntax</h2>
+<p>There are few points to consider:</p>
+<ul>
+<li>There are ES6 import statements</li>
+<li>we have a class definition</li>
+<li>The <code>render</code> method contains a JSX expression</li>
+</ul>
+<p>The very first task in our setup should be to compile the file to valid ES2015 JavaScript. As you probably know, there is a module called <a href="https://babeljs.io">babel</a> that could transpile our code to the desired format. So, let&rsquo;s bring <a href="http://babeljs.io/docs/usage/cli/">babel-cli</a> (the command line version) and see what will happen:</p>
+<pre><code>npm i babel-cli
+./node_modules/.bin/babel ./component.jsx
+</code></pre>
+
+<p>The result is as follows:</p>
+<pre><code>SyntaxError: ./component.jsx: Unexpected token (6:11)
+  4 | class App extends React.Component {
+  5 |   render() {
+&gt; 6 |     return &lt;h1&gt;Hello world&lt;/h1&gt;;
+    |            ^
+  7 |   }
+  8 | };
+  9 |
+</code></pre>
+
+<p>Hm &hellip; it looks like babel doesn&rsquo;t understand our JSX tags. This problem could be solved by adding a babel <a href="https://babeljs.io/docs/plugins/#official-presets">preset</a> <a href="http://babeljs.io/docs/plugins/preset-react/">babel-preset-react</a>.</p>
+<pre><code>npm i babel-cli babel-preset-react
+# make a .babelrc (config file) with the preset
+echo '{ &quot;presets&quot;: [&quot;react&quot;] }' &gt; .babelrc
+./node_modules/.bin/babel ./component.jsx
+</code></pre>
+
+<p>To instruct babel-cli for the existing preset we have to create a <code>.babelrc</code> file. When the above is done we receive a correct output:</p>
+<pre><code>import React from 'react';
+import ReactDOM from 'react-dom';
+
+class App extends React.Component {
+  render() {
+    return React.createElement(
+      'h1',
+      null,
+      'Hello world'
+    );
+  }
+};
+
+ReactDOM.render(React.createElement(App, null), document.querySelector('#container'));
+</code></pre>
+
+<p>Now that&rsquo;s ok. There is no JSX anymore. But we can&rsquo;t run the result in a browser because we have import statements and class definition. We need another preset - <a href="http://babeljs.io/docs/plugins/preset-es2015/">babel-preset-es2015</a></p>
+<pre><code>npm i babel-cli babel-preset-react babel-preset-es2015
+# make a .babelrc (config file) with the preset
+echo '{ &quot;presets&quot;: [&quot;react&quot;, &quot;es2015&quot;] }' &gt; .babelrc
+./node_modules/.bin/babel ./component.jsx
+</code></pre>
+
+<p>After adding the new preset the process is a little bit slower and the output is not that short:</p>
+<pre><code>'use strict';
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i &lt; props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if (&quot;value&quot; in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+var _react = require('react');
+var _react2 = _interopRequireDefault(_react);
+var _reactDom = require('react-dom');
+var _reactDom2 = _interopRequireDefault(_reactDom);
+function _interopRequireDefault(obj) { return obj &amp;&amp; obj.__esModule ? obj : { default: obj }; }
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError(&quot;Cannot call a class as a function&quot;); } }
+function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError(&quot;this hasn't been initialised - super() hasn't been called&quot;); } return call &amp;&amp; (typeof call === &quot;object&quot; || typeof call === &quot;function&quot;) ? call : self; }
+function _inherits(subClass, superClass) { if (typeof superClass !== &quot;function&quot; &amp;&amp; superClass !== null) { throw new TypeError(&quot;Super expression must either be null or a function, not &quot; + typeof superClass); } subClass.prototype = Object.create(superClass &amp;&amp; superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+var App = function (_React$Component) {
+  _inherits(App, _React$Component);
+  function App() {
+    _classCallCheck(this, App);
+    return _possibleConstructorReturn(this, Object.getPrototypeOf(App).apply(this, arguments));
+  }
+  _createClass(App, [{
+    key: 'render',
+    value: function render() {
+      return _react2.default.createElement(
+        'h1',
+        null,
+        'Hello world'
+      );
+    }
+  }]);
+  return App;
+}(_react2.default.Component);
+;
+_reactDom2.default.render(_react2.default.createElement(App, null), document.querySelector('#container'));
+</code></pre>
+
+<p>That&rsquo;s because the class definition polyfill. We could say that this code is kinda ES2015 compatible and could be run by the browsers today except one thing - the <code>require</code> calls.</p>
+<h2 id="bundler"><a name="user-content-bundler" href="#bundler" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Bundler</h2>
+<p>The transpilation of React takes three commands in the terminal - installation of <code>babel</code> and its presets, creating a <code>.babelrc</code> file and running <code>babel</code>. Of course the first two are required only the first time. That&rsquo;s not bad but it&rsquo;s not enough. We miss <code>react</code> and <code>react-dom</code> modules. We need a tool that not only transforms the syntax of our code but also resolves the dependencies. We call such tools <em>bundlers</em>. There is some confusion around bundlers, build systems and task runners. <a href="https://github.com/gulpjs">Gulp</a> for example is a build system. It simply runs different tasks in a specific order using streams. <a href="http://gruntjs.com/">Grunt</a> is really similar module too. The idea with <code>Gulp</code> and <code>Grunt</code> is that we can plug other modules and manipulate or aggregate our source code (even images). While the goal of the bundler is to merge everything into a single file. Some libraries like <a href="https://webpack.github.io/">webpack</a> combine features from both worlds. <code>webpack</code> is more like a bundler but also accepts plugins (called <em>loaders</em>).</p>
+<p>One of the first bundlers that were published is <a href="http://browserify.org/">browserify</a>. That&rsquo;s what I like to use. Mainly because it&rsquo;s simple and does only one job. It resolves the <code>requires</code> in my code and outputs a single file. The drawback here is that browserify doesn&rsquo;t transpiler the code. It works with ES2015 compatible code. Classes and JSX don&rsquo;t work by default. Thankfully there is a <a href="https://github.com/babel/babelify">babelify</a> - a browserify transformer that injects <code>babel</code> to the process.</p>
+<pre><code>npm i react react-dom babel-preset-react babel-preset-es2015 browserify babelify
+# make a .babelrc (config file) with the preset
+echo '{ &quot;presets&quot;: [&quot;react&quot;, &quot;es2015&quot;] }' &gt; .babelrc
+./node_modules/.bin/browserify ./component.jsx -o ./bundle.js -t babelify
+</code></pre>
+
+<p>We no longer use babel-cli so the needed dependencies become <code>react</code>, <code>react-dom</code>, <code>babel-preset-react</code>, <code>babel-preset-es2015</code>, <code>browserify</code> and <code>babelify</code>. Notice that we still have to create <code>.babelrc</code> file.</p>
+<p>The produced <code>bundle.js</code> file is 676K big and contains our component and the React library. If we minify it with a module like <a href="https://github.com/mishoo/UglifyJS2">uglify</a> it goes down to 369K.</p>
+<h2 id="watcher"><a name="user-content-watcher" href="#watcher" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Watcher</h2>
+<p>While develop we don&rsquo;t like running same command again and again. That&rsquo;s why we want our bundler to listen for changes and fire the compilation again once we edit some of the files. For the setup in this article an appropriate choice for that is <a href="https://github.com/substack/watchify">watchify</a>. It&rsquo;s the same as <code>browserify</code> but listens for changes. So, the bare minimum could be changed to:</p>
+<pre><code>npm i react react-dom babel-preset-react babel-preset-es2015 watchify babelify
+# make a .babelrc (config file) with the preset
+echo '{ &quot;presets&quot;: [&quot;react&quot;, &quot;es2015&quot;] }' &gt; .babelrc
+./node_modules/.bin/watchify ./component.jsx -o ./bundle.js -t babelify -v
+</code></pre>
+
+<h2 id="in-a-project"><a name="user-content-in-a-project" href="#in-a-project" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>In a project</h2>
+<p>I like defining a <code>package.json</code> file for all the these above. In this case:</p>
+<pre><code>{
+  &quot;name&quot;: &quot;react-app&quot;,
+  &quot;version&quot;: &quot;1.0.0&quot;,
+  &quot;description&quot;: &quot;react application&quot;,
+  &quot;scripts&quot;: {
+    &quot;build&quot;: &quot;browserify ./src/app.jsx -o ./public/app.js -t babelify&quot;,
+    &quot;watch&quot;: &quot;watchify ./src/app.jsx -o ./public/app.js -t babelify -v&quot;
+  },
+  &quot;dependencies&quot;: {
+    &quot;babel-preset-es2015&quot;: &quot;6.9.0&quot;,
+    &quot;babel-preset-react&quot;: &quot;6.5.0&quot;,
+    &quot;babelify&quot;: &quot;7.3.0&quot;,
+    &quot;browserify&quot;: &quot;13.0.1&quot;,
+    &quot;react&quot;: &quot;15.1.0&quot;,
+    &quot;react-dom&quot;: &quot;15.1.0&quot;,
+    &quot;watchify&quot;: &quot;3.7.0&quot;
+  }
+}
+</code></pre>
+
+<p>And there are three <code>npm</code> commands to remember:</p>
+<pre><code># install the dependencies
+npm i
+
+# compile the react app only once
+npm run build
+
+# develop the app
+npm run watch
+</code></pre>
