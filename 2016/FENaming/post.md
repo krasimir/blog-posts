@@ -1,12 +1,12 @@
-# Naming, naming, naming
+# Naming, naming, naming ...
 
-At some point of your engineer career the word "writing" will become more important then "code". It's easy to *generate* code but it's difficult to *write* code. *Writing* means creating something meaningful. Something that will be read by other developers.
+I'm *writing code* for approximately ten years now and at some point the word "writing" became more important then "code". I found out that it is easy to *generate* code but it is difficult to *write* code. *Writing* means creating something meaningful. Something that other human beings will read. At the end the code is indeed sent to machines and they do understand ugly code. Not the same for humans though.
 
-I wrote [three-ish books](http://krasimirtsonev.com/#books) and I could say that finding the right words is challenging. We (the developers) are more or less writers. And as you know it's damn hard being a good writer. With engineering is a little bit easy because we don't have to make stories but finding the right words is still a problem. This leads us to the conclusion that one of the most difficult things in programming is *naming*. How to name the tags in my markup, how to name the variables and functions in my JavaScript or how to name my CSS classes or IDs. We very often say "writing code". Let's see how this problem exists in the context of front-end development.
+I wrote [three books](http://krasimirtsonev.com/#books) and I could say that finding the right words is always challenging. We (the developers) are more or less writers. And it is damn hard being a good writer. With engineering we don't have to make stories but finding the right words is still a problem. Still, even in programming, one of the most difficult things is *naming*. How to name the tags in my markup, how to name the variables and functions in my JavaScript or how to name my CSS classes or IDs. Let's see how this problem exists in the context of front-end development.
 
-## HTML
+## In HTML
 
-When we talk about naming in HTML we basically mean [HTML semantics](https://en.wikipedia.org/wiki/Semantic_HTML). Or in other words, the tags are not only about the structure of the markup but they also have meaning. HTML as a language evolved during the years and I could say that in the beginning was more about the presentation of the page. For example the `<b>` tag was well known as something that bolds the text placed inside. However, with the [HTML5 specification](https://www.w3.org/TR/html5/text-level-semantics.html#the-b-element) we now put some semantic meaning to it:
+When we are talking about naming in HTML we probably mean [HTML semantics](https://en.wikipedia.org/wiki/Semantic_HTML). The HTML tags are not only structuring the page but they also have meaning. HTML as a language evolved during the years and I could say that in the beginning was more about the presentation of the page. For example the `<b>` tag was well known as something that bolds the text placed inside. However, with the [HTML5 specification](https://www.w3.org/TR/html5/text-level-semantics.html#the-b-element) we now put some semantic meaning to it:
 
 > The b element represents a span of text to which attention is being drawn for utilitarian purposes without conveying any extra importance and with no implication of an alternate voice or mood, such as key words in a document abstract, product names in a review, actionable words in interactive text-driven software, or an article lede.
 
@@ -15,3 +15,98 @@ Most of the tags in HTML mean something. Which means that if we are build a navi
 As opposed to CSS and JavaScript, HTML has a limited amount of words that we may use (I'm excluding the fact that we may create our own custom tags). This means that the problem with the naming is easily solvable. As long as we know the meaning of the tags we are in a good position. The rules that we following writing semantic HTML are pretty concrete. For example we can't use `<header>` tag for our footer section. If we want to display an unordered list we use `<ul>` along with `<li>` tags and not `<div>` along with series of `<p>` tags.
 
 On of the characteristics of the good naming is whether a newbie understands the code quickly. And by *understands* we mean knows what the code is doing and is confident enough to make changes. In that sense, HTML with not so good naming doesn't drastically affect the understanding of the markup. For sure it's easier if there are fewer tags and they come with specific meaning.
+
+## In CSS
+
+Finding the right naming in CSS is definitely harder. Let's for example say that we need to add a top border to our `<section>` tag.
+
+* Shall we describe what the style is bringing to the page. If we use a [`::before` pseudo class](http://krasimirtsonev.com/blog/article/CSS-before-and-after-pseudo-elements-in-practice) and we change the structure of the markup we may end up with `.sectionBorder`.
+* Shall we describe how the element will look like after applying the style. For example, instead of saying `.sectionBorder` shall we say `.borderedSection`.
+* Shall we describe an action like `.hide` for example or in this case `.addSectionBorder`.
+* Or maybe we should ask a question - `.isBorderedSection`
+
+First, there are these personal preferences. Some developers have their own vision of how the classes should be phrased. Very often we name stuff based on our personal feelings. There is no wrong or right. As long as we define how it should be and the whole team is following same principles the naming is correct.
+
+If the team can't decide how to approach the problem then there are already defined name conventions. Like for example [SMACSS](https://smacss.com/), [BEM](http://getbem.com/introduction/) or [SUIT](http://suitcss.github.io/). All these conventions are around the idea of separating the responsibilities. Having grid system classes, typography and color classes, application specific classes or utility styles.
+
+I'm personally fen of granularity in CSS. What I mean by that is defining lots of small classes and use a composition to achieve the desired result. If we go back to our `<section>` tag and its top border styling:
+
+```
+// in CSS
+.sectionBorder {  
+  padding-top: 0.4rem;
+  border-top: 2px solid #BADA55;
+}
+
+// in HTML
+<section class="sectionBorder"> ... </section>
+```
+
+Nothing wrong here but I would go with the following:
+
+```
+// in CSS
+.u-pt {
+  padding-top: 0.4rem;
+}
+.u-bc-brandColor {
+  border-color: #BADA55;
+}
+.u-bt {
+  border-style: solid;
+  border-top-width: 2px;
+}
+
+// in HTML
+<section class="u-pt u-bc-brandColor u-bt"> ... </section>
+```
+*(the `u` prefix comes from `utility`)*
+
+I'm always searching for high reusability of the CSS classes. Of course there are cases where we need custom classes that can not be reused. And here is the challenge in this approach. We can't simply define a CSS class for every possible CSS property. The trick is finding what your application needs in terms of styling.
+
+## In JavaScript
+
+There are lots of [style guides](https://addyosmani.com/blog/javascript-style-guides-and-beautifiers/) available out there. What most of them define is how the code should look like. I.e. where to put the curly brackets or where to add (or not to add) spaces. However, the naming of code variables, objects, functions or classes is not strictly specified. We can still ask questions and find the proper naming but in JavaScript (similar to most of the other programming languages) we have clear directions.
+
+
+### Variables
+
+So, for example the variables are meant to store data. We may ask "What kind of data this variables stores?". If we need keeping an information about accounts in our system we may use `users`. If the slice of data is filtered this may change to `administrators`. However, it's not really good idea to use `info` or just `data` because this is not saying much. We should be as much specific as possible. I find the too general naming for a variable a code smell. Consider the following example:
+
+```
+function isAdmin(data) {
+  if (data) {
+    data = data.permissions || [];
+    return data.includes('level2') && data.includes('level3');
+  }
+  return false;
+}
+```
+
+We pass the user's data to `isAdmin` and we expect `level2` and `level3` strings in the `permissions` array. The code requires more efforts while reading We first assume that `data` may be `undefined` so we use it as a boolean. Then if everything is ok we convert the the `data` from object to an array and work with that array (which by the way decrease the performance of the code). A better approach here could be:
+
+```
+function isAdmin(user) {
+  if (typeof user !== 'undefined') {
+    let { permissions = [] } = user;
+    return permissions.includes('level2') && permissions.includes('level3');
+  }
+  return false;
+}
+```
+
+We have clear separation between what is a `user` and what his/her `permissions`.
+
+### Functions and methods
+
+While the variables are for storing data the functions (or methods) are about changing/processing that data. It's again good to be as specific as possible and the question that we usually ask is "What is that function/method doing?". As an addition to that I prefer giving a hint for the output, the result after execution. For example if we have a function that mutates my application state I may first say `transformData` but then change it to `getTransformedData`. That way I'm not only saying what the function is doing but also what it returns.
+
+Using a verb in the name of our functions has another impact. It forces us writing single-job methods. If we are parsing and saving in one place then it will be weird saying `parseAndStoreUserData`. We immediately see that these two tasks could be split into two different functions. So, only the thinking about a better naming actually improves our code.
+
+### Classes
+
+As opposite to functions and methods I don't like using verbs while defining classes. To be honest it's actually difficult doing this. That's because the classes are kind of mixture between both worlds "What data stores and what it does with it?". If we have an utility class that checks if the user is administrator we'll probably go with `UserCapabilities` and a method `isAdmin`. `UserChecking` or `CheckUserCapabilities` sounds odd.
+
+## Conclusion
+
+How we programmers name stuff in our scripts definitely matter. I would say that this is always difficult and it will be always difficult. What is important is to push for better naming because this will help us finding problems earlier. It will help us maintaining our applications.
