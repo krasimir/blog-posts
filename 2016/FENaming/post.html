@@ -1,0 +1,83 @@
+<p>I&rsquo;m <em>writing code</em> for approximately ten years now and at some point the word &ldquo;writing&rdquo; became more important then &ldquo;code&rdquo;. I found out that it is easy to <em>generate</em> code but it is difficult to <em>write</em> code. <em>Writing</em> means creating something meaningful. Something that other human beings will read. The code is indeed sent to machines and they do understand ugly code. Not the same for humans though. An important part of our job is to make sure that our code is clear for other teammates.</p>[STOP]
+<p>I wrote <a href="http://krasimirtsonev.com/#books">three books</a> and I could say that finding the right words is always challenging. We write all day long so we (the developers) are more or less writers. And it is damn hard being a good writer. Of course with engineering we don&rsquo;t have to make stories but finding a good phrasing is still a problem. Even in programming, one of the most difficult things is picking the right words - the <em>naming</em>. How to name the tags in our markup, how to name the variables and functions in our JavaScript or how to name our CSS classes.</p>
+<p>Let&rsquo;s see how this problem exists in the context of front-end development.</p>
+<h2 id="in-html"><a name="user-content-in-html" href="#in-html" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>In HTML</h2>
+<p>When we are talking about naming in HTML we probably mean <a href="https://en.wikipedia.org/wiki/Semantic_HTML">HTML semantics</a>. The HTML tags are not only structuring the page but they also have meaning. HTML as a language evolved during the years. In the beginning was more about the presentation of the page but later we changed that. For example the <code>&lt;b&gt;</code> tag was well known as something that bolds the text placed inside. However, with the <a href="https://www.w3.org/TR/html5/text-level-semantics.html#the-b-element">HTML5 specification</a> we now put some semantic meaning to it:</p>
+<blockquote>
+<p>The b element represents a span of text to which attention is being drawn for utilitarian purposes without conveying any extra importance and with no implication of an alternate voice or mood, such as key words in a document abstract, product names in a review, actionable words in interactive text-driven software, or an article lede.</p>
+</blockquote>
+<p>Most of the tags in HTML mean something. If we are build a navigation we better use <code>&lt;nav&gt;</code> instead of <code>&lt;div&gt;</code> because the <code>&lt;div&gt;</code> has no any meaning.</p>
+<p>As opposed to CSS and JavaScript, HTML has a limited amount of <em>words</em> (I&rsquo;m excluding the fact that we may create our own custom tags). This means that the problem with the naming is easily solvable. As long as we know the meaning of the tags we are in a good position. The rules that we are following while writing semantic HTML are pretty concrete. For example we can&rsquo;t use <code>&lt;header&gt;</code> tag for our footer section. If we want to display an unordered list we use <code>&lt;ul&gt;</code> along with <code>&lt;li&gt;</code> tags and not <code>&lt;div&gt;</code> along with series of <code>&lt;p&gt;</code> tags.</p>
+<p>On of the characteristics of the good naming is whether a newbie understands the code quickly. And by <em>understands</em> we mean knows what the code is doing and is confident enough to make changes. In that sense, HTML with not so good naming doesn&rsquo;t drastically affect the understanding of the markup. For sure it&rsquo;s easier if there are fewer tags and if they come with specific meaning.</p>
+<p>A good HTML semantics make our application more accessible. This is nowadays important because we are aiming more and more people with more and more devices. A proper naming of our HTML markup may significantly increase the value of our products.</p>
+<h2 id="in-css"><a name="user-content-in-css" href="#in-css" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>In CSS</h2>
+<p>Finding the right naming in CSS is definitely harder. Let&rsquo;s for example say that we need to add a top border to our <code>&lt;section&gt;</code> tag.</p>
+<ul>
+<li>Shall we describe what the style is bringing to the page. If we use a <a href="http://krasimirtsonev.com/blog/article/CSS-before-and-after-pseudo-elements-in-practice"><code>::before</code> pseudo element</a> and we change the structure of the markup we may end up with <code>.sectionBorder</code>.</li>
+<li>Shall we describe how the element will look like after applying the style. For example, instead of saying <code>.sectionBorder</code> shall we say <code>.borderedSection</code>.</li>
+<li>Shall we describe an action like <code>.hide</code> for example or in this case <code>.addSectionBorder</code>.</li>
+<li>Or maybe we should ask a question - <code>.isBorderedSection</code></li>
+</ul>
+<p>First, there are these personal preferences. Some developers have their own vision of how the classes should be phrased. Very often we name stuff based on our personal feelings. There is no wrong or right. As long as we define how it should be and the whole team is following same principles the naming is correct.</p>
+<p>If the team can&rsquo;t decide how to approach the problem then there are already defined name conventions. Like for example <a href="https://smacss.com/">SMACSS</a>, <a href="http://getbem.com/introduction/">BEM</a> or <a href="http://suitcss.github.io/">SUIT</a>. All these conventions are around the idea of separating the responsibilities. Having grid system classes, typography and color classes, application specific classes or utility styles.</p>
+<p>I&rsquo;m personally fen of granularity in CSS. What I mean by that is defining lots of small classes and use a composition to achieve the desired result. If we go back to our <code>&lt;section&gt;</code> tag and its top border styling:</p>
+<pre><code>// in CSS
+.sectionBorder {
+  padding-top: 0.4rem;
+  border-top: 2px solid #BADA55;
+}
+
+// in HTML
+&lt;section class=&quot;sectionBorder&quot;&gt; ... &lt;/section&gt;
+</code></pre>
+
+<p>Nothing wrong here but I would go with the following:</p>
+<p><pre><code>// in CSS
+.u-pt {
+  padding-top: 0.4rem;
+}
+.u-bc-brandColor {
+  border-color: #BADA55;
+}
+.u-bt {
+  border-style: solid;
+  border-top-width: 2px;
+}
+
+// in HTML
+&lt;section class=&quot;u-pt u-bc-brandColor u-bt&quot;&gt; ... &lt;/section&gt;
+</code></pre><br />
+<em>(the <code>u</code> prefix comes from <code>utility</code>)</em></p>
+<p>I&rsquo;m always searching for high reusability of the CSS classes. Of course there are cases where we need custom classes that can not be reused. And here is the challenge in this approach. We can&rsquo;t simply define a CSS class for every possible CSS property. The trick is finding what our application needs in terms of styles and create only those as atomic classes.</p>
+<h2 id="in-javascript"><a name="user-content-in-javascript" href="#in-javascript" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>In JavaScript</h2>
+<p>There are lots of <a href="https://addyosmani.com/blog/javascript-style-guides-and-beautifiers/">style guides</a> available out there. What most of them define is how the code should look like. I.e. where to put the curly brackets or where to add (or not to add) spaces. The naming of code variables, objects, functions or classes is not strictly specified. Thankfully in JavaScript (similar to most programming languages) we have clear directions by default.</p>
+<h3 id="variables"><a name="user-content-variables" href="#variables" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Variables</h3>
+<p>For example the variables are meant to store data. We may ask &ldquo;What kind of data this variable stores?&rdquo;. If we need keeping an information about accounts in our system we may use <code>users</code>. If part of the data is filtered this may change to <code>administrators</code>. However, it&rsquo;s not really good idea to use <code>info</code> or just <code>data</code> because this is not saying much. We should be as much specific as possible. I consider the too general naming of a variable as code smell. Think about the following example:</p>
+<pre><code>function isAdmin(data) {
+  if (data) {
+    data = data.permissions || [];
+    return data.includes('level2') &amp;&amp; data.includes('level3');
+  }
+  return false;
+}
+</code></pre>
+
+<p>We pass the user&rsquo;s data to <code>isAdmin</code> and we expect <code>level2</code> and <code>level3</code> strings in the <code>permissions</code> array. I don&rsquo;t know about you but the code makes me read it twice. We first assume that <code>data</code> may be <code>undefined</code> so we use it as a boolean. Then if everything is ok we convert the <code>data</code> from an object to an array and work with that array (which by the way decrease the performance of the code). A better approach here could be:</p>
+<pre><code>function isAdmin(user) {
+  if (typeof user !== 'undefined') {
+    let { permissions = [] } = user;
+    return permissions.includes('level2') &amp;&amp; permissions.includes('level3');
+  }
+  return false;
+}
+</code></pre>
+
+<p>We have clear separation between <code>user</code> and his/her <code>permissions</code>.</p>
+<h3 id="functions-and-methods"><a name="user-content-functions-and-methods" href="#functions-and-methods" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Functions and methods</h3>
+<p>While the variables are for storing data the functions (or methods) are about changing/processing that data. It&rsquo;s again good to be as specific as possible and the question that we usually ask is &ldquo;What is that function/method doing?&rdquo;. As an addition to that I prefer giving a hint for the output, the result after execution. For example if we have a function that mutates our application state we may first say <code>transformData</code> but then change it to <code>getTransformedData</code>. That way we are not only saying what the function is doing but also what it returns.</p>
+<p>Using a verb in the name of our functions has another impact. It forces us writing single-job methods. If we are parsing and saving in one place then we may think about <code>parseAndStoreUserData</code>. We immediately see that these two tasks could be split into two different functions. Searching for better naming improves our code before even having the code written down.</p>
+<h3 id="classes"><a name="user-content-classes" href="#classes" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Classes</h3>
+<p>As opposite to functions and methods I don&rsquo;t like using verbs while defining classes. To be honest it&rsquo;s actually difficult doing this. That&rsquo;s because the classes are kind of mixture between both worlds &ldquo;What data stores and what it does with it?&rdquo;. If we have an utility class that checks if the user is an administrator we&rsquo;ll probably go with <code>UserCapabilities</code> and a method <code>isAdmin</code>. <code>UserChecking</code> or <code>CheckUserCapabilities</code> sounds odd.</p>
+<p>A good class name is the one that brings context and suggests only one action. If the name sounds generic then the class is probably doing more stuff then expected.</p>
+<h2 id="conclusion"><a name="user-content-conclusion" href="#conclusion" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Conclusion</h2>
+<p>How we programmers name stuff in our scripts definitely matter. I would say that this is always difficult and it will be always difficult. What is important is to push for better naming because this will help us finding problems earlier. It will help us maintaining our applications. We shouldn&rsquo;t save words while writing code. Please don&rsquo;t use <code>ctrl</code> instead of <code>controller</code> or <code>v</code> instead of <code>view</code>. Let&rsquo;s be better writers (programmers)!</p>
