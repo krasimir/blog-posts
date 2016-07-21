@@ -1,0 +1,581 @@
+<p>Long time I was searching for a good front-end framework. Framework that will help me write scalable and easy to maintain UI. Even though React is just a library for rendering it comes with so many benefits that I can easily say &ldquo;I found it&rdquo;. And like every thing that I use a lot I started seeing some patterns. Techniques that are applied over and over again and I see in the code of other developers. It&rsquo;s time that I start documenting, discussing and sharing these patterns.</p>[STOP]
+<p>All the techniques described here are available in <a href="https://github.com/krasimir/react-in-patterns">github.com/krasimir/react-in-patterns</a> repository. I&rsquo;ll probably not update this blog post but will continue publishing stuff in GitHub. I&rsquo;ll also encourage you to comment below, <a href="https://github.com/krasimir/react-in-patterns/issues">file an issue</a> or directly make a <a href="https://github.com/krasimir/react-in-patterns/pulls">pull request</a> with patterns that you recognize.</p>
+<h2 id="communication"><a name="user-content-communication" href="#communication" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Communication</h2>
+<p>Building with React for a couple of months and you&rsquo;ll realize that every React component is like a small system that operates on its own. It has its own state, input and output.</p>
+<h3 id="input"><a name="user-content-input" href="#input" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Input</h3>
+<p>The input for a React component is its props. That&rsquo;s how we pass data to it:</p>
+<pre><code>// Title.jsx
+class Title extends React.Component {
+  render() {
+    return &lt;h1&gt;{ this.props.text }&lt;/h1&gt;;
+  }
+};
+Title.propTypes = {
+  text: React.PropTypes.string
+};
+Title.defaultProps = {
+  text: 'Hello world'
+};
+
+// App.jsx
+class App extends React.Component {
+  render() {
+    return &lt;Title text='Hello React' /&gt;;
+  }
+};
+</code></pre>
+
+<p>The <code>Title</code> component has only one input - <code>text</code>. The parent component (<code>App</code>) should provide it as an attribute while using the <code>&lt;Title&gt;</code> tag. There are two additional settings that we see above:</p>
+<ul>
+<li><code>propTypes</code> - defines the type of the props. This helps React telling us when a provided prop is not what we expect.</li>
+<li><code>defaultProps</code> - defines the default values of the props. We may require the existence of certain props but for the rest is good practice to set a default value.</li>
+</ul>
+<p>There is also <code>props.children</code> property that gives us an access to the child components passed by the owner of the component. For example:</p>
+<pre><code>class Title extends React.Component {
+  render() {
+    return (
+      &lt;h1&gt;
+        { this.props.text }
+        { this.props.children }
+      &lt;/h1&gt;
+    );
+  }
+};
+
+class App extends React.Component {
+  render() {
+    return (
+      &lt;Title text='Hello React'&gt;
+        &lt;span&gt;community&lt;/span&gt;
+      &lt;/Title&gt;
+    );
+  }
+};
+</code></pre>
+
+<p><em>Notice that if we don&rsquo;t return <code>{ this.props.children }</code> as part of the <code>Title</code>&lsquo;s render method the <code>&lt;span&gt;</code> tag will not be rendered.</em></p>
+<p>An indirect input to a component may be also the so called <code>context</code>. The whole React tree may have a <code>context</code> object which is accessible by every component. More about that in the <a href="https://github.com/krasimir/react-in-patterns/tree/master/patterns/dependency-injection">dependency injection</a> section.</p>
+<h3 id="output"><a name="user-content-output" href="#output" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Output</h3>
+<p>The obvious output is the rendered HTML. Visually that&rsquo;s what we get from a React component. Of course some of the components contain logic that probably sends out transformed data or triggers an action/event in our system. To achieve that we again use component&rsquo;s props:</p>
+<pre><code>class Title extends React.Component {
+  render() {
+    return (
+      &lt;h1&gt;
+        &lt;a onClick={ this.props.logoClicked }&gt;
+          &lt;img src='path/to/logo.png' /&gt;
+        &lt;/a&gt;
+      &lt;/h1&gt;
+    );
+  }
+};
+
+class App extends React.Component {
+  render() {
+    return &lt;Title logoClicked={ this.logoClicked } /&gt;;
+  }
+  logoClicked() {
+    console.log('logo clicked');
+  }
+};
+</code></pre>
+
+<p>We pass a callback which is invoked from within the component. The <code>logoClicked</code> function above may accept data which is how we transfer information back from the child to parent component.</p>
+<p>We should mention that there is no API that allow us accessing child&rsquo;s state. Or in other words we can&rsquo;t use <code>this.props.children[0].state</code> or something like that. The proper way of retrieving information from the children is by using props (passing callbacks). And that&rsquo;s a good thing. This approach forces us defining clear APIs and encourage the <a href="https://github.com/krasimir/react-in-patterns/tree/master/patterns/one-direction-data-flow">one-way direction data flow</a>.</p>
+<h2 id="composition"><a name="user-content-composition" href="#composition" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Composition</h2>
+<blockquote>
+<p><a href="https://github.com/krasimir/react-in-patterns/tree/master/patterns/composition/src">Source code</a></p>
+</blockquote>
+<p>One of the biggest benefits of <a href="http://krasimirtsonev.com/blog/article/The-bare-minimum-to-work-with-React">React</a> is composability. I personally don&rsquo;t know a framework that offers such an easy way to create and combine components. In this section we will explore few composition techniques which proved to work well.</p>
+<p>Let&rsquo;s get a simple example. Let&rsquo;s say that we have an application with a header and we want to place a navigation inside. We have three React components - <code>App</code>, <code>Header</code> and <code>Navigation</code>. They have to be nested into each other so we end up with the following markup:</p>
+<pre><code>&lt;App&gt;
+  &lt;Header&gt;
+    &lt;Navigation&gt; ... &lt;/Navigation&gt;
+  &lt;/Header&gt;
+&lt;/App&gt;
+</code></pre>
+
+<p>The trivial approach for combining these components is to reference them in the places where we need them.</p>
+<pre><code>// app.jsx
+import Header from './Header.jsx';
+
+export default class App extends React.Component {
+  render() {
+    return &lt;Header /&gt;;
+  }
+}
+
+// Header.jsx
+import Navigation from './Navigation.jsx';
+
+export default class Header extends React.Component {
+  render() {
+    return &lt;header&gt;&lt;Navigation /&gt;&lt;/header&gt;;
+  }
+}
+
+// Navigation.jsx
+export default class Navigation extends React.Component {
+  render() {
+    return (&lt;nav&gt; ... &lt;/nav&gt;);
+  }
+}
+</code></pre>
+
+<p>However, following this pattern we introduce several problems:</p>
+<ul>
+<li>We may consider the <code>App</code> as a place where we wire stuff, as an entry point. So, it&rsquo;s a good place for such composition. The <code>Header</code> though may have other elements like a logo, search field or a slogan. It will be nice if they are passed somehow from the outside so we don&rsquo;t create a hard-coded dependency. What if we need the same <code>Header</code> component but without the <code>Navigation</code>. We can&rsquo;t easily achieve that because we have the two bound tightly together.</li>
+<li>It&rsquo;s difficult to test. We may have some business logic in the <code>Header</code> and in order to test it we have to create an instance of the component. However, because it imports other components we will probably create instances of those components too and it becomes heavy for testing. We may break our <code>Header</code> test by doing something wrong in the <code>Navigation</code> component which is totally misleading. <em>(Note: while testing the <a href="https://facebook.github.io/react/docs/test-utils.html#shallow-rendering">shallow rendering</a> solves this problem by rendering only the <code>Header</code> without its nested children.)</em></li>
+</ul>
+<h3 id="using-reacts-children-api"><a name="user-content-using-reacts-children-api" href="#using-reacts-children-api" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Using React&rsquo;s children API</h3>
+<p>In React we have the handy <a href="https://facebook.github.io/react/docs/multiple-components.html#children"><code>this.props.children</code></a>. That&rsquo;s how the parent reads/accesses its children. This API will make our Header agnostic and dependency-free:</p>
+<pre><code>// App.jsx
+export default class App extends React.Component {
+  render() {
+    return (
+      &lt;Header&gt;
+        &lt;Navigation /&gt;
+      &lt;/Header&gt;
+    );
+  }
+}
+
+// Header.jsx
+export default class Header extends React.Component {
+  render() {
+    return &lt;header&gt;{ this.props.children }&lt;/header&gt;;
+  }
+};
+</code></pre>
+
+<p>It&rsquo;s also easy to test because we may render the <code>Header</code> with an empty <code>&lt;div&gt;</code>. This will isolate the component and will let us focus on only one piece of our application.</p>
+<h3 id="passing-a-child-as-a-property"><a name="user-content-passing-a-child-as-a-property" href="#passing-a-child-as-a-property" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Passing a child as a property</h3>
+<p>Every React component receive props. It&rsquo;s nice that these props may contain all kind of data. Even other components.</p>
+<pre><code>// App.jsx
+class App extends React.Component {
+  render() {
+    var title = &lt;h1&gt;Hello there!&lt;/h1&gt;;
+
+    return (
+      &lt;Header title={ title }&gt;
+        &lt;Navigation /&gt;
+      &lt;/Header&gt;
+    );
+  }
+};
+
+// Header.jsx
+export default class Header extends React.Component {
+  render() {
+    return (
+      &lt;header&gt;
+        { this.props.title }
+        &lt;hr /&gt;
+        { this.props.children }
+      &lt;/header&gt;
+    );
+  }
+};
+
+</code></pre>
+
+<p>This technique is helpful when we have a mix between components that exist inside the <code>Header</code> and components that have to be provided from the outside.</p>
+<h2 id="higher-order-components"><a name="user-content-higher-order-components" href="#higher-order-components" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Higher-order components</h2>
+<blockquote>
+<p><a href="https://github.com/krasimir/react-in-patterns/tree/master/patterns/higher-order-components/src">Source code</a></p>
+</blockquote>
+<p>Higher-order components look really similar to the <a href="http://robdodson.me/javascript-design-patterns-decorator/">decorator design pattern</a>. It is wrapping a component and attaching some new functionalities or props to it.</p>
+<p>Here is a function that returns a higher-order component:</p>
+<pre><code>var enhanceComponent = (Component) =&gt;
+  class Enhance extends React.Component {
+    render() {
+      return (
+        &lt;Component
+          {...this.state}
+          {...this.props}
+        /&gt;
+      )
+    }
+  };
+
+export default enhanceComponent;
+</code></pre>
+
+<p>Very often we expose a factory function that accepts our original component and when called returns the enhanced/wrapped version of it. For example:</p>
+<pre><code>var OriginalComponent = () =&gt; &lt;p&gt;Hello world.&lt;/p&gt;;
+
+class App extends React.Component {
+  render() {
+    return React.createElement(enhanceComponent(OriginalComponent));
+  }
+};
+</code></pre>
+
+<p>The very first thing that the higher-order component does is to render the original component. It&rsquo;s also a good practice to pass the <code>state</code> and <code>props</code> to it. This is helpful when we want to proxy data and use the higher-order component as it is our original component.</p>
+<p>The higher-order component gives us control on the input. The data that we want to send as props. Let&rsquo;s say that we have a configuration setting that <code>OriginalComponent</code> needs:</p>
+<pre><code>var config = require('path/to/configuration');
+
+var enhanceComponent = (Component) =&gt;
+  class Enhance extends React.Component {
+    render() {
+      return (
+        &lt;Component
+          {...this.state}
+          {...this.props}
+          title={ config.appTitle }
+        /&gt;
+      )
+    }
+  };
+</code></pre>
+
+<p>The knowledge for the configuration is hidden into the higher-order component. <code>OriginalComponent</code> knows only that it receives a <code>prop</code> called <code>title</code>. Where it comes from it is not important. That&rsquo;s a huge advantage because it helps us testing the component in an isolation and provides nice mechanism for mocking. Here is how the <code>title</code> may be used:</p>
+<pre><code>var OriginalComponent  = (props) =&gt; &lt;p&gt;{ props.title }&lt;/p&gt;;
+</code></pre>
+
+<p>Higher-order components are involved into another useful pattern - <a href="https://github.com/krasimir/react-in-patterns/tree/master/patterns/dependency-injection">dependency injection</a>.</p>
+<h2 id="dependency-injection"><a name="user-content-dependency-injection" href="#dependency-injection" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Dependency injection</h2>
+<blockquote>
+<p><a href="https://github.com/krasimir/react-in-patterns/tree/master/patterns/dependency-injection/src">Source code</a></p>
+</blockquote>
+<p>Big part of the modules/components that we write have dependencies. A proper management of these dependencies is critical for the success of the project. There is a technique (some people consider it as a <em>pattern</em>) called <a href="http://krasimirtsonev.com/blog/article/Dependency-injection-in-JavaScript"><em>dependency injection</em></a> that helps solving the problem.</p>
+<p>In React the need of dependency injector is easily visible. Let&rsquo;s consider the following application tree:</p>
+<pre><code>// Title.jsx
+export default function Title(props) {
+  return &lt;h1&gt;{ props.title }&lt;/h1&gt;;
+}
+
+// Header.jsx
+import Title from './Title.jsx';
+export default function Header() {
+  return (
+    &lt;header&gt;
+      &lt;Title /&gt;
+    &lt;/header&gt;
+  );
+}
+
+// App.jsx
+import Header from './Header.jsx';
+class App extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { title: 'React in patterns' };
+  }
+  render() {
+    return &lt;Header /&gt;;
+  }
+};
+</code></pre>
+
+<p>The string &ldquo;React in patterns&rdquo; should somehow reach the <code>Title</code> component. The direct way of doing this is to pass it from <code>App</code> to <code>Header</code> and then <code>Header</code> to pass it to <code>Title</code>. However, this may work for these three components but what happens if there are multiple properties and deeper nesting. Lots of components will have to mention properties that they are not interested in.</p>
+<p>We already saw how the <a href="https://github.com/krasimir/react-in-patterns/tree/master/patterns/higher-order-components">higher-order component</a> may be used to inject data. Let&rsquo;s use the same technique to inject the <code>title</code> variable:</p>
+<pre><code>// enhance.jsx
+var title = 'React in patterns';
+var enhanceComponent = (Component) =&gt;
+  class Enhance extends React.Component {
+    render() {
+      return (
+        &lt;Component
+          {...this.state}
+          {...this.props}
+          title={ title }
+        /&gt;
+      )
+    }
+  };
+
+// Header.jsx
+import enhance from './enhance.jsx';
+import Title from './Title.jsx';
+
+var EnhancedTitle = enhance(Title);
+export default function Header() {
+  return (
+    &lt;header&gt;
+      &lt;EnhancedTitle /&gt;
+    &lt;/header&gt;
+  );
+}
+</code></pre>
+
+<p>The <code>title</code> is hidden in a middle layer (higher-order component) where we pass it as a prop to the original <code>Title</code> component. That&rsquo;s all nice but it solves only half of the problem. Now we don&rsquo;t have to pass the <code>title</code> down the tree but how this data will reach the <code>enhance.jsx</code> helper.</p>
+<p>React has the concept of <a href="https://facebook.github.io/react/docs/context.html"><em>context</em></a>. The <em>context</em> is something that every component may have access to. It&rsquo;s something like an <a href="https://github.com/krasimir/EventBus">event bus</a> but for data. A single model which we can access from everywhere.</p>
+<pre><code>// a place where we'll define the context
+var context = { title: 'React in patterns' };
+class App extends React.Component {
+  getChildContext() {
+    return context;
+  }
+  ...
+};
+App.childContextTypes = {
+  title: React.PropTypes.string
+};
+
+// a place where we need data
+class Inject extends React.Component {
+  render() {
+    var title = this.context.title;
+    ...
+  }
+}
+Inject.contextTypes = {
+  title: React.PropTypes.string
+};
+</code></pre>
+
+<p>Notice that we have to specify the exact signature of the context object. With <code>childContextTypes</code> and <code>contextTypes</code>. If those are not specified then the <code>context</code> object will be empty. That may be a little bit frustrating because we may have lots of stuff to put there. That&rsquo;s why it is a good practice that our <code>context</code> is not just a plain object but it has an interface that allows us to store and retrieve data. For example:</p>
+<p><pre><code>// dependencies.js
+export default {
+  data: {},
+  get(key) {
+    return this.data[key];
+  },
+  register(key, value) {
+    this.data[key] = value;
+  }
+}
+</code></pre><br />
+Then, if we go back to our example, the very top <code>App</code> component may look like that:</p>
+<pre><code>import dependencies from './dependencies';
+
+dependencies.register('title', 'React in patterns');
+
+class App extends React.Component {
+  getChildContext() {
+    return dependencies;
+  }
+  render() {
+    return &lt;Header /&gt;;
+  }
+};
+App.childContextTypes = {
+  data: React.PropTypes.object,
+  get: React.PropTypes.func,
+  register: React.PropTypes.func
+};
+</code></pre>
+
+<p>And our <code>Title</code> component gets it&rsquo;s data through the context:</p>
+<pre><code>// Title.jsx
+export default class Title extends React.Component {
+  render() {
+    return &lt;h1&gt;{ this.context.get('title') }&lt;/h1&gt;
+  }
+}
+Title.contextTypes = {
+  data: React.PropTypes.object,
+  get: React.PropTypes.func,
+  register: React.PropTypes.func
+};
+</code></pre>
+
+<p>Ideally we don&rsquo;t want to specify the <code>contextTypes</code> every time when we need an access to the context. This detail may be wrapped in a higher-order component. And even more, we may write an utility function that is more descriptive and helps us declare the exact wiring. I.e instead of accessing the context directly with <code>this.context.get('title')</code> we ask the higher-order component to get what we need and to pass it as a prop to our component. For example:</p>
+<pre><code>// Title.jsx
+import wire from './wire';
+
+function Title(props) {
+  return &lt;h1&gt;{ props.title }&lt;/h1&gt;;
+}
+
+export default wire(Title, ['title'], function resolve(title) {
+  return { title };
+});
+</code></pre>
+
+<p>The <code>wire</code> function accepts first a React component, then an array with all the needed dependencies (which are <code>register</code>ed already) and then a function which I like to call <code>mapper</code>. It receives what&rsquo;s stored in the context as a raw data and returns an object which is the actual React props for our component (<code>Title</code>). In this example we just pass what we get - a <code>title</code> string variable. However, in a real app this could be a collection of data stores, configuration or something else. So, it&rsquo;s nice that we pass exactly what we need and don&rsquo;t pollute the components with data that they don&rsquo;t need.</p>
+<p>Here is how the <code>wire</code> function looks like:</p>
+<pre><code>export default function wire(Component, dependencies, mapper) {
+  class Inject extends React.Component {
+    render() {
+      var resolved = dependencies.map(this.context.get.bind(this.context));
+      var props = mapper(...resolved);
+
+      return React.createElement(Component, props);
+    }
+  }
+  Inject.contextTypes = {
+    data: React.PropTypes.object,
+    get: React.PropTypes.func,
+    register: React.PropTypes.func
+  };
+  return Inject;
+};
+</code></pre>
+
+<p><code>Inject</code> is a higher-order component that gets access to the context and retrieves all the items listed under <code>dependencies</code> array. The <code>mapper</code> is a function receiving the <code>context</code> data and transforms it to props for our component.</p>
+<h3 id="final-thoughts-about-dependency-injection"><a name="user-content-final-thoughts-about-dependency-injection" href="#final-thoughts-about-dependency-injection" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Final thoughts about dependency injection</h3>
+<p>Most of the solutions for dependency injection in React components are based on context. I think that it&rsquo;s good to know what happens under the hood. As the time of this writing one of the most popular ways for building React apps involves <a href="https://github.com/reactjs/react-redux">Redux</a>. The <em>famous</em> <code>connect</code> function and the <code>Provider</code> there use the <code>context</code>.</p>
+<p>I personally found this technique really useful. It successfully fullfills my dependencies needs and makes my components pure and highly testable.</p>
+<h2 id="one-way-direction-data-flow"><a name="user-content-one-way-direction-data-flow" href="#one-way-direction-data-flow" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>One-way direction data flow</h2>
+<blockquote>
+<p><a href="https://github.com/krasimir/react-in-patterns/tree/master/patterns/one-direction-data-flow/src">Source code</a></p>
+</blockquote>
+<p>One-way direction data flow is a pattern that works nicely with React. It is around the idea that the components do not modify the data that they receive. They only listen for changes in this data and maybe provide the new value but they do not update the actual data store. This update happens following another mechanism in another place and the component just gets rendered with the new value.</p>
+<p>Let&rsquo;s for example get a simple <code>Switcher</code> component that contains a button. We click it to enable a flag in the system.</p>
+<pre><code>class Switcher extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { flag: false };
+    this._onButtonClick = e =&gt; this.setState({ flag: !this.state.flag });
+  }
+  render() {
+    return (
+      &lt;button onClick={ this._onButtonClick }&gt;
+        { this.state.flag ? 'lights on' : 'lights off' }
+      &lt;/button&gt;
+    );
+  }
+};
+
+// ... and we render it
+class App extends React.Component {
+  render() {
+    return &lt;Switcher /&gt;;
+  }
+};
+</code></pre>
+
+<p>At this moment we have the data inside our component. Or in other words, <code>Switcher</code> is the only one place that knows about our <code>flag</code>. Let&rsquo;s send it out to some kind of a store:</p>
+<pre><code>var Store = {
+  _flag: false,
+  set: function(value) {
+    this._flag = value;
+  },
+  get: function() {
+    return this._flag;
+  }
+};
+
+class Switcher extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { flag: false };
+    this._onButtonClick = e =&gt; {
+      this.setState({ flag: !this.state.flag }, () =&gt; {
+        this.props.onChange(this.state.flag);
+      });
+    }
+  }
+  render() {
+    return (
+      &lt;button onClick={ this._onButtonClick }&gt;
+        { this.state.flag ? 'lights on' : 'lights off' }
+      &lt;/button&gt;
+    );
+  }
+};
+
+class App extends React.Component {
+  render() {
+    return &lt;Switcher onChange={ Store.set.bind(Store) } /&gt;;
+  }
+};
+</code></pre>
+
+<p>Our <code>Store</code> object is a simple <a href="https://addyosmani.com/resources/essentialjsdesignpatterns/book/#singletonpatternjavascript">singleton</a> where we have helpers for setting and getting the value of the <code>_flag</code> property. By passing the getter to the component we are able to update the data externally. More or less our application workflow looks like that:</p>
+<pre><code>User's input
+     |
+  Switcher -------&gt; Store
+</code></pre>
+
+<p>Let&rsquo;s assume that we are saving the flag value to a backend service via the <code>Store</code>. When the user comes back we have to set a proper initial state. If the user left the flag truthy we have to show <em>&ldquo;lights on&rdquo;</em> and not the default <em>&ldquo;lights off&rdquo;</em>. Now it gets tricky because we have the data knowledge in two places. The UI and the <code>Store</code> have their own states. We have to communicate in both directions <code>Store ---&gt; Switcher</code> and <code>Switcher ---&gt; Store</code>.</p>
+<pre><code>// ... in App component
+&lt;Switcher
+  value={ Store.get() }
+  onChange={ Store.set.bind(Store) } /&gt;
+
+// ... in Switcher component
+constructor(props) {
+  super(props);
+  this.state = { flag: this.props.value };
+  ...
+</code></pre>
+
+<p>Our schema changes to the following:</p>
+<pre><code>User's input
+     |
+  Switcher &lt;-------&gt; Store
+                      ^ |
+                      | |
+                      | |
+                      | v
+    Service communicating
+    with our backend
+</code></pre>
+
+<p>All this leads to managing two states instead of one. What if the <code>Store</code> changes its value based on other actions in the system. We have to propagate that change to the <code>Switcher</code> and we increase the complexity of our app.</p>
+<p>One-way direction data flow solves this problem. It eliminates the multiple states and deals with only one which is usually inside the store. To achieve that we have to tweak our <code>Store</code> object a little bit. We need logic that allows us to subscribe for changes:</p>
+<pre><code>var Store = {
+  _handlers: [],
+  _flag: '',
+  onChange: function(handler) {
+    this._handlers.push(handler);
+  },
+  set: function(value) {
+    this._flag = value;
+    this._handlers.forEach(handler =&gt; handler())
+  },
+  get: function() {
+    return this._flag;
+  }
+};
+</code></pre>
+
+<p>Then we will hook our main <code>App</code> component and we&rsquo;ll re-render it every time when the <code>Store</code> changes its value:</p>
+<pre><code>class App extends React.Component {
+  constructor(props) {
+    super(props);
+    Store.onChange(this.forceUpdate.bind(this));
+  }
+  render() {
+    return (
+      &lt;div&gt;
+        &lt;Switcher
+          value={ Store.get() }
+          onChange={ Store.set.bind(Store) } /&gt;
+      &lt;/div&gt;
+    );
+  }
+};
+</code></pre>
+
+<p><em>(Notice that we are using <a href="https://facebook.github.io/react/docs/component-api.html#forceupdate"><code>forceUpdate</code></a> which is not really recommended. Normally a <a href="https://github.com/krasimir/react-in-patterns/tree/master/patterns/higher-order-components">high-order component</a> is used to enable the re-rendering. We used <code>forceUpdate</code> just to keep the example simple.)</em></p>
+<p>Because of this change the <code>Switcher</code> becomes really simple. We don&rsquo;t need the internal state:</p>
+<pre><code>class Switcher extends React.Component {
+  constructor(props) {
+    super(props);
+    this._onButtonClick = e =&gt; {
+      this.props.onChange(!this.props.value);
+    }
+  }
+  render() {
+    return (
+      &lt;button onClick={ this._onButtonClick }&gt;
+        { this.props.value ? 'lights on' : 'lights off' }
+      &lt;/button&gt;
+    );
+  }
+};
+</code></pre>
+
+<p>The benefit that comes with this pattern is that our components become dummy representation of the <code>Store</code>&lsquo;s data. It&rsquo;s really easy to think about the React components as views (renderers). We write our application in a declarative way and deal with the complexity in only one place.</p>
+<p>The diagram of the application changes to:</p>
+<pre><code>Service communicating
+with our backend
+    ^
+    |
+    v
+  Store &lt;-----
+    |        |
+    v        |
+Switcher ----&gt;
+    ^
+    |
+    |
+User input
+</code></pre>
+
+<p>As we can see the data flows in only one direction and there is no need to sync two (or more) parts of our system. One-way direction data flow is not only about React based apps. Proved many times that makes the applications easy to reason about. It may need a little bit more wiring but it definitely worth it.</p>
+<h2 id="summary"><a name="user-content-summary" href="#summary" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Summary</h2>
+<p>For sure, these are not the all design patterns/techniques that we can see in React. There are probably dozens more. Check out <a href="https://github.com/krasimir/react-in-patterns">github.com/krasimir/react-in-patterns</a> regularly for updates. I&rsquo;ll try posting my new findings there.</p>
