@@ -1,0 +1,8 @@
+{
+  "name": "yarn-test",
+  "version": "0.0.1",
+  "dependencies": {
+    "ractivate": "~0.2.0",
+    "ractive": "0.6.1"
+  }
+}
