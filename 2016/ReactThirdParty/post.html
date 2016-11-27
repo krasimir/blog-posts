@@ -1,0 +1,143 @@
+<p>React is probably one of the best choices for building UI. Good design, support and community. However, there are cases where we want to use an external service or we want to integrate something completely different. We all know that React works heavily with the actual DOM and basically controls what&rsquo;s rendered on the screen. That&rsquo;s why integrating of third-party components could be tricky. In this article we will see how to mix React and jQuery&rsquo;s UI plugin and do it safely.[STOP]</p>
+<p><em>This article is part of <a href="https://github.com/krasimir/react-in-patterns/">React in patterns</a> project. For other interesting patterns check out the <a href="https://github.com/krasimir/react-in-patterns/">repo</a></em>.</p>
+<h2 id="the-example"><a name="user-content-the-example" href="#the-example" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>The example</h2>
+<p>I picked <a href="https://github.com/aehlke/*tag-it*"><em>tag-it</em></a> jQuery plugin for my example. It transforms an unordered list to input field for managing tags:</p>
+<pre><code>&lt;ul&gt;
+  &lt;li&gt;JavaScript&lt;/li&gt;
+  &lt;li&gt;CSS&lt;/li&gt;
+&lt;/ul&gt;
+</code></pre>
+
+<p>to:</p>
+<p><img alt="tag-it" src="https://raw.githubusercontent.com/krasimir/react-in-patterns/master/patterns/third-party/img/tag-it.png" /></p>
+<p>To make it work we have to include jQuery, jQuery UI and the <em>tag-it</em> plugin code. It works like that:</p>
+<pre><code>$('&lt;dom element selector&gt;').tagit();
+</code></pre>
+
+<p>We select a DOM element and call <code>tagit()</code>.</p>
+<p>Now, let&rsquo;s create a simple React app that will use the plugin:</p>
+<pre><code>// Tags.jsx
+class Tags extends React.Component {
+  render() {
+    return (
+      &lt;ul&gt;
+      { this.props.tags.map((tag, i) =&gt; &lt;li key={ i }&gt;{ tag } &lt;/li&gt;) }
+      &lt;/ul&gt;
+    );
+  }
+};
+
+// App.jsx
+class App extends React.Component {
+  constructor(props) {
+    super(props);
+
+    this.state = { tags: ['JavaScript', 'CSS' ] };
+  }
+  render() {
+    return (
+      &lt;div&gt;
+        &lt;Tags tags={ this.state.tags } /&gt;
+      &lt;/div&gt;
+    );
+  }
+}
+
+ReactDOM.render(&lt;App /&gt;, document.querySelector('#container'));
+</code></pre>
+
+<p>The entry point is our <code>App</code> class. It uses the <code>Tags</code> component that displays an unordered list based on the passed <code>tags</code> prop. When React renders the list on the screen we know that we have a <code>&lt;ul&gt;</code> tag so we can hook it to the jQuery plugin.</p>
+<h2 id="force-a-single-render"><a name="user-content-force-a-single-render" href="#force-a-single-render" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Force a single-render</h2>
+<p>The very first thing that we have to do is to force a single-render of the <code>Tags</code> component. That&rsquo;s because when React adds the elements in the actual DOM we want to pass the control of them to jQuery. If we skip this both React and jQuery will work on same DOM elements without knowing for each other. To achieve a single-render we have to use the lifecycle method <code>shouldComponentUpdate</code> like so:</p>
+<pre><code>class Tags extends React.Component {
+  shouldComponentUpdate() {
+    return false;
+  }
+  ...
+</code></pre>
+
+<p>By always returning <code>false</code> here we are saying that our component will never rerender. If defined <code>shouldComponentUpdate</code> is used by React to understand whether to trigger <code>render</code> or not. That&rsquo;s ideal for our case because we want to place the markup on the page using React but we don&rsquo;t want to rely on it after that.</p>
+<h2 id="initializing-the-plugin"><a name="user-content-initializing-the-plugin" href="#initializing-the-plugin" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Initializing the plugin</h2>
+<p>React gives us an <a href="https://facebook.github.io/react/docs/refs-and-the-dom.html">API</a> for accessing actual DOM nodes. We have to use the <code>ref</code> attribute on a node and later reach that node via <code>this.refs</code>. <code>componentDidMount</code> is the proper lifecycle method for initializing the <em>tag-it</em> plugin. That&rsquo;s because we get it called when React mounts the result of the <code>render</code> method.</p>
+<pre><code>class Tags extends React.Component {
+  ...
+  componentDidMount() {
+    this.list = $(this.refs.list);
+    this.list.tagit();
+  }
+  render() {
+    return (
+      &lt;ul ref='list'&gt;
+      { this.props.tags.map((tag, i) =&gt; &lt;li key={ i }&gt;{ tag } &lt;/li&gt;) }
+      &lt;/ul&gt;
+    );
+  }
+  ...
+</code></pre>
+
+<p>The code above together with <code>shouldComponentUpdate</code> lead to React rendering the <code>&lt;ul&gt;</code> with two items and then <em>tag-it</em> transforms it to a working tag editing widget.</p>
+<h2 id="controlling-the-plugin-using-react"><a name="user-content-controlling-the-plugin-using-react" href="#controlling-the-plugin-using-react" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Controlling the plugin using React</h2>
+<p>Let&rsquo;s say that we want to programmatically add a new tag to the already running <em>tag-it</em> field. Such action will be triggered by the React component and needs to use the jQuery API. We have to find a way to communicate data to <code>Tags</code> component but still keep the single-render approach.</p>
+<p>To illustrate the whole process we will add an input field to the <code>App</code> class and a button which if clicked will pass a string to <code>Tags</code> component.</p>
+<pre><code>class App extends React.Component {
+  constructor(props) {
+    super(props);
+
+    this._addNewTag = this._addNewTag.bind(this);
+    this.state = {
+      tags: ['JavaScript', 'CSS' ],
+      newTag: null
+    };
+  }
+  _addNewTag() {
+    this.setState({ newTag: this.refs.field.value });
+  }
+  render() {
+    return (
+      &lt;div&gt;
+        &lt;p&gt;Add new tag:&lt;/p&gt;
+        &lt;div&gt;
+          &lt;input type='text' ref='field' /&gt;
+          &lt;button onClick={ this._addNewTag }&gt;Add&lt;/button&gt;
+        &lt;/div&gt;
+        &lt;Tags tags={ this.state.tags } newTag={ this.state.newTag } /&gt;
+      &lt;/div&gt;
+    );
+  }
+}
+</code></pre>
+
+<p>We use the internal state as a data storage for the value of the newly added field. Every time when we click the button we update the state and trigger rerendering of <code>Tags</code> component. However, because of <code>shouldComponentUpdate</code> we update nothing. The only one change is that we get a value of the <code>newTag</code> prop which may be captured via another lifecycle method - <code>componentWillReceiveProps</code>:</p>
+<pre><code>class Tags extends React.Component {
+  ...
+  componentWillReceiveProps(newProps) {
+    this.list.tagit('createTag', newProps.newTag);
+  }
+  ...
+</code></pre>
+
+<p><code>.tagit('createTag', newProps.newTag)</code> is a pure jQuery code. <code>componentWillReceiveProps</code> is a nice place for calling methods of the third-party library.</p>
+<p>Here is the full code of the <code>Tags</code> component:</p>
+<pre><code>class Tags extends React.Component {
+  componentDidMount() {
+    this.list = $(this.refs.list);
+    this.list.tagit();
+  }
+  shouldComponentUpdate() {
+    return false;
+  }
+  componentWillReceiveProps(newProps) {
+    this.list.tagit('createTag', newProps.newTag);
+  }
+  render() {
+    return (
+      &lt;ul ref='list'&gt;
+      { this.props.tags.map((tag, i) =&gt; &lt;li key={ i }&gt;{ tag } &lt;/li&gt;) }
+      &lt;/ul&gt;
+    );
+  }
+};
+</code></pre>
+
+<h2 id="conclusion"><a name="user-content-conclusion" href="#conclusion" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Conclusion</h2>
+<p>Even though React is manipulating the DOM tree we are able to integrate third-party libraries and services. The available lifecycle methods give us enough control on the rendering process.</p>
