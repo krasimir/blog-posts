@@ -4,25 +4,25 @@ The [first article](http://krasimirtsonev.com/blog/article/Creative-navigation-b
 
 So far there are 1,308,099 unique users visited this blog. And most of those visits are in the last 3/4 years mainly because I'm writing "actively".
 
-![so far](img/sofar.jpg)
+![so far](http://krasimirtsonev.com/blog/articles/8years/sofar.jpg)
 
 20% of the requests came from USA. India is on the second place:
 
-![by country](img/bycountry.jpg)
+![by country](http://krasimirtsonev.com/blog/articles/8years/bycountry.jpg)
 
 Bulgaria (the country where I live) is at 10th place with 2.31%.
 
 I'm mainly writing technical articles so I guess it is normal to see Chrome (70%) and Firefox (18%) beating in the browsers' competition:
 
-![by browsers](img/bybrowsers.jpg)
+![by browsers](http://krasimirtsonev.com/blog/articles/8years/bybrowsers.jpg)
 
 The range of 8 years is big and for that whole time *desktop* wins over *mobile*.
 
-![devices](img/devices.jpg)
+![devices](http://krasimirtsonev.com/blog/articles/8years/devices.jpg)
 
 Most people came from google, second Reddit and Twitter.
 
-![referrals](img/referrals.jpg)
+![referrals](http://krasimirtsonev.com/blog/articles/8years/referrals.jpg)
 
 Here are top 10 landing pages:
 
@@ -41,13 +41,13 @@ Here are top 10 landing pages:
 
 The visits are more or less consistent through the whole year - ~2200 visits per day.
 
-![2016](img/2016.jpg)
+![2016](http://krasimirtsonev.com/blog/articles/8years/2016.jpg)
 
 Again United States is at the top of the list followed by India and United Kingdom. Chrome, Firefox and Safari take the first places in the browsers. IE has 1.17% share.
 
 Google.com is missing in the first ten referrals. It's [echojs.com](http://www.echojs.com/) at the top:
 
-![2016](img/referrals2016.jpg)
+![2016](http://krasimirtsonev.com/blog/articles/8years/referrals2016.jpg)
 
 For a third year in a row [CSS: :before and :after pseudo elements in practice](http://krasimirtsonev.com/blog/article/CSS-before-and-after-pseudo-elements-in-practice) is the most popular page of my blog. Here are the top 5:
 
