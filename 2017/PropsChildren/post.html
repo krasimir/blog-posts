@@ -1,0 +1,112 @@
+<p><i>(This article is part of <a href="https://github.com/krasimir/react-in-patterns"  target="_blank">React in patterns</a> series. If you want to learn more check out the <a href="https://github.com/krasimir/react-in-patterns" target="_blank">repo</a>.)</i></p>
+<p>React is highly composable. And the API that enables that is <code>props.children</code>. It gives us the power to create a placeholder that is later filled with content from the outside.</p>[STOP]
+<h2 id="hiding-complex-formattingstyling"><a name="user-content-hiding-complex-formattingstyling" href="#hiding-complex-formattingstyling" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Hiding complex formatting/styling</h2>
+<p>Let&rsquo;s say that we have a title that needs some special formatting. For example:</p>
+<pre><code>&lt;h1 className='lots-of-styles-here'&gt;
+  &lt;strong&gt;
+    &lt;i className='something-else'&gt;Hello world&lt;/i&gt;
+  &lt;/strong&gt;
+&lt;/h1&gt;
+</code></pre>
+<p>We may create a <code>Title</code> component that hides the <code>h1</code>, <code>strong</code> and <code>i</code> tags. And all we have to pass to it is the text <code>Hello world</code>:</p>
+<pre><code>function Title(props) {
+  return (
+    &lt;h1 className='lots-of-styles-here'&gt;
+      &lt;strong&gt;
+        &lt;i className='something-else'&gt;
+          { props.children }
+        &lt;/i&gt;
+      &lt;/strong&gt;
+    &lt;/h1&gt;
+  );
+}
+
+&lt;Title&gt;Hello world&lt;/Title&gt;
+</code></pre>
+
+<p>That&rsquo;s a nice way to encapsulate UI elements. Notice how simple is to manage the title. We don&rsquo;t have to deal with all those HTML tags.</p>
+<h2 id="composition"><a name="user-content-composition" href="#composition" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Composition</h2>
+<p>The same technique may be used for <a href="https://github.com/krasimir/react-in-patterns/tree/master/patterns/composition">composing components</a>. The same way as we passed <code>Hello world</code> we may pass another React component. Let&rsquo;s say that we have a header component but we need different content inside:</p>
+<pre><code>function Header(props) {
+  return (
+    &lt;header className='app-header'&gt;
+      { props.children }
+    &lt;/header&gt;
+  );
+}
+function Navigation() {
+  return &lt;nav&gt;Navigation&lt;/nav&gt;;
+}
+function SearchBar() {
+  return &lt;div&gt;Search bar&lt;/div&gt;;
+}
+
+&lt;Header&gt;&lt;Navigation /&gt;&lt;/Header&gt;
+or
+&lt;Header&gt;&lt;SearchBar /&gt;&lt;/Header&gt;
+</code></pre>
+
+<p><code>Header</code> component doesn&rsquo;t know about its content. It does only one job and that&rsquo;s rendering a <code>header</code> tag with specific CSS class. This approach is perfect for building UIs because we divide our application into small autonomous chunks which are easy to understand and test.</p>
+<h2 id="using-jsx-expression"><a name="user-content-using-jsx-expression" href="#using-jsx-expression" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Using JSX expression</h2>
+<p>So far <code>props.children</code> was string literal and React component. It is interesting that we may pass a JSX expression too.</p>
+<pre><code>function UserName(props) {
+  return (
+      &lt;div&gt;
+      &lt;b&gt;{ props.children.lastName }&lt;/b&gt;,
+      { props.children.firstName }
+    &lt;/div&gt;
+  );
+}
+
+function App() {
+  var user = {
+    firstName: 'Krasimir',
+    lastName: 'Tsonev'
+  };
+    return (
+    &lt;UserName&gt;{ user }&lt;/UserName&gt;
+  );
+}
+</code></pre>
+
+<p>This may look weird but may be useful in some cases. Like for example when we have some knowledge in the parent component and don&rsquo;t necessary want to send it down the tree.</p><p>The example below prints a list of TODOs. The <code>App</code> component has all the data and knows how to determine whether a TODO is completed or not. The <code>TodoList</code> component simply encapsulate the needed HTML markup.</p>
+<pre><code>function TodoList(props) {
+  const renderTodo = (todo, i) =&gt; {
+    return (
+      &lt;li key={ i }&gt;
+        { props.children(todo) }
+      &lt;/li&gt;
+    );
+  }
+  return (
+      &lt;section className='main-section'&gt;
+      &lt;ul className='todo-list'&gt;{ props.todos.map(renderTodo)}&lt;/ul&gt;
+    &lt;/section&gt;
+  );
+}
+
+function App() {
+  const todos = [
+    { label: 'Write tests', status: 'done' },
+    { label: 'Sent report', status: 'progress' },
+    { label: 'Answer emails', status: 'done' }
+  ];
+  var isCompleted = todo =&gt; todo.status === 'done';
+    return (
+    &lt;TodoList todos={ todos }&gt;
+        { todo =&gt; isCompleted(todo) ? &lt;b&gt;{ todo.label }&lt;/b&gt; : todo.label }
+    &lt;/TodoList&gt;
+  );
+}
+</code></pre>
+
+<p>Notice how the <code>App</code> component doesn&rsquo;t expose the structure of the data. <code>TodoList</code> has no idea that there is <code>label</code> or <code>status</code> properties.</p>
+<p>When I first saw that pattern I was thinking &ldquo;How&rsquo;s that different by passing an additional prop?&rdquo;. For example:</p>
+<pre><code>&lt;TodoList
+  todos={ todos }
+  renderTodo={
+    todo =&gt; isCompleted(todo) ? &lt;b&gt;{ todo.label }&lt;/b&gt; : todo.label
+  } /&gt;
+</code></pre>
+
+<p>The truth is that I kind of like the other syntax. It becomes obvious that the expression is used for rendering the children of the component. From another point of view having an explicit method like <code>renderTodo</code> makes it even clearer. So, I guess it is more or less a personal feeling.</p>

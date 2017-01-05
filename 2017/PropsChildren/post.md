@@ -61,7 +61,7 @@ or
 
 ## Using JSX expression
 
-So far `props.children` was string literal and React component. It is interesting to know that we may pass a JSX expression too.
+So far `props.children` was string literal and React component. It is interesting that we may pass a JSX expression too.
 
 ```
 function UserName(props) {
@@ -83,3 +83,50 @@ function App() {
   );
 }
 ```
+
+This may look weird but may be useful in some cases. Like for example when we have some knowledge in the parent component and don't necessary want to send it down the tree. The example below prints a list of TODOs. The `App` component has all the data and knows how to determine whether a TODO is completed or not. The `TodoList` component simply encapsulate the needed HTML markup.
+
+```
+function TodoList(props) {
+  const renderTodo = (todo, i) => {
+    return (
+      <li key={ i }>
+        { props.children(todo) }
+      </li>
+    );
+  }
+  return (
+	  <section className='main-section'>
+      <ul className='todo-list'>{ props.todos.map(renderTodo)}</ul>
+    </section>
+  );
+}
+
+function App() {
+  const todos = [
+    { label: 'Write tests', status: 'done' },
+    { label: 'Sent report', status: 'progress' },
+    { label: 'Answer emails', status: 'done' }
+  ];
+  var isCompleted = todo => todo.status === 'done';
+	return (
+    <TodoList todos={ todos }>
+    	{ todo => isCompleted(todo) ? <b>{ todo.label }</b> : todo.label }
+    </TodoList>
+  );
+}
+```
+
+Notice how the `App` component doesn't expose the structure of the data. `TodoList` has no idea that there is `label` or `status` properties.
+
+When I first saw that pattern I was thinking "How's that different then passing one more prop?". For example:
+
+```
+<TodoList
+  todos={ todos }
+  renderTodo={
+    todo => isCompleted(todo) ? <b>{ todo.label }</b> : todo.label
+  } />
+```
+
+The truth is that I kind of like the other syntax. It becomes obvious that the expression is used for rendering the children of the component. From another point of view having an explicit method like `renderTodo` makes it even clearer. So, I guess it is more or less a personal feeling.
