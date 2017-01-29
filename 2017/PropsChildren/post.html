@@ -1,4 +1,4 @@
-<p><i>(This article is part of <a href="https://github.com/krasimir/react-in-patterns"  target="_blank">React in patterns</a> series. If you want to learn more check out the <a href="https://github.com/krasimir/react-in-patterns" target="_blank">repo</a>.)</i></p>
+<p><i>(This article is part of <a href="https://github.com/krasimir/react-in-patterns"  target="_blank">React in patterns</a> series.)</i></p>
 <p>React is highly composable. And the API that enables that is <code>props.children</code>. It gives us the power to create a placeholder that is later filled with content from the outside.</p>[STOP]
 <h2 id="hiding-complex-formattingstyling"><a name="user-content-hiding-complex-formattingstyling" href="#hiding-complex-formattingstyling" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Hiding complex formatting/styling</h2>
 <p>Let&rsquo;s say that we have a title that needs some special formatting. For example:</p>
@@ -79,7 +79,7 @@ function App() {
     );
   }
   return (
-      &lt;section className='main-section'&gt;
+    &lt;section className='main-section'&gt;
       &lt;ul className='todo-list'&gt;{ props.todos.map(renderTodo)}&lt;/ul&gt;
     &lt;/section&gt;
   );
@@ -92,9 +92,10 @@ function App() {
     { label: 'Answer emails', status: 'done' }
   ];
   var isCompleted = todo =&gt; todo.status === 'done';
-    return (
+
+  return (
     &lt;TodoList todos={ todos }&gt;
-        { todo =&gt; isCompleted(todo) ? &lt;b&gt;{ todo.label }&lt;/b&gt; : todo.label }
+      { todo =&gt; isCompleted(todo) ? &lt;b&gt;{ todo.label }&lt;/b&gt; : todo.label }
     &lt;/TodoList&gt;
   );
 }
@@ -109,4 +110,4 @@ function App() {
   } /&gt;
 </code></pre>
 
-<p>The truth is that I kind of like the other syntax. It becomes obvious that the expression is used for rendering the children of the component. From another point of view having an explicit method like <code>renderTodo</code> makes it even clearer. So, I guess it is more or less a personal feeling.</p>
+<p>The truth is that I kind of like the syntax with `props.children`. It becomes obvious that the expression is used for rendering the children of the component. From another point of view having an explicit method like <code>renderTodo</code> makes it even clearer. So, I guess it is more or less a personal feeling.</p>
