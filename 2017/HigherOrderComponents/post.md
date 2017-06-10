@@ -1,8 +1,8 @@
 # The Rise of the Higher-Order Components
 
-There are lots of things which I like in React. One of them is the fact that it teaches interesting [patterns](https://github.com/krasimir/react-in-patterns). One of my favorites one is [higher-order component](https://github.com/krasimir/react-in-patterns/tree/master/patterns/higher-order-components). In this article we'll do a couple of experiments and will see the power of this technique.
+There are lots of things which I like in React. Mostly the fact that it teaches interesting [patterns](https://github.com/krasimir/react-in-patterns). One of my favorites one is [higher-order component](https://github.com/krasimir/react-in-patterns/tree/master/patterns/higher-order-components). In this article we'll do a couple of experiments and will see how powerful this approach could be.
 
-## What is a Higher-Order component
+## What is a Higher-Order component?
 
 That term comes from a higher-order function which by definition is:
 
@@ -20,11 +20,11 @@ function createHOC(Component) {
 }
 ```
 
-There are couple of interesting characteristics of the higher-order component. The obvious one is that it renders our main component. It is like a middle layer where we put logic. If we bypass all the props (the `{ ...props }` bit) we are hiding the fact that there is a higher-order component at all. For the outside world that's the same component with the same props. That's why I really like this pattern. We are able to inject stuff or control the rendering with no touch of the other parts of our app.
+There are couple of interesting characteristics of the higher-order component. If we bypass all the props (the `{ ...props }` bit) we are creating a wrapper which is invisible for the rest of the application. For the outside world that's the same component with the same props. And because we have this middle layer we are able to inject stuff or control the rendering with no touch of the original component.
 
 ## Trigger rendering
 
-React is all about rendering right. We change the state of the app and somehow magically the library triggers re-rendering of the components tree. Here we will talk about that magic which hints React about our state changes. Check out this example below where we have a single React component on the page:
+React is all about rendering right. We change the state of the app and somehow magically the library triggers re-rendering of the component tree. In this section we will talk about that magic which hints React about our state changes. Check out this example below where we have a single React component on the page:
 
 ```
 // ------------------ html
@@ -38,7 +38,7 @@ const App = ({ name }) => &lt;h1>Hello { name || 'world'}!&lt;/h1>;
 render(&lt;App />, $('#root'));
 ```
 
-We want to extend it and by clicking on the button to send the value of the input field as a prop to our React component. Clearly there is no API for that. We can't say "re-render the component with this new props". Not many people realize but this is the very first problem which we all face up with. Some changes happen outside of the view layer and we need to propagate these changes to React. The thing is that this exact problem is solved by a framework that we usually use and we never think about implementing a solution for it. Like in [Facebook's flux](https://github.com/facebook/flux) or [react-redux](https://github.com/reactjs/react-redux). Under the hood there is always a HOC that gets subscribed to something and calls its `setState` method.
+By clicking on the button we want to send the value of the input field as a prop to our React component. Clearly there is no API for that. We can't say "re-render the component with these new props". Not many people realize but this is the very first problem that everyone faces. Some changes happen outside of the view layer and we need to propagate these changes to React. The thing is that this exact problem is solved usually by a framework that we use and we never think about implementing a solution for it. Like in [Facebook's flux](https://github.com/facebook/flux) or [react-redux](https://github.com/reactjs/react-redux). Under the hood there is always a HOC that gets subscribed to something and calls its `setState` method.
 
 Let's manually implement the pattern. We will create a function called `connect` that will return a higher-order component representing our original `App`:
 
@@ -55,7 +55,7 @@ const App = connect(
 );
 ```
 
-Same snippet as above. We just bypass same props and for the rest of the system our `App` component looks absolutely the same. Now, when we have that middle layer we may trigger conditional renders by saying `setState` in the higher-order component.
+Same snippet as above. We just bypass same props and for the rest of the system our `App` component looks absolutely the same. Now, when we have that middle layer we may trigger renders by saying `setState` in the higher-order component.
 
 ```
 const connect = function(Component, subscribe) {
@@ -73,7 +73,7 @@ const connect = function(Component, subscribe) {
 };
 ```
 
-That new version of `connect` accepts a `subscribe` function. We then give a callback which if fired updates the local state of the HOC. And here is the use case:
+That new version of `connect` accepts a `subscribe` function. We then give a callback which if fired updates the local state of the HOC with the given data. And here is the use case:
 
 ```
 const App = connect(
@@ -90,11 +90,11 @@ render(&lt;App />, $('#root'));
 
 The second argument of `connect` is a function that receives the `rerender` function. We simply call it whenever we need to rerender. In this case we want to update the `name` prop so we pass it as an argument.
 
-This approach may look like an anti-pattern because we update the state of a component from the outside which is not really recommended in React ecosystem. However, that is I believe the cleanest way to say "my data is changed, please rerender". 
+This approach may look like an anti-pattern because we update the state of a component from the outside which is not really recommended in React ecosystem. However, that is I believe the cleanest way to say "my data is changed, please rerender". There are some variations which use [React context](https://facebook.github.io/react/docs/context.html) but in the core of the concept is the higher-order component.
 
 ## Injecting dependencies
 
-Another common problem in React development is how to send something to a component which is deep nested in the tree. We can't pass our dependencies through all the levels because that will pollute our components with unnecessary knowledge. Imagine that we have the following component that needs a `name` and a `job` title:
+Another common problem in React development is how to send something to a component which is deep nested in the tree. We can't pass our dependencies through all the levels because that will pollute our components with unnecessary knowledge. Imagine that we have the following component that needs a `name` and a `job` strings:
 
 ```
 // Title.jsx
@@ -176,10 +176,10 @@ const wire = function(Component, dependencies, mapDepsToProps) {
 
 `dependencies.map(get)` is simply converting the array of dependency keys (strings) to an array of actual objects (our stores). And because it is an array we may use the spread operator to pass the items as arguments to `mapDepsToProps` function.
 
-Of course the implementation here is far from perfect. We just did the initial dependency injection. The `wire`d component needs to be re-rendered if some of the dependencies changes but that is another story. This could be solved by again using some sort of observer pattern where we listen for changes (or invalidate) in the dependencies.
+Of course the implementation here is naive and far from perfect. We just did the initial dependency injection. The `wire`d component needs to be re-rendered if some of the dependencies change but that is a whole other story. This could be solved by again using some sort of observer pattern where we listen for changes (or invalidate) in the dependencies.
 
 ## Conclusion
 
-I'm using a lot of higher-order components on daily basis. Started playing with this pattern in [HOCBox repo](https://github.com/krasimir/hocbox) where I did a more advanced version of the above examples. There is also [signals](https://github.com/krasimir/hocbox#signals) implementation which is about exchanging messages between components. If you find this interesting I will be more then happy to see some other use cases where HOCs are the driving power.
+I'm using a lot of higher-order components in my daily job. I started playing with this pattern in [HOCBox repo](https://github.com/krasimir/hocbox) where I did more advanced versions of the above examples. There is also [signals](https://github.com/krasimir/hocbox#signals) implementation which is about exchanging messages between components. If you find this interesting I will be more then happy to see some other use cases where HOCs are the driving power.
 
 Thanks for reading.

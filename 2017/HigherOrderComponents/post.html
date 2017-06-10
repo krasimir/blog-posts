@@ -1,0 +1,149 @@
+<p>There are lots of things which I like in React. Mostly the fact that it teaches interesting <a href="https://github.com/krasimir/react-in-patterns" target="_blank">patterns</a>. One of my favorites ones is <a href="https://github.com/krasimir/react-in-patterns/tree/master/patterns/higher-order-components" target="_blank">higher-order component</a>. In this article we&rsquo;ll do a couple of experiments and will see how powerful this approach could be.</p>[STOP]
+<h2 id="what-is-a-higher-order-component"><a name="user-content-what-is-a-higher-order-component" href="#what-is-a-higher-order-component" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>What is a Higher-Order component?</h2>
+<p>That term comes from a higher-order function which by definition is:</p>
+<blockquote>
+<p>A function which takes a function as an argument and/or returns a function.</p>
+</blockquote>
+<p>In the context of React this is (in most of the cases) a function that accepts a React component and returns another one:</p>
+<pre><code>function createHOC(Component) {
+  return class HOC extends React.Component {
+    render() {
+      return &lt;Component { ...this.props } { ...this.state } /&gt;;
+    }
+  }
+}
+</code></pre>
+
+<p>There are couple of interesting characteristics of the higher-order component. If we bypass all the props (the <code>{ ...props }</code> bit) we are creating a wrapper which is invisible for the rest of the application. For the outside world that&rsquo;s the same component with the same props. And because we have this middle layer we are able to inject stuff or control the rendering with no touch of the original component.</p>
+<h2 id="trigger-rendering"><a name="user-content-trigger-rendering" href="#trigger-rendering" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Trigger rendering</h2>
+<p>React is all about rendering right. We change the state of the app and somehow magically the library triggers re-rendering of the component tree. In this section we will talk about that magic which hints React about our state changes. Check out this example below where we have a single React component on the page:</p>
+<pre><code>// ------------------ html
+&lt;div id=&quot;root&quot;&gt;&lt;/div&gt;
+&lt;input type=&quot;text&quot; value=&quot;React&quot; /&gt;
+&lt;button&gt;Set name&lt;/button&gt;
+
+// ------------------ javascript
+const $ = selector =&gt; document.querySelector(selector);
+const App = ({ name }) =&gt; &lt;h1&gt;Hello { name || 'world'}!&lt;/h1&gt;;
+render(&lt;App /&gt;, $('#root'));
+</code></pre>
+
+<p>By clicking on the button we want to send the value of the input field as a prop to our React component. Clearly there is no API for that. We can&rsquo;t say &ldquo;re-render the component with these new props&rdquo;. Not many people realize but this is the very first problem that everyone faces. Some changes happen outside of the view layer and we need to propagate these changes to React. The thing is that this exact problem is solved usually by a framework that we use and we never think about implementing a solution for it. Like in <a href="https://github.com/facebook/flux" target="_blank">Facebook&rsquo;s flux</a> or <a href="https://github.com/reactjs/react-redux" target="_blank">react-redux</a>. Under the hood there is always a HOC that gets subscribed to something and calls its <code>setState</code> method.</p>
+<p>Let&rsquo;s manually implement the pattern. We will create a function called <code>connect</code> that will return a higher-order component representing our original <code>App</code>:</p>
+<pre><code>const connect = function(Component) {
+  return class HOC extends React.Component {    
+    render() {
+      return &lt;Component { ...this.props } { ...this.state }/&gt;;
+    }
+  };
+};
+const App = connect(
+  ({ name }) =&gt; &lt;h1&gt;Hello {name || 'world'}!&lt;/h1&gt;
+);
+</code></pre>
+
+<p>Same snippet as above. We just bypass same props and for the rest of the system our <code>App</code> component looks absolutely the same. Now, when we have that middle layer we may trigger renders by saying <code>setState</code> in the higher-order component.</p>
+<pre><code>const connect = function(Component, subscribe) {
+  return class HOC extends React.Component {
+    constructor(props) {
+      super(props);
+
+      const rerender = props =&gt; this.setState(props);
+      subscribe(rerender);
+    }
+    render() {
+      return &lt;Component { ...this.props } { ...this.state }/&gt;;
+    }
+  };
+};
+</code></pre>
+
+<p>That new version of <code>connect</code> accepts a <code>subscribe</code> function. We then give a callback which if fired updates the local state of the HOC with the given data. And here is the use case:</p>
+<pre><code>const App = connect(
+  ({ name }) =&gt; &lt;h1&gt;Hello {name || 'world'}!&lt;/h1&gt;,
+  rerender =&gt; {
+    $('button').addEventListener('click', () =&gt; {
+      rerender({ name: $('input[type=&quot;text&quot;]').value });
+    });
+  }
+);
+
+render(&lt;App /&gt;, $('#root'));
+</code></pre>
+
+<p>The second argument of <code>connect</code> is a function that receives the <code>rerender</code> function. We simply call it whenever we need to rerender. In this case we want to update the <code>name</code> prop so we pass it as an argument.</p>
+<p>This approach may look like an anti-pattern because we update the state of a component from the outside which is not really recommended in React ecosystem. However, that is I believe the cleanest way to say &ldquo;my data is changed, please rerender&rdquo;. There are some variations which use <a href="https://facebook.github.io/react/docs/context.html" target="_blank">React context</a> but in the core of the concept is the higher-order component.</p>
+<h2 id="injecting-dependencies"><a name="user-content-injecting-dependencies" href="#injecting-dependencies" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Injecting dependencies</h2>
+<p>Another common problem in React development is how to send something to a component which is deep nested in the tree. We can&rsquo;t pass our dependencies through all the levels because that will pollute our components with unnecessary knowledge. Imagine that we have the following component that needs a <code>name</code> and a <code>job</code> strings:</p>
+<pre><code>// Title.jsx
+const Title = ({ name, job }) =&gt; &lt;h1&gt;My name is { name } and I work as { job }.&lt;/h1&gt;
+export default Title;
+</code></pre>
+
+<p><code>name</code> and <code>job</code> props need to come from two stores which are defined at the very top of our application.</p>
+<pre><code>const JobStore = {  getJob: () =&gt; 'developer' };
+const UserStore = { getName: () =&gt; 'Foo Bar' };
+</code></pre>
+
+<p>For sure we can pass those objects down the <code>Title</code> component but this means that we have to mention <code>JobStore</code> and <code>UserStore</code> on a lot of places. What if we have a container (<code>DI.js</code>) that keeps such dependencies and gives us access to them when we need:</p>
+<pre><code>// DI.js
+const storage = {};
+
+export function register(key, dependency) {
+  storage[key] = dependency;
+}
+export function get(key) {
+  return storage[key];
+}
+</code></pre>
+
+<p>And once we initialize our stores we just pass them to the container:</p>
+<pre><code>import { register } from './DI';
+
+const JobStore = { getJob: () =&gt; 'developer' };
+const UserStore = { getName: () =&gt; 'Foo Bar' };
+
+register('JobStore', JobStore);
+register('UserStore', UserStore);
+</code></pre>
+
+<p>At this point our <code>Title</code> component needs only the dependency container. By calling <code>get('JobStore')</code> for example we will access the store. However, wouldn&rsquo;t be better if we hide the whole idea about the container in a higher-order component and we have the following API:</p>
+<pre><code>const Title = wire(
+  ({ name, job }) =&gt; &lt;h1&gt;My name is { name } and I work as { job }.&lt;/h1&gt;,
+  ['JobStore', 'UserStore'],
+  (job, user) =&gt; ({
+    job: job.getJob(),
+    name: user.getName()
+  })
+);
+export default Title;
+</code></pre>
+
+<p>Where <code>wire</code> is a function that returns a HOC and accepts:</p>
+<ul>
+<li>Our original component</li>
+<li>An array of strings that represent our dependencies</li>
+<li>A function that receives the actual dependencies, pulls the data from them and returns a set of props</li>
+</ul>
+<p>And here is the implementation. It&rsquo;s similar to the one used in the previous section:</p>
+<pre><code>import { get } from './DI';
+
+const wire = function(Component, dependencies, mapDepsToProps) {
+  return class HOC extends React.Component {
+    constructor(props) {
+      super(props);
+
+      this.state = mapDepsToProps(...dependencies.map(get));
+    }
+    render() {
+      return &lt;Component { ...this.props } { ...this.state }/&gt;;
+    }
+  };
+};
+</code></pre>
+
+<p><code>dependencies.map(get)</code> is simply converting the array of dependency keys (strings) to an array of actual objects (our stores). And because it is an array we may use the spread operator to pass the items as arguments to <code>mapDepsToProps</code> function.</p>
+<p>Of course the implementation here is naive and far from perfect. We just did the initial dependency injection. The <code>wire</code>d component needs to be re-rendered if some of the dependencies change but that is a whole other story. This could be solved by again using some sort of observer pattern where we listen for changes (or invalidate) in the dependencies.</p>
+<h2 id="conclusion"><a name="user-content-conclusion" href="#conclusion" class="headeranchor-link" aria-hidden="true"><span class="headeranchor"></span></a>Conclusion</h2>
+<p>I&rsquo;m using a lot of higher-order components in my daily job. I started playing with this pattern in <a href="https://github.com/krasimir/hocbox" target="_blank">HOCBox repo</a> where I did more advanced versions of the above examples. There is also <a href="https://github.com/krasimir/hocbox#signals" target="_blank">signals</a> implementation which is about exchanging messages between components. If you find this interesting I will be more then happy to see some other use cases where HOCs are the driving power.</p>
+<p>Thanks for reading.</p>
