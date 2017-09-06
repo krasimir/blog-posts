@@ -1,0 +1,10 @@
+<p>I was doing a <a href="https://www.youtube.com/watch?v=FEeL_c2wtpU&amp;t=1608s">podcast episode</a> with <a href="https://kentcdodds.com/">Kent C. Dodds</a> when he mentioned README-driven development. And so I decided to try it out with a new <a href="https://github.com/krasimir/stent">library</a> which I just started. Here&rsquo;s what I found.</p>[STOP]
+<p>README-driven development is exactly what you are thinking about. We first write the README/docs and then the actual code. It is also called documentation-driven development. For me it worked pretty well because I wasn&rsquo;t really sure about the API of the library. I just started throwing ideas and step by step I fulfilled all the stuff which I wanted to make. Here are a couple of points if that approach is applied to developing a library:</p>
+<ul>
+<li>I was able to see what is the developer experience. Seeing the library only from the outside helped me focus more on the API. The fact that I had zero lines of code freed my brain of implementation details and I designed the API in the <i>best</i> possible way.</li>
+<li>It&rsquo;s a nice sketch for the tests. I followed TDD afterwards and having the README done helped me writing the specs for no time.</li>
+<li>Without battle-testing the library I don&rsquo;t know about methods which are actually needed. README-driven development made me think more from the consumer&rsquo;s side of the things. I had some ideas which I crossed out just because they didn&rsquo;t make sense when I started writing the examples.</li>
+<li>And of course it&rsquo;s really easy to delete or modify everything. I changed the API drastically couple of times and that was completely fine. If I&rsquo;ve had some code written upfront such changes will probably make me start from the scratch.</li>
+<li>I didn&rsquo;t have to go back and deal with the boring part - the documentation. That&rsquo;s because I already had it. In general, following this approach made the documenting much easier and fun.</li>
+</ul>
+<p>So if you are starting something new or just extending existing code base - try writing the documentation first.</p>
