@@ -130,6 +130,144 @@ What happens if we add another template literal is that we got a new `_templateO
 
 ## Destructuring
 
+Destructuring is one of my favorite features. I'm using it wherever possible because it removes some boilerplate and very often eliminates naming problems. Here is an example of couple of destructing usages:
+
+```js
+function printData({ data }) {
+  const { name, properties } = data;
+  const [ age ] = properties;
+  
+  console.log(name + ', age: ' + age);
+}
+
+printData({
+  data: {
+    name: 'John',
+    properties: [34, 180, 90]
+  }
+});
+```
+
+We have destructing of function arguments then destructing of an object literal and array. The transpiled code is as follows:
+
+```js
+var _slicedToArray = function() {
+  function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; }
+
+  return function(arr, i) {
+    if (Array.isArray(arr)) {
+      return arr;
+    } else if (Symbol.iterator in Object(arr)) {
+      return sliceIterator(arr, i);
+    } else {
+      throw new TypeError("Invalid attempt to destructure non-iterable instance");
+    }
+  };
+}();
+
+function printData(_ref) {
+  var data = _ref.data;
+  var name = data.name,
+    properties = data.properties;
+
+  var _properties = _slicedToArray(properties, 1),
+    age = _properties[0];
+
+  console.log(name + ', age: ' + age);
+}
+
+printData({
+  data: {
+    name: 'John',
+    properties: [34, 180, 90]
+  }
+});
+```
+
+So, not that simple isn't it. I thought before about how polyfilling of destruting looks like and for it was always just defining some more variables. And partially that is what happens. The arguments of the `printData` indeed are destructed by creating an additional variable `_ref`. Then we simple use `_ref.<something>` to get an access to what we want. The extracting of the `name` is the same but the `age` variable is using a helper function `_slicedToArray`. I intentionally didn't prettify the implementation of `sliceIterator` because it is anyway difficult to understand and not so interesting. The reason behind this helper is that JavaScript may destruct everything that is iterable. Like for example strings. In order to support this we have a check asking "Is this an array?" and if yes then we just use the `array[<index>]` notation. If not we slice the iterator to an array so we can reference what we need by index.
+
+The file size has changed from 220 to 992 bytes but `_slicedToArray` is probably used all over your code and it is defined only once so there is no much of impact for the final bundle.
+
 ## The awesome ES6 classes
+
+For years the OOP in JavaScript was done using the prototype inheritance. Today we have classes and may write code like:
+
+```js
+class Person {
+  constructor(firstName, lastName) {
+    this.firstName = firstName;
+    this.lastName = lastName;
+  }
+  fullName() {
+    return this.firstName + ' ' + this.lastName;
+  }
+}
+
+class User extends Person {
+  greeting() {
+    console.log('Hello, ' + this.fullName());
+  }
+}
+
+var user = new User('John', 'Smith');
+user.greeting(); // Hello, John Smith
+```
+
+This example illustrates class definition with a constructor and a public method. We also see inheritance using the `extends` keyword. These 340 bytes are transformed to a code containing couple of helpers:
+
+```js
+'use strict';
+
+var _createClass = function () {
+  function defineProperties(target, props) { ... };
+}();
+
+function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+
+function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var Person = function () {
+  function Person(firstName, lastName) {
+    _classCallCheck(this, Person);
+
+    this.firstName = firstName;
+    this.lastName = lastName;
+  }
+
+  _createClass(Person, [{
+    key: 'fullName',
+    value: function fullName() {
+      return this.firstName + ' ' + this.lastName;
+    }
+  }]);
+
+  return Person;
+}();
+
+var User = function (_Person) {
+  _inherits(User, _Person);
+
+  function User() {
+    _classCallCheck(this, User);
+
+    return _possibleConstructorReturn(this, (User.__proto__ || Object.getPrototypeOf(User)).apply(this, arguments));
+  }
+
+  _createClass(User, [{
+    key: 'greeting',
+    value: function greeting() {
+      console.log('Hello, ' + this.fullName());
+    }
+  }]);
+
+  return User;
+}(Person);
+
+var user = new User('John', 'Smith');
+
+user.greeting();
+```
 
 ## The magic of `async` and `await`
