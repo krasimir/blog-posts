@@ -49,3 +49,6 @@ form button {
 form button:active {
   transform: translateY(4px);
 }
+.tac {
+  text-align: center;
+}

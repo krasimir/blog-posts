@@ -26,7 +26,7 @@ class Profile extends React.Component {
     );
   }
   _renderLoadingScreen() {
-    return <p>Loading. please wait.</p>;
+    return <p className='tac'>Loading. please wait.</p>;
   }
   render() {
     const { isRequestInFlight } = this.props;
