@@ -1,6 +1,9 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import Profile from './Profile.jsx';
+import { Provider } from 'react-redux';
+
+import store from './Store';
 
 class App extends React.Component {
   render() {
@@ -12,4 +15,7 @@ class App extends React.Component {
   }
 }
 
-ReactDOM.render(<App />, document.querySelector('#content'));
+ReactDOM.render(
+  <Provider store={ store }><App /></Provider>,
+  document.querySelector('#content')
+);

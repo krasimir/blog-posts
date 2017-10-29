@@ -1,20 +1,20 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import { connect } from 'react-redux'
+import { login } from './actions';
 
 class Profile extends React.Component {
   constructor(props) {
     super(props);
 
     this._submitForm = this._submitForm.bind(this);
-
   }
   _submitForm(event) {
     event.preventDefault();
-
-    const username = this.refs.username.value;
-    const password = this.refs.password.value;
-
-    
+    this.props.login({
+      username: this.refs.username.value,
+      password: this.refs.password.value
+    });
   }
   _renderLoginForm() {
     return (
@@ -25,13 +25,30 @@ class Profile extends React.Component {
       </form>
     );
   }
+  _renderLoadingScreen() {
+    return <p>Loading. please wait.</p>;
+  }
   render() {
+    const { isRequestInFlight } = this.props;
+
+    if (isRequestInFlight) {
+      return this._renderLoadingScreen();
+    }
     return this._renderLoginForm();
   }
 }
 
 Profile.propTypes = {
-  
+  login: PropTypes.func.isRequired,
+  isRequestInFlight: PropTypes.bool.isRequired
 }
 
-export default Profile;
+const mapStateToProps = state => ({
+  isRequestInFlight: state.requestInFlight
+});
+
+const mapDispatchToProps = dispatch => ({
+  login: data => dispatch(login(data))
+});
+
+export default connect(mapStateToProps, mapDispatchToProps)(Profile);
