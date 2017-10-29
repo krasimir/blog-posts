@@ -1,0 +1,25 @@
+{
+  "name": "react-bare-minimum",
+  "version": "1.0.1",
+  "description": "A bare minimum setup to work with react. Compiling and bundling, nothing else.",
+  "repository": {
+    "url": "git@github.com:krasimir/react-bare-minimum.git",
+    "type": "git"
+  },
+  "scripts": {
+    "build": "browserify ./src/App.jsx -o ./public/app.js -t babelify",
+    "watch": "watchify ./src/App.jsx -o ./public/app.js -t babelify -v"
+  },
+  "author": "Krasimir Tsonev <info@krasimirtsonev.com>",
+  "license": "MIT",
+  "dependencies": {
+    "babel-core": "^6.26.0",
+    "babel-preset-es2015": "^6.24.1",
+    "babel-preset-react": "^6.24.1",
+    "babelify": "^8.0.0",
+    "browserify": "^14.5.0",
+    "react": "^16.0.0",
+    "react-dom": "^16.0.0",
+    "watchify": "^3.9.0"
+  }
+}
