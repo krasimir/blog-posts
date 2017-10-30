@@ -33161,7 +33161,32 @@ _reactDom2.default.render(_react2.default.createElement(
   _react2.default.createElement(App, null)
 ), document.querySelector('#content'));
 
-},{"./Profile.jsx":411,"./Store":412,"babel-polyfill":1,"react":382,"react-dom":364,"react-redux":374}],411:[function(require,module,exports){
+},{"./Profile.jsx":412,"./Store":413,"babel-polyfill":1,"react":382,"react-dom":364,"react-redux":374}],411:[function(require,module,exports){
+'use strict';
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+var TIMEOUT = 1000;
+var USER = { name: 'Jon Snow' };
+var ERROR = new Error('Ops, sorry');
+
+var Auth = {
+  login: function login(_ref) {
+    var username = _ref.username,
+        password = _ref.password;
+
+    return new Promise(function (resolve, reject) {
+      return setTimeout(function () {
+        return username === '' || password === '' ? reject(ERROR) : resolve(USER);
+      }, TIMEOUT);
+    });
+  }
+};
+
+exports.default = Auth;
+
+},{}],412:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -33198,18 +33223,31 @@ var Profile = function (_React$Component) {
 
     var _this = _possibleConstructorReturn(this, (Profile.__proto__ || Object.getPrototypeOf(Profile)).call(this, props));
 
-    _this._submitForm = _this._submitForm.bind(_this);
+    _this._submit = _this._submit.bind(_this);
+    _this._tryAgain = _this._tryAgain.bind(_this);
+    _this._credentials = null;
     return _this;
   }
 
   _createClass(Profile, [{
-    key: '_submitForm',
-    value: function _submitForm(event) {
-      event.preventDefault();
-      this.props.login({
+    key: '_getCredentials',
+    value: function _getCredentials() {
+      return this._credentials = {
         username: this.refs.username.value,
         password: this.refs.password.value
-      });
+      };
+    }
+  }, {
+    key: '_submit',
+    value: function _submit(event) {
+      event.preventDefault();
+      this.props.login(this._getCredentials());
+    }
+  }, {
+    key: '_tryAgain',
+    value: function _tryAgain(event) {
+      event.preventDefault();
+      this.props.login(this._credentials);
     }
   }, {
     key: '_renderLoginForm',
@@ -33218,10 +33256,10 @@ var Profile = function (_React$Component) {
         'form',
         null,
         _react2.default.createElement('input', { type: 'text', ref: 'username', placeholder: 'Username' }),
-        _react2.default.createElement('input', { type: 'text', ref: 'password', placeholder: 'Password' }),
+        _react2.default.createElement('input', { type: 'password', ref: 'password', placeholder: 'Password' }),
         _react2.default.createElement(
           'button',
-          { onClick: this._submitForm },
+          { onClick: this._submit },
           'Submit'
         )
       );
@@ -33236,13 +33274,57 @@ var Profile = function (_React$Component) {
       );
     }
   }, {
+    key: '_renderProfile',
+    value: function _renderProfile() {
+      return _react2.default.createElement(
+        'div',
+        null,
+        'Welcome, ',
+        this.props.name,
+        _react2.default.createElement('hr', null),
+        _react2.default.createElement(
+          'a',
+          { href: '#' },
+          'Profile'
+        ),
+        _react2.default.createElement('br', null),
+        _react2.default.createElement(
+          'a',
+          { href: '#' },
+          'Log out'
+        )
+      );
+    }
+  }, {
+    key: '_renderError',
+    value: function _renderError() {
+      return _react2.default.createElement(
+        'div',
+        { className: 'tac' },
+        'Ops ...',
+        _react2.default.createElement('br', null),
+        _react2.default.createElement(
+          'a',
+          { href: '#', onClick: this._tryAgain },
+          'Try again'
+        )
+      );
+    }
+  }, {
     key: 'render',
     value: function render() {
-      var isRequestInFlight = this.props.isRequestInFlight;
+      var _props = this.props,
+          isRequestInFlight = _props.isRequestInFlight,
+          isSuccessful = _props.isSuccessful,
+          isFailed = _props.isFailed;
 
 
       if (isRequestInFlight) {
         return this._renderLoadingScreen();
+      } else if (isSuccessful) {
+        return this._renderProfile();
+      } else if (isFailed) {
+        return this._renderError();
       }
       return this._renderLoginForm();
     }
@@ -33252,13 +33334,20 @@ var Profile = function (_React$Component) {
 }(_react2.default.Component);
 
 Profile.propTypes = {
-  login: _propTypes2.default.func.isRequired,
-  isRequestInFlight: _propTypes2.default.bool.isRequired
+  login: _propTypes2.default.func,
+  tryAgain: _propTypes2.default.func,
+  isRequestInFlight: _propTypes2.default.bool,
+  isSuccessful: _propTypes2.default.bool,
+  isFailed: _propTypes2.default.bool,
+  name: _propTypes2.default.string
 };
 
 var mapStateToProps = function mapStateToProps(state) {
   return {
-    isRequestInFlight: state.requestInFlight
+    isRequestInFlight: state.requestInFlight,
+    isSuccessful: state.user !== null,
+    isFailed: state.error !== null,
+    name: state.user ? state.user.name : null
   };
 };
 
@@ -33272,7 +33361,7 @@ var mapDispatchToProps = function mapDispatchToProps(dispatch) {
 
 exports.default = (0, _reactRedux.connect)(mapStateToProps, mapDispatchToProps)(Profile);
 
-},{"./actions":413,"prop-types":360,"react":382,"react-redux":374}],412:[function(require,module,exports){
+},{"./actions":414,"prop-types":360,"react":382,"react-redux":374}],413:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -33301,19 +33390,27 @@ sagaMiddleware.run(_saga2.default);
 
 exports.default = store;
 
-},{"./reducers":414,"./saga":415,"redux":404,"redux-saga":384}],413:[function(require,module,exports){
+},{"./reducers":415,"./saga":416,"redux":404,"redux-saga":384}],414:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
 var LOGIN = exports.LOGIN = 'LOGIN';
+var LOGIN_SUCCESSFUL = exports.LOGIN_SUCCESSFUL = 'LOGIN_SUCCESSFUL';
+var LOGIN_FAILED = exports.LOGIN_FAILED = 'LOGIN_FAILED';
 
 var login = exports.login = function login(data) {
-  return { type: LOGIN, data: data };
+  return { type: LOGIN, payload: data };
+};
+var loginSuccessful = exports.loginSuccessful = function loginSuccessful(userData) {
+  return { type: LOGIN_SUCCESSFUL, payload: userData };
+};
+var loginFailed = exports.loginFailed = function loginFailed(error) {
+  return { type: LOGIN_FAILED, payload: error };
 };
 
-},{}],414:[function(require,module,exports){
+},{}],415:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -33338,12 +33435,16 @@ var Auth = exports.Auth = function Auth() {
   switch (action.type) {
     case _actions.LOGIN:
       return _extends({}, state, { requestInFlight: true });
+    case _actions.LOGIN_SUCCESSFUL:
+      return { user: action.payload, error: null, requestInFlight: false };
+    case _actions.LOGIN_FAILED:
+      return { user: null, error: action.payload, requestInFlight: false };
     default:
       return initialState;
   }
 };
 
-},{"./actions":413}],415:[function(require,module,exports){
+},{"./actions":414}],416:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -33351,21 +33452,64 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.default = saga;
 
+var _effects = require('redux-saga/effects');
+
+var _actions = require('./actions');
+
+var _Auth = require('./Auth');
+
+var _Auth2 = _interopRequireDefault(_Auth);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
 var _marked = /*#__PURE__*/regeneratorRuntime.mark(saga);
 
 function saga() {
-  return regeneratorRuntime.wrap(function saga$(_context) {
+  return regeneratorRuntime.wrap(function saga$(_context2) {
     while (1) {
-      switch (_context.prev = _context.next) {
+      switch (_context2.prev = _context2.next) {
         case 0:
-          console.log('my saga is now running');
+          _context2.next = 2;
+          return (0, _effects.takeLatest)(_actions.LOGIN, /*#__PURE__*/regeneratorRuntime.mark(function _callee(_ref) {
+            var payload = _ref.payload;
+            var userData;
+            return regeneratorRuntime.wrap(function _callee$(_context) {
+              while (1) {
+                switch (_context.prev = _context.next) {
+                  case 0:
+                    _context.prev = 0;
+                    _context.next = 3;
+                    return (0, _effects.call)(_Auth2.default.login, payload);
 
-        case 1:
+                  case 3:
+                    userData = _context.sent;
+                    _context.next = 6;
+                    return (0, _effects.put)((0, _actions.loginSuccessful)(userData));
+
+                  case 6:
+                    _context.next = 12;
+                    break;
+
+                  case 8:
+                    _context.prev = 8;
+                    _context.t0 = _context['catch'](0);
+                    _context.next = 12;
+                    return (0, _effects.put)((0, _actions.loginFailed)(_context.t0));
+
+                  case 12:
+                  case 'end':
+                    return _context.stop();
+                }
+              }
+            }, _callee, this, [[0, 8]]);
+          }));
+
+        case 2:
         case 'end':
-          return _context.stop();
+          return _context2.stop();
       }
     }
   }, _marked, this);
 }
 
-},{}]},{},[410]);
+},{"./Auth":411,"./actions":414,"redux-saga/effects":383}]},{},[410]);
