@@ -1,19 +1,40 @@
-import { LOGIN, LOGIN_SUCCESSFUL, LOGIN_FAILED } from './actions';
+import { LOGIN, LOGOUT, TRY_AGAIN, LOGIN_SUCCESSFUL, LOGIN_FAILED } from './actions';
 
 const initialState = {
   user: null,
   error: null,
-  requestInFlight: false
+  requestInFlight: false,
+  credentials: null
 }
 
-export const Auth = (state = initialState, action) => {
-  switch(action.type) {
+export const Auth = (state = initialState, { type, payload }) => {
+  switch(type) {
     case LOGIN:
-      return { ...state, requestInFlight: true };
+      return {
+        ...state,
+        requestInFlight: true,
+        credentials: payload
+      };
     case LOGIN_SUCCESSFUL:
-      return { user: action.payload, error: null, requestInFlight: false };
+      return {
+        user: payload,
+        error: null,
+        requestInFlight: false,
+        credentials: null
+      };
     case LOGIN_FAILED:
-      return { user: null, error: action.payload, requestInFlight: false };
+      return {
+        ...state,
+        error: payload,
+        requestInFlight: false
+      };
+    case LOGOUT:
+      return initialState;
+    case TRY_AGAIN:
+      return {
+        ...state,
+        requestInFlight: true
+      }
     default:
       return initialState;
   }

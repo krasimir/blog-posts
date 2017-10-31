@@ -33314,12 +33314,12 @@ var Profile = function (_React$Component) {
     key: 'render',
     value: function render() {
       var _props = this.props,
-          isRequestInFlight = _props.isRequestInFlight,
+          isInProgress = _props.isInProgress,
           isSuccessful = _props.isSuccessful,
           isFailed = _props.isFailed;
 
 
-      if (isRequestInFlight) {
+      if (isInProgress) {
         return this._renderLoadingScreen();
       } else if (isSuccessful) {
         return this._renderProfile();
@@ -33336,7 +33336,7 @@ var Profile = function (_React$Component) {
 Profile.propTypes = {
   login: _propTypes2.default.func,
   tryAgain: _propTypes2.default.func,
-  isRequestInFlight: _propTypes2.default.bool,
+  isInProgress: _propTypes2.default.bool,
   isSuccessful: _propTypes2.default.bool,
   isFailed: _propTypes2.default.bool,
   name: _propTypes2.default.string
@@ -33344,7 +33344,7 @@ Profile.propTypes = {
 
 var mapStateToProps = function mapStateToProps(state) {
   return {
-    isRequestInFlight: state.requestInFlight,
+    isInProgress: state.requestInFlight,
     isSuccessful: state.user !== null,
     isFailed: state.error !== null,
     name: state.user ? state.user.name : null

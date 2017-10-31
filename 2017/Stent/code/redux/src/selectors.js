@@ -1,0 +1,1 @@
+export const getCredentials = state => state.credentials;

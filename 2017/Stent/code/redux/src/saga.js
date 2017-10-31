@@ -1,11 +1,13 @@
-import { takeLatest, call, put } from 'redux-saga/effects';
-import { LOGIN, loginSuccessful, loginFailed } from './actions';
-import Auth from './Auth';
+import { takeLatest, call, put, select } from 'redux-saga/effects';
+import { LOGIN, TRY_AGAIN, loginSuccessful, loginFailed } from './actions';
+import { getCredentials } from './selectors';
+import Auth from './services/Auth';
 
 export default function * saga() {
-  yield takeLatest(LOGIN, function * ({ payload }) {
+  yield takeLatest([ LOGIN, TRY_AGAIN ], function * () {
     try {
-      const userData = yield call(Auth.login, payload);
+      const credentials = yield select(getCredentials);
+      const userData = yield call(Auth.login, credentials);
       yield put(loginSuccessful(userData));
     } catch (error) {
       yield put(loginFailed(error));

@@ -1,7 +1,7 @@
 import "babel-polyfill";
 import React from 'react';
 import ReactDOM from 'react-dom';
-import Profile from './Profile.jsx';
+import Widget from './components/Widget.jsx';
 import { Provider } from 'react-redux';
 
 import store from './Store';
@@ -10,7 +10,7 @@ class App extends React.Component {
   render() {
     return (
       <main>
-        <Profile />
+        <Widget />
       </main>
     );
   }
