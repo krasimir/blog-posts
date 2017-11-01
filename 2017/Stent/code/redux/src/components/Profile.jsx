@@ -15,6 +15,11 @@ export default class Profile extends React.Component {
   }
 }
 
+Profile.defaultProps = {
+  viewProfile: () => {},
+  logout: () => {}
+}
+
 Profile.propTypes = {
   name: PropTypes.string,
   viewProfile: PropTypes.func,

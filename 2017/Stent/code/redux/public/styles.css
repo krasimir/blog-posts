@@ -13,9 +13,9 @@ body {
 main {
   padding: 1em;
   margin: 5em auto 0 auto;
-  -webkit-box-shadow: 0px 0px 102px -10px rgba(0,0,0,0.75);
-  -moz-box-shadow: 0px 0px 102px -10px rgba(0,0,0,0.75);
-  box-shadow: 0px 0px 102px -10px rgba(0,0,0,0.75);
+  -webkit-box-shadow: 0px 0px 40px -10px rgba(0,0,0,0.75);
+  -moz-box-shadow: 0px 0px 40px -10px rgba(0,0,0,0.75);
+  box-shadow: 0px 0px 40px -10px rgba(0,0,0,0.75);
   max-width: 300px;
 }
 form input {
@@ -51,4 +51,7 @@ form button:active {
 }
 .tac {
   text-align: center;
+}
+.error {
+  color: red;
 }
