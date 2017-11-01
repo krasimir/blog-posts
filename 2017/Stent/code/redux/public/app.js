@@ -33120,9 +33120,9 @@ var _Widget2 = _interopRequireDefault(_Widget);
 
 var _reactRedux = require('react-redux');
 
-var _Store = require('./Store');
+var _store = require('./redux/store');
 
-var _Store2 = _interopRequireDefault(_Store);
+var _store2 = _interopRequireDefault(_store);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -33157,68 +33157,11 @@ var App = function (_React$Component) {
 
 _reactDom2.default.render(_react2.default.createElement(
   _reactRedux.Provider,
-  { store: _Store2.default },
+  { store: _store2.default },
   _react2.default.createElement(App, null)
 ), document.querySelector('#content'));
 
-},{"./Store":411,"./components/Widget.jsx":417,"babel-polyfill":1,"react":382,"react-dom":364,"react-redux":374}],411:[function(require,module,exports){
-'use strict';
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-
-var _redux = require('redux');
-
-var _reduxSaga = require('redux-saga');
-
-var _reduxSaga2 = _interopRequireDefault(_reduxSaga);
-
-var _reducers = require('./reducers');
-
-var _saga = require('./saga');
-
-var _saga2 = _interopRequireDefault(_saga);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-var sagaMiddleware = (0, _reduxSaga2.default)();
-var composeEnhancers = window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ || _redux.compose;
-var store = (0, _redux.createStore)(_reducers.Auth, composeEnhancers((0, _redux.applyMiddleware)(sagaMiddleware)));
-
-sagaMiddleware.run(_saga2.default);
-
-exports.default = store;
-
-},{"./reducers":418,"./saga":419,"redux":404,"redux-saga":384}],412:[function(require,module,exports){
-'use strict';
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-var LOGIN = exports.LOGIN = 'LOGIN';
-var TRY_AGAIN = exports.TRY_AGAIN = 'TRY_AGAIN';
-var LOGOUT = exports.LOGOUT = 'LOGOUT';
-var LOGIN_SUCCESSFUL = exports.LOGIN_SUCCESSFUL = 'LOGIN_SUCCESSFUL';
-var LOGIN_FAILED = exports.LOGIN_FAILED = 'LOGIN_FAILED';
-
-var login = exports.login = function login(data) {
-  return { type: LOGIN, payload: data };
-};
-var logout = exports.logout = function logout(data) {
-  return { type: LOGOUT };
-};
-var tryAgain = exports.tryAgain = function tryAgain() {
-  return { type: TRY_AGAIN };
-};
-var loginSuccessful = exports.loginSuccessful = function loginSuccessful(userData) {
-  return { type: LOGIN_SUCCESSFUL, payload: userData };
-};
-var loginFailed = exports.loginFailed = function loginFailed(error) {
-  return { type: LOGIN_FAILED, payload: error };
-};
-
-},{}],413:[function(require,module,exports){
+},{"./components/Widget.jsx":415,"./redux/store":420,"babel-polyfill":1,"react":382,"react-dom":364,"react-redux":374}],411:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -33291,7 +33234,7 @@ Error.propTypes = {
   tryAgain: _propTypes2.default.func.isRequired
 };
 
-},{"./Link.jsx":414,"prop-types":360,"react":382}],414:[function(require,module,exports){
+},{"./Link.jsx":412,"prop-types":360,"react":382}],412:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -33356,7 +33299,7 @@ Link.propTypes = {
   onClick: _propTypes2.default.func.isRequired
 };
 
-},{"prop-types":360,"react":382}],415:[function(require,module,exports){
+},{"prop-types":360,"react":382}],413:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -33429,7 +33372,7 @@ LoginForm.propTypes = {
   submit: _propTypes2.default.func.isRequired
 };
 
-},{"prop-types":360,"react":382}],416:[function(require,module,exports){
+},{"prop-types":360,"react":382}],414:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -33509,7 +33452,7 @@ Profile.propTypes = {
   logout: _propTypes2.default.func
 };
 
-},{"./Link.jsx":414,"prop-types":360,"react":382}],417:[function(require,module,exports){
+},{"./Link.jsx":412,"prop-types":360,"react":382}],415:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -33528,7 +33471,7 @@ var _propTypes2 = _interopRequireDefault(_propTypes);
 
 var _reactRedux = require('react-redux');
 
-var _actions = require('../actions');
+var _actions = require('../redux/actions');
 
 var _LoginForm = require('./LoginForm.jsx');
 
@@ -33634,7 +33577,35 @@ var mapDispatchToProps = function mapDispatchToProps(dispatch) {
 
 exports.default = (0, _reactRedux.connect)(mapStateToProps, mapDispatchToProps)(Widget);
 
-},{"../actions":412,"../services/errors":422,"./Error.jsx":413,"./LoginForm.jsx":415,"./Profile.jsx":416,"prop-types":360,"react":382,"react-redux":374}],418:[function(require,module,exports){
+},{"../redux/actions":416,"../services/errors":422,"./Error.jsx":411,"./LoginForm.jsx":413,"./Profile.jsx":414,"prop-types":360,"react":382,"react-redux":374}],416:[function(require,module,exports){
+'use strict';
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+var LOGIN = exports.LOGIN = 'LOGIN';
+var TRY_AGAIN = exports.TRY_AGAIN = 'TRY_AGAIN';
+var LOGOUT = exports.LOGOUT = 'LOGOUT';
+var LOGIN_SUCCESSFUL = exports.LOGIN_SUCCESSFUL = 'LOGIN_SUCCESSFUL';
+var LOGIN_FAILED = exports.LOGIN_FAILED = 'LOGIN_FAILED';
+
+var login = exports.login = function login(data) {
+  return { type: LOGIN, payload: data };
+};
+var logout = exports.logout = function logout(data) {
+  return { type: LOGOUT };
+};
+var tryAgain = exports.tryAgain = function tryAgain() {
+  return { type: TRY_AGAIN };
+};
+var loginSuccessful = exports.loginSuccessful = function loginSuccessful(userData) {
+  return { type: LOGIN_SUCCESSFUL, payload: userData };
+};
+var loginFailed = exports.loginFailed = function loginFailed(error) {
+  return { type: LOGIN_FAILED, payload: error };
+};
+
+},{}],417:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -33688,7 +33659,7 @@ var Auth = exports.Auth = function Auth() {
   }
 };
 
-},{"./actions":412}],419:[function(require,module,exports){
+},{"./actions":416}],418:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -33702,7 +33673,7 @@ var _actions = require('./actions');
 
 var _selectors = require('./selectors');
 
-var _Auth = require('./services/Auth');
+var _Auth = require('../services/Auth');
 
 var _Auth2 = _interopRequireDefault(_Auth);
 
@@ -33762,7 +33733,7 @@ function saga() {
   }, _marked, this);
 }
 
-},{"./actions":412,"./selectors":420,"./services/Auth":421,"redux-saga/effects":383}],420:[function(require,module,exports){
+},{"../services/Auth":421,"./actions":416,"./selectors":419,"redux-saga/effects":383}],419:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -33772,7 +33743,36 @@ var getCredentials = exports.getCredentials = function getCredentials(state) {
   return state.credentials;
 };
 
-},{}],421:[function(require,module,exports){
+},{}],420:[function(require,module,exports){
+'use strict';
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _redux = require('redux');
+
+var _reduxSaga = require('redux-saga');
+
+var _reduxSaga2 = _interopRequireDefault(_reduxSaga);
+
+var _reducers = require('./reducers');
+
+var _saga = require('./saga');
+
+var _saga2 = _interopRequireDefault(_saga);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var sagaMiddleware = (0, _reduxSaga2.default)();
+var composeEnhancers = window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ || _redux.compose;
+var store = (0, _redux.createStore)(_reducers.Auth, composeEnhancers((0, _redux.applyMiddleware)(sagaMiddleware)));
+
+sagaMiddleware.run(_saga2.default);
+
+exports.default = store;
+
+},{"./reducers":417,"./saga":418,"redux":404,"redux-saga":384}],421:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -33793,7 +33793,7 @@ var Auth = {
       return setTimeout(function () {
         if (username === '' || password === '') {
           return reject(new Error(_errors.VALIDATION_ERROR));
-        } else if (username === 'no way' && password === 'no way') {
+        } else if (username === 'z' && password === 'z') {
           return reject(new Error(_errors.CONNECTION_ERROR));
         }
         resolve(USER);

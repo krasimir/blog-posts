@@ -4,7 +4,7 @@ import ReactDOM from 'react-dom';
 import Widget from './components/Widget.jsx';
 import { Provider } from 'react-redux';
 
-import store from './Store';
+import store from './redux/store';
 
 class App extends React.Component {
   render() {

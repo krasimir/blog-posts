@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux'
-import { login, tryAgain, logout } from '../actions';
+import { login, tryAgain, logout } from '../redux/actions';
 import LoginForm from './LoginForm.jsx';
 import Profile from './Profile.jsx';
 import Error from './Error.jsx';

@@ -9,7 +9,7 @@ const Auth = {
       (resolve, reject) => setTimeout(function () {
         if (username === '' || password === '') {
           return reject(new Error(VALIDATION_ERROR));
-        } else if (username === 'no way' && password === 'no way') {
+        } else if (username === 'z' && password === 'z') {
           return reject(new Error(CONNECTION_ERROR));
         }
         resolve(USER);
