@@ -1,7 +1,5 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { connect } from 'react-redux'
-import { login, tryAgain, logout } from '../redux/actions';
 import LoginForm from './LoginForm.jsx';
 import Profile from './Profile.jsx';
 import Error from './Error.jsx';
@@ -29,6 +27,16 @@ class Widget extends React.Component {
   }
 }
 
+Widget.defaultProps = {
+  login: () => {},
+  tryAgain: () => {},
+  logout: () => {},
+  isInProgress: false,
+  isSuccessful: false,
+  isFailed: false,
+  isConnectionError: false
+}
+
 Widget.propTypes = {
   login: PropTypes.func,
   tryAgain: PropTypes.func,
@@ -40,18 +48,4 @@ Widget.propTypes = {
   name: PropTypes.string
 }
 
-const mapStateToProps = state => ({
-  isInProgress: state.requestInFlight,
-  isSuccessful: state.user !== null,
-  isFailed: state.error !== null,
-  name: state.user ? state.user.name : null,
-  isConnectionError: state.error && state.error.message === CONNECTION_ERROR
-});
-
-const mapDispatchToProps = dispatch => ({
-  login: credentials => dispatch(login(credentials)),
-  tryAgain: () => dispatch(tryAgain()),
-  logout: () => dispatch(logout())
-});
-
-export default connect(mapStateToProps, mapDispatchToProps)(Widget);
+export default Widget;
