@@ -17,13 +17,12 @@ const success = function (state, user) {
   return { name: PROFILE, user };
 };
 const error = function (state, error, credentials) {
-  console.log(error, error.message);
   return error.message === CONNECTION_ERROR ?
     { name: TRY_AGAIN, credentials } :
     { name: WRONG_CREDENTIALS, error };
 };
-const tryAgain = function * ({ credentials }) {
-  submit(credentials);
+const tryAgain = function * (state) {
+  yield call(submit, state, state.credentials);
 }
 
 const transitions = {
@@ -37,7 +36,9 @@ const transitions = {
   [TRY_AGAIN]: {
     'try again': tryAgain
   },
-  [WRONG_CREDENTIALS]: LOGIN_FORM,
+  [WRONG_CREDENTIALS]: {
+    'submit': submit
+  },
   [PROFILE]: {
     'view profile': () => {},
     'logout': LOGIN_FORM

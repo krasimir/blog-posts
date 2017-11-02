@@ -28651,7 +28651,7 @@ function handleGenerator(machine, generator, done, resultOfPreviousOperation) {
             funcResult.then(function (result) {
               return iterate(generator.next(result));
             }, function (error) {
-              return iterate(generator.throw(new Error(error)));
+              return iterate(generator.throw(error));
             });
             // generator
           } else if (typeof funcResult.next === 'function') {
@@ -29727,18 +29727,17 @@ var success = function success(state, user) {
   return { name: _states.PROFILE, user: user };
 };
 var error = function error(state, _error, credentials) {
-  console.log(_error, _error.message);
   return _error.message === _errors.CONNECTION_ERROR ? { name: _states.TRY_AGAIN, credentials: credentials } : { name: _states.WRONG_CREDENTIALS, error: _error };
 };
-var tryAgain = /*#__PURE__*/regeneratorRuntime.mark(function tryAgain(_ref) {
-  var credentials = _ref.credentials;
+var tryAgain = /*#__PURE__*/regeneratorRuntime.mark(function tryAgain(state) {
   return regeneratorRuntime.wrap(function tryAgain$(_context2) {
     while (1) {
       switch (_context2.prev = _context2.next) {
         case 0:
-          submit(credentials);
+          _context2.next = 2;
+          return (0, _helpers.call)(submit, state, state.credentials);
 
-        case 1:
+        case 2:
         case 'end':
           return _context2.stop();
       }
@@ -29753,7 +29752,9 @@ var transitions = (_transitions = {}, _defineProperty(_transitions, _states.LOGI
   'error': error
 }), _defineProperty(_transitions, _states.TRY_AGAIN, {
   'try again': tryAgain
-}), _defineProperty(_transitions, _states.WRONG_CREDENTIALS, _states.LOGIN_FORM), _defineProperty(_transitions, _states.PROFILE, {
+}), _defineProperty(_transitions, _states.WRONG_CREDENTIALS, {
+  'submit': submit
+}), _defineProperty(_transitions, _states.PROFILE, {
   'view profile': function viewProfile() {},
   'logout': _states.LOGIN_FORM
 }), _transitions);
