@@ -28472,6 +28472,686 @@ if (process.env.NODE_ENV === 'production') {
 },{}],357:[function(require,module,exports){
 'use strict';
 
+exports.__esModule = true;
+
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
+
+// errors
+var ERROR_MISSING_MACHINE = exports.ERROR_MISSING_MACHINE = function ERROR_MISSING_MACHINE(name) {
+  return 'There\'s no machine with name ' + name;
+};
+var ERROR_MISSING_STATE = exports.ERROR_MISSING_STATE = 'Configuration error: missing initial "state"';
+var ERROR_MISSING_TRANSITIONS = exports.ERROR_MISSING_TRANSITIONS = 'Configuration error: missing "transitions"';
+var ERROR_WRONG_STATE_FORMAT = exports.ERROR_WRONG_STATE_FORMAT = function ERROR_WRONG_STATE_FORMAT(state) {
+  var serialized = (typeof state === 'undefined' ? 'undefined' : _typeof(state)) === 'object' ? JSON.stringify(state, null, 2) : state;
+
+  return 'The state should be an object and it should always have at least "name" property. You passed ' + serialized;
+};
+var ERROR_UNCOVERED_STATE = exports.ERROR_UNCOVERED_STATE = function ERROR_UNCOVERED_STATE(state) {
+  return 'You just transitioned the machine to a state (' + state + ') which is not defined or it has no actions. This means that the machine is stuck.';
+};
+var ERROR_NOT_SUPPORTED_HANDLER_TYPE = exports.ERROR_NOT_SUPPORTED_HANDLER_TYPE = 'Wrong handler type passed. Please read the docs https://github.com/krasimir/stent';
+// If we decide to run stent in a strict mode where dispatching an action missing in the current state
+// dispatches an error.
+// export const ERROR_MISSING_ACTION_IN_STATE = (action, state, payload = '') => {
+//   const payloadInfo = payload !== '' ? ` Payload of the action: ${ payload }` : '';
+
+//   return `"${ action }" action is not available in "${ state }" state.${ payloadInfo }`;
+// }
+
+// other
+var WAIT_LISTENERS_STORAGE = exports.WAIT_LISTENERS_STORAGE = '___@wait';
+},{}],358:[function(require,module,exports){
+'use strict';
+
+exports.__esModule = true;
+
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
+
+exports.registerMethods = registerMethods;
+exports.validateConfig = validateConfig;
+exports.default = createMachine;
+
+var _toCamelCase = require('./helpers/toCamelCase');
+
+var _toCamelCase2 = _interopRequireDefault(_toCamelCase);
+
+var _constants = require('./constants');
+
+var _handleAction = require('./handleAction');
+
+var _handleAction2 = _interopRequireDefault(_handleAction);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var IDX = 0;
+var getMachineID = function getMachineID() {
+  return '_' + ++IDX;
+};
+
+function registerMethods(machine, transitions, dispatch) {
+  for (var state in transitions) {
+
+    (function (state) {
+      machine[(0, _toCamelCase2.default)('is ' + state)] = function () {
+        return machine.state.name === state;
+      };
+    })(state);
+
+    for (var action in transitions[state]) {
+      (function (action) {
+        machine[(0, _toCamelCase2.default)(action)] = function () {
+          for (var _len = arguments.length, payload = Array(_len), _key = 0; _key < _len; _key++) {
+            payload[_key] = arguments[_key];
+          }
+
+          return dispatch.apply(undefined, [action].concat(payload));
+        };
+      })(action);
+    }
+  }
+}
+
+function validateConfig(config) {
+  if ((typeof config === 'undefined' ? 'undefined' : _typeof(config)) !== 'object') throw new Error(_constants.ERROR_MISSING_STATE);
+
+  var state = config.state,
+      transitions = config.transitions;
+
+
+  if ((typeof state === 'undefined' ? 'undefined' : _typeof(state)) !== 'object') throw new Error(_constants.ERROR_MISSING_STATE);
+  if ((typeof transitions === 'undefined' ? 'undefined' : _typeof(transitions)) !== 'object') throw new Error(_constants.ERROR_MISSING_TRANSITIONS);
+  return true;
+}
+
+function createMachine(name, config) {
+  if ((typeof name === 'undefined' ? 'undefined' : _typeof(name)) === 'object') {
+    if (typeof config === 'undefined') {
+      config = name;
+      name = getMachineID();
+    } else {
+      config = {
+        state: name,
+        transitions: config
+      };
+      name = getMachineID();
+    }
+  }
+
+  var machine = { name: name };
+
+  validateConfig(config);
+
+  var _config = config,
+      initialState = _config.state,
+      transitions = _config.transitions;
+
+
+  machine.state = initialState;
+  machine.transitions = transitions;
+
+  registerMethods(machine, transitions, function (action) {
+    for (var _len2 = arguments.length, payload = Array(_len2 > 1 ? _len2 - 1 : 0), _key2 = 1; _key2 < _len2; _key2++) {
+      payload[_key2 - 1] = arguments[_key2];
+    }
+
+    return _handleAction2.default.apply(undefined, [machine, action].concat(payload));
+  });
+
+  return machine;
+}
+},{"./constants":357,"./handleAction":359,"./helpers/toCamelCase":364}],359:[function(require,module,exports){
+'use strict';
+
+exports.__esModule = true;
+
+var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
+
+exports.default = handleAction;
+
+var _constants = require('./constants');
+
+var _validateState = require('./helpers/validateState');
+
+var _validateState2 = _interopRequireDefault(_validateState);
+
+var _ = require('./');
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var MIDDLEWARE_PROCESS_ACTION = 'onActionDispatched';
+var MIDDLEWARE_PROCESS_STATE_CHANGE = 'onStateChanged';
+var MIDDLEWARE_GENERATOR_STEP = 'onGeneratorStep';
+
+function isEmptyObject(obj) {
+  var name;
+  for (name in obj) {
+    if (obj.hasOwnProperty(name)) return false;
+  }
+  return true;
+}
+
+function handleGenerator(machine, generator, done, resultOfPreviousOperation) {
+  var iterate = function iterate(result) {
+    handleMiddleware(function () {
+      if (!result.done) {
+
+        // yield call
+        if (_typeof(result.value) === 'object' && result.value.__type === 'call') {
+          var _result$value = result.value,
+              func = _result$value.func,
+              args = _result$value.args;
+
+          var funcResult = func.apply(undefined, args);
+
+          // promise
+          if (typeof funcResult.then !== 'undefined') {
+            funcResult.then(function (result) {
+              return iterate(generator.next(result));
+            }, function (error) {
+              return iterate(generator.throw(new Error(error)));
+            });
+            // generator
+          } else if (typeof funcResult.next === 'function') {
+            handleGenerator(machine, funcResult, function (generatorResult) {
+              iterate(generator.next(generatorResult));
+            });
+          } else {
+            iterate(generator.next(funcResult));
+          }
+
+          // yield wait
+        } else if (_typeof(result.value) === 'object' && result.value.__type === 'wait') {
+          waitFor(machine, result.value.actions, function (result) {
+            return iterate(generator.next(result));
+          });
+
+          // a return statement of the normal function
+        } else {
+          updateState(machine, result.value);
+          iterate(generator.next());
+        }
+
+        // the end of the generator (return statement)
+      } else {
+        done(result.value);
+      }
+    }, MIDDLEWARE_GENERATOR_STEP, machine, result.value);
+  };
+
+  iterate(generator.next(resultOfPreviousOperation));
+}
+
+function waitFor(machine, actions, done) {
+  if (!machine[_constants.WAIT_LISTENERS_STORAGE]) machine[_constants.WAIT_LISTENERS_STORAGE] = [];
+  machine[_constants.WAIT_LISTENERS_STORAGE].push({ actions: actions, done: done, result: [].concat(actions) });
+}
+
+// The wait of how `wait` is implemented is that we store listeners
+// in machine[WAIT_LISTENERS_STORAGE]. Every time when we dispatch an action
+// we are trying to flush these listeners. Once there are no more in the current
+// item we are calling `next` function of the generator.
+function flushListeners(machine, action) {
+  for (var _len = arguments.length, payload = Array(_len > 2 ? _len - 2 : 0), _key = 2; _key < _len; _key++) {
+    payload[_key - 2] = arguments[_key];
+  }
+
+  if (!machine[_constants.WAIT_LISTENERS_STORAGE] || machine[_constants.WAIT_LISTENERS_STORAGE].length === 0) return;
+
+  // We register the `done` functions that should be called
+  // because this should happen at the very end of the
+  // listeners processing.
+  var callbacks = [];
+
+  machine[_constants.WAIT_LISTENERS_STORAGE] = machine[_constants.WAIT_LISTENERS_STORAGE].filter(function (_ref) {
+    var actions = _ref.actions,
+        done = _ref.done,
+        result = _ref.result;
+
+    var actionIndex = actions.indexOf(action);
+
+    if (actionIndex === -1) return true;
+
+    // Result here is an array that acts as a marker
+    // to find out at which index we have to return the payload
+    // of the action. That's when we have an array of actions to wait.
+    result[result.indexOf(action)] = payload;
+    actions.splice(actionIndex, 1);
+    if (actions.length === 0) {
+      result.length === 1 ? callbacks.push(done.bind(null, result[0])) : callbacks.push(done.bind(null, result));
+      return false;
+    }
+    return true;
+  });
+  callbacks.forEach(function (c) {
+    return c();
+  });
+
+  // Clean up. There is no need to keep that temporary array
+  // if all the listeners are flushed out.
+  if (machine[_constants.WAIT_LISTENERS_STORAGE].length === 0) delete machine[_constants.WAIT_LISTENERS_STORAGE];
+}
+
+function updateState(machine, response) {
+  var newState;
+
+  if (typeof response === 'undefined') return;
+  if (typeof response === 'string' || typeof response === 'number') {
+    newState = { name: response.toString() };
+  } else {
+    newState = (0, _validateState2.default)(response);
+  }
+
+  if (typeof machine.transitions[newState.name] === 'undefined' || isEmptyObject(machine.transitions[newState.name])) {
+    throw new Error((0, _constants.ERROR_UNCOVERED_STATE)(newState.name));
+  }
+
+  handleMiddleware(function () {
+    machine.state = newState;
+  }, MIDDLEWARE_PROCESS_STATE_CHANGE, machine);
+}
+
+function handleMiddleware(done, hook, machine) {
+  for (var _len2 = arguments.length, args = Array(_len2 > 3 ? _len2 - 3 : 0), _key2 = 3; _key2 < _len2; _key2++) {
+    args[_key2 - 3] = arguments[_key2];
+  }
+
+  var middlewares = _.Machine.middlewares;
+
+  if (middlewares.length === 0) return done();
+
+  var loop = function loop(index, process) {
+    return index < middlewares.length - 1 ? process(index + 1) : done();
+  };
+
+  (function process(index) {
+    var middleware = middlewares[index];
+
+    if (middleware && typeof middleware[hook] !== 'undefined') {
+      middleware[hook].apply(machine, [function () {
+        return loop(index, process);
+      }].concat(args));
+    } else {
+      loop(index, process);
+    }
+  })(0);
+}
+
+function handleAction(machine, action) {
+  for (var _len3 = arguments.length, payload = Array(_len3 > 2 ? _len3 - 2 : 0), _key3 = 2; _key3 < _len3; _key3++) {
+    payload[_key3 - 2] = arguments[_key3];
+  }
+
+  var state = machine.state,
+      transitions = machine.transitions;
+
+
+  if (!transitions[state.name]) {
+    return false;
+  }
+
+  var handler = transitions[state.name][action];
+
+  if (typeof transitions[state.name][action] === 'undefined') {
+    // Maybe run the machine in a strict mode where dispatching an action
+    // which is missing in the current state throws an error
+    // throw new Error(ERROR_MISSING_ACTION_IN_STATE(action, state.name, payload.join(',')));
+    return false;
+  }
+
+  handleMiddleware.apply(undefined, [function () {
+    flushListeners.apply(undefined, [machine, action].concat(payload));
+
+    // string as a handler
+    if (typeof handler === 'string') {
+      updateState(machine, _extends({}, state, { name: transitions[state.name][action] }));
+
+      // object as a handler
+    } else if ((typeof handler === 'undefined' ? 'undefined' : _typeof(handler)) === 'object') {
+      updateState(machine, (0, _validateState2.default)(handler));
+
+      // function as a handler
+    } else if (typeof handler === 'function') {
+      var response = transitions[state.name][action].apply(machine, [machine.state].concat(payload));
+
+      if (response && typeof response.next === 'function') {
+        handleGenerator(machine, response, function (response) {
+          updateState(machine, response);
+        });
+      } else {
+        updateState(machine, response);
+      }
+
+      // wrong type of handler
+    } else {
+      throw new Error(_constants.ERROR_NOT_SUPPORTED_HANDLER_TYPE);
+    }
+  }, MIDDLEWARE_PROCESS_ACTION, machine, action].concat(payload));
+
+  return true;
+};
+module.exports = exports['default'];
+},{"./":366,"./constants":357,"./helpers/validateState":365}],360:[function(require,module,exports){
+'use strict';
+
+exports.__esModule = true;
+exports.flush = flush;
+exports.default = connect;
+
+var _ = require('../');
+
+var idIndex = 0;
+var mappings = null;
+
+var getId = function getId() {
+  return 'm' + ++idIndex;
+};
+var setup = function setup() {
+  if (mappings !== null) return;
+  mappings = {};
+  _.Machine.addMiddleware({
+    onStateChanged: function onStateChanged(next) {
+      next();
+      for (var id in mappings) {
+        var _mappings$id = mappings[id],
+            done = _mappings$id.done,
+            machines = _mappings$id.machines;
+
+
+        if (machines.map(function (m) {
+          return m.name;
+        }).indexOf(this.name) >= 0) {
+          done && done.apply(undefined, machines);
+        }
+      }
+    }
+  });
+};
+
+function flush() {
+  mappings = null;
+}
+
+function connect() {
+  setup();
+  var withFunc = function withFunc() {
+    for (var _len = arguments.length, names = Array(_len), _key = 0; _key < _len; _key++) {
+      names[_key] = arguments[_key];
+    }
+
+    var machines = names.map(function (name) {
+      return _.Machine.get(name);
+    });
+    var mapFunc = function mapFunc(done, once, silent) {
+      var id = getId();
+
+      !once && (mappings[id] = { done: done, machines: machines });
+      !silent && done && done.apply(undefined, machines);
+
+      return function disconnect() {
+        if (mappings && mappings[id]) delete mappings[id];
+      };
+    };
+
+    return {
+      'map': mapFunc,
+      'mapOnce': function mapOnce(done) {
+        return mapFunc(done, true);
+      },
+      'mapSilent': function mapSilent(done) {
+        return mapFunc(done, false, true);
+      }
+    };
+  };
+
+  return { 'with': withFunc };
+}
+},{"../":366}],361:[function(require,module,exports){
+'use strict';
+
+exports.__esModule = true;
+exports.default = call;
+function call(func) {
+  for (var _len = arguments.length, args = Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
+    args[_key - 1] = arguments[_key];
+  }
+
+  return { __type: 'call', func: func, args: args };
+};
+module.exports = exports['default'];
+},{}],362:[function(require,module,exports){
+'use strict';
+
+exports.__esModule = true;
+exports.default = wait;
+function wait() {
+  for (var _len = arguments.length, actions = Array(_len), _key = 0; _key < _len; _key++) {
+    actions[_key] = arguments[_key];
+  }
+
+  if (actions.length === 1) {
+    actions = actions[0];
+    if (!Array.isArray(actions)) actions = [actions];
+  }
+  return { __type: 'wait', actions: actions };
+};
+module.exports = exports['default'];
+},{}],363:[function(require,module,exports){
+'use strict';
+
+exports.__esModule = true;
+exports.connect = exports.wait = exports.call = undefined;
+
+var _call = require('./generators/call');
+
+var _call2 = _interopRequireDefault(_call);
+
+var _wait = require('./generators/wait');
+
+var _wait2 = _interopRequireDefault(_wait);
+
+var _connect = require('./connect');
+
+var _connect2 = _interopRequireDefault(_connect);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+exports.call = _call2.default;
+exports.wait = _wait2.default;
+exports.connect = _connect2.default;
+},{"./connect":360,"./generators/call":361,"./generators/wait":362}],364:[function(require,module,exports){
+"use strict";
+
+exports.__esModule = true;
+
+exports.default = function (text) {
+  return text.toLowerCase().replace(/\W+(.)/g, function (match, chr) {
+    return chr.toUpperCase();
+  });
+};
+
+module.exports = exports['default'];
+},{}],365:[function(require,module,exports){
+'use strict';
+
+exports.__esModule = true;
+
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
+
+exports.default = validateState;
+
+var _constants = require('../constants');
+
+function validateState(state) {
+  if (state && (typeof state === 'undefined' ? 'undefined' : _typeof(state)) === 'object' && typeof state.name !== 'undefined') return state;
+  throw new Error((0, _constants.ERROR_WRONG_STATE_FORMAT)(state));
+}
+module.exports = exports['default'];
+},{"../constants":357}],366:[function(require,module,exports){
+'use strict';
+
+exports.__esModule = true;
+exports.Machine = undefined;
+
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
+
+var _createMachine = require('./createMachine');
+
+var _createMachine2 = _interopRequireDefault(_createMachine);
+
+var _constants = require('./constants');
+
+var _connect = require('./helpers/connect');
+
+var _connect2 = _interopRequireDefault(_connect);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var MachineFactory = function () {
+  function MachineFactory() {
+    _classCallCheck(this, MachineFactory);
+
+    this.machines = {};
+    this.middlewares = [];
+    this.connect = _connect2.default;
+  }
+
+  MachineFactory.prototype.create = function create(name, config) {
+    var machine = (0, _createMachine2.default)(name, config, this.middlewares);
+
+    return this.machines[machine.name] = machine;
+  };
+
+  MachineFactory.prototype.get = function get(name) {
+    if ((typeof name === 'undefined' ? 'undefined' : _typeof(name)) === 'object') name = name.name;
+    if (this.machines[name]) return this.machines[name];
+    throw new Error((0, _constants.ERROR_MISSING_MACHINE)(name));
+  };
+
+  MachineFactory.prototype.flush = function flush() {
+    this.machines = [];
+    this.middlewares = [];
+    (0, _connect.flush)();
+  };
+
+  MachineFactory.prototype.addMiddleware = function addMiddleware(middleware) {
+    if (Array.isArray(middleware)) {
+      this.middlewares = this.middlewares.concat(middleware);
+    } else {
+      this.middlewares.push(middleware);
+    }
+  };
+
+  return MachineFactory;
+}();
+
+var factory = new MachineFactory();
+
+exports.Machine = factory;
+},{"./constants":357,"./createMachine":358,"./helpers/connect":360}],367:[function(require,module,exports){
+'use strict';
+
+exports.__esModule = true;
+
+var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+
+exports.default = function (Component) {
+  var withFunc = function withFunc() {
+    for (var _len = arguments.length, names = Array(_len), _key = 0; _key < _len; _key++) {
+      names[_key] = arguments[_key];
+    }
+
+    var mapFunc = function mapFunc(done, once, silent) {
+      return function (_React$Component) {
+        _inherits(StentConnect, _React$Component);
+
+        function StentConnect() {
+          _classCallCheck(this, StentConnect);
+
+          return _possibleConstructorReturn(this, _React$Component.apply(this, arguments));
+        }
+
+        StentConnect.prototype.componentWillMount = function componentWillMount() {
+          var _connect,
+              _this2 = this;
+
+          var mapping = 'map';
+
+          if (once) mapping = 'mapOnce';
+          if (silent) mapping = 'mapSilent';
+
+          this._disconnect = (_connect = (0, _connect3.default)()).with.apply(_connect, names)[mapping](function () {
+            if (!done) {
+              _this2.forceUpdate();
+            } else {
+              _this2.setState(done.apply(undefined, arguments));
+            }
+          });
+        };
+
+        StentConnect.prototype.componentWillUnmount = function componentWillUnmount() {
+          this._disconnect();
+        };
+
+        StentConnect.prototype.render = function render() {
+          return _react2.default.createElement(Component, _extends({}, this.state, this.props));
+        };
+
+        return StentConnect;
+      }(_react2.default.Component);;
+    };
+
+    return {
+      'map': mapFunc,
+      'mapOnce': function mapOnce(done) {
+        return mapFunc(done, true);
+      },
+      'mapSilent': function mapSilent(done) {
+        return mapFunc(done, false, true);
+      }
+    };
+  };
+
+  return { 'with': withFunc };
+};
+
+var _react = require('react');
+
+var _react2 = _interopRequireDefault(_react);
+
+var _connect2 = require('../helpers/connect');
+
+var _connect3 = _interopRequireDefault(_connect2);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+
+function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+module.exports = exports['default'];
+},{"../helpers/connect":360,"react":355}],368:[function(require,module,exports){
+'use strict';
+
+exports.__esModule = true;
+
+var _connect = require('./connect');
+
+var _connect2 = _interopRequireDefault(_connect);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+exports.default = { connect: _connect2.default };
+module.exports = exports['default'];
+},{"./connect":367}],369:[function(require,module,exports){
+'use strict';
+
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
 require('babel-polyfill');
@@ -28483,6 +29163,8 @@ var _react2 = _interopRequireDefault(_react);
 var _reactDom = require('react-dom');
 
 var _reactDom2 = _interopRequireDefault(_reactDom);
+
+require('./stent/machine');
 
 var _Widget = require('./components/Widget.jsx');
 
@@ -28521,7 +29203,7 @@ var App = function (_React$Component) {
 
 _reactDom2.default.render(_react2.default.createElement(App, null), document.querySelector('#content'));
 
-},{"./components/Widget.jsx":362,"babel-polyfill":1,"react":355,"react-dom":352}],358:[function(require,module,exports){
+},{"./components/Widget.jsx":374,"./stent/machine":377,"babel-polyfill":1,"react":355,"react-dom":352}],370:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -28594,7 +29276,7 @@ Error.propTypes = {
   tryAgain: _propTypes2.default.func.isRequired
 };
 
-},{"./Link.jsx":359,"prop-types":348,"react":355}],359:[function(require,module,exports){
+},{"./Link.jsx":371,"prop-types":348,"react":355}],371:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -28659,7 +29341,7 @@ Link.propTypes = {
   onClick: _propTypes2.default.func.isRequired
 };
 
-},{"prop-types":348,"react":355}],360:[function(require,module,exports){
+},{"prop-types":348,"react":355}],372:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -28695,7 +29377,8 @@ var LoginForm = function (_React$Component) {
 
   _createClass(LoginForm, [{
     key: '_submit',
-    value: function _submit() {
+    value: function _submit(event) {
+      event.preventDefault();
       this.props.submit({
         username: this.refs.username.value,
         password: this.refs.password.value
@@ -28713,8 +29396,8 @@ var LoginForm = function (_React$Component) {
         _react2.default.createElement('input', { type: 'password', ref: 'password', placeholder: 'Password' }),
         _react2.default.createElement(
           'button',
-          { onClick: function onClick() {
-              return _this2._submit();
+          { onClick: function onClick(event) {
+              return _this2._submit(event);
             } },
           'Submit'
         )
@@ -28732,7 +29415,7 @@ LoginForm.propTypes = {
   submit: _propTypes2.default.func.isRequired
 };
 
-},{"prop-types":348,"react":355}],361:[function(require,module,exports){
+},{"prop-types":348,"react":355}],373:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -28812,7 +29495,7 @@ Profile.propTypes = {
   logout: _propTypes2.default.func
 };
 
-},{"./Link.jsx":359,"prop-types":348,"react":355}],362:[function(require,module,exports){
+},{"./Link.jsx":371,"prop-types":348,"react":355}],374:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -28843,7 +29526,13 @@ var _Error2 = _interopRequireDefault(_Error);
 
 var _errors = require('../services/errors');
 
+var _react3 = require('stent/lib/react');
+
+var _states = require('../stent/states');
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
@@ -28851,77 +29540,95 @@ function _possibleConstructorReturn(self, call) { if (!self) { throw new Referen
 
 function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
+var preventDefault = function preventDefault() {};
+
 var Widget = function (_React$Component) {
   _inherits(Widget, _React$Component);
 
-  function Widget() {
+  function Widget(props) {
+    var _this$renderMap;
+
     _classCallCheck(this, Widget);
 
-    return _possibleConstructorReturn(this, (Widget.__proto__ || Object.getPrototypeOf(Widget)).apply(this, arguments));
+    var _this = _possibleConstructorReturn(this, (Widget.__proto__ || Object.getPrototypeOf(Widget)).call(this, props));
+
+    _this.renderMap = (_this$renderMap = {}, _defineProperty(_this$renderMap, _states.LOGIN_FORM, _react2.default.createElement(_LoginForm2.default, { submit: props.login })), _defineProperty(_this$renderMap, _states.LOADING, _react2.default.createElement(
+      'p',
+      { className: 'tac' },
+      'Loading. please wait.'
+    )), _defineProperty(_this$renderMap, _states.TRY_AGAIN, _react2.default.createElement(_Error2.default, { tryAgain: props.tryAgain, message: 'Connection problem!' })), _defineProperty(_this$renderMap, _states.WRONG_CREDENTIALS, _react2.default.createElement(
+      'div',
+      null,
+      _react2.default.createElement(_LoginForm2.default, { submit: props.login }),
+      _react2.default.createElement(
+        'p',
+        { className: 'error' },
+        'Missing or invalid data.'
+      )
+    )), _defineProperty(_this$renderMap, _states.PROFILE, _react2.default.createElement(_Profile2.default, { name: props.name, logout: props.logout })), _this$renderMap);
+    return _this;
   }
 
   _createClass(Widget, [{
     key: 'render',
     value: function render() {
-      var _props = this.props,
-          isInProgress = _props.isInProgress,
-          isSuccessful = _props.isSuccessful,
-          isFailed = _props.isFailed;
-
-
-      if (isInProgress) {
-        return _react2.default.createElement(
-          'p',
-          { className: 'tac' },
-          'Loading. please wait.'
-        );
-      } else if (isSuccessful) {
-        return _react2.default.createElement(_Profile2.default, { name: this.props.name, logout: this.props.logout });
-      } else if (isFailed) {
-        return this.props.isConnectionError ? _react2.default.createElement(_Error2.default, {
-          tryAgain: this.props.tryAgain,
-          message: 'Connection problem!' }) : _react2.default.createElement(
-          'div',
-          null,
-          _react2.default.createElement(_LoginForm2.default, { submit: this.props.login }),
-          _react2.default.createElement(
-            'p',
-            { className: 'error' },
-            'Missing or invalid data.'
-          )
-        );
-      }
-      return _react2.default.createElement(_LoginForm2.default, { submit: this.props.login });
+      console.log(this.props.state);
+      return this.renderMap[this.props.state];
     }
   }]);
 
   return Widget;
 }(_react2.default.Component);
 
-Widget.defaultProps = {
-  login: function login() {},
-  tryAgain: function tryAgain() {},
-  logout: function logout() {},
-  isInProgress: false,
-  isSuccessful: false,
-  isFailed: false,
-  isConnectionError: false
-};
-
 Widget.propTypes = {
   login: _propTypes2.default.func,
   tryAgain: _propTypes2.default.func,
   logout: _propTypes2.default.func,
-  isInProgress: _propTypes2.default.bool,
-  isSuccessful: _propTypes2.default.bool,
-  isFailed: _propTypes2.default.bool,
-  isConnectionError: _propTypes2.default.bool,
-  name: _propTypes2.default.string
+  state: _propTypes2.default.string
 };
 
-exports.default = Widget;
+exports.default = (0, _react3.connect)(Widget).with('LoginFormSM').map(function (machine) {
+  return {
+    login: machine.submit,
+    tryAgain: machine.tryAgain,
+    logout: machine.logout,
+    state: machine.state.name
+  };
+});
 
-},{"../services/errors":363,"./Error.jsx":358,"./LoginForm.jsx":360,"./Profile.jsx":361,"prop-types":348,"react":355}],363:[function(require,module,exports){
+},{"../services/errors":376,"../stent/states":378,"./Error.jsx":370,"./LoginForm.jsx":372,"./Profile.jsx":373,"prop-types":348,"react":355,"stent/lib/react":368}],375:[function(require,module,exports){
+'use strict';
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _errors = require('./errors');
+
+var TIMEOUT = 1000;
+var USER = { name: 'Jon Snow' };
+
+var Auth = {
+  login: function login(_ref) {
+    var username = _ref.username,
+        password = _ref.password;
+
+    return new Promise(function (resolve, reject) {
+      return setTimeout(function () {
+        if (username === '' || password === '') {
+          return reject(new Error(_errors.VALIDATION_ERROR));
+        } else if (username === 'z' && password === 'z') {
+          return reject(new Error(_errors.CONNECTION_ERROR));
+        }
+        resolve(USER);
+      }, TIMEOUT);
+    });
+  }
+};
+
+exports.default = Auth;
+
+},{"./errors":376}],376:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -28930,4 +29637,127 @@ Object.defineProperty(exports, "__esModule", {
 var CONNECTION_ERROR = exports.CONNECTION_ERROR = 'CONNECTION_ERROR';
 var VALIDATION_ERROR = exports.VALIDATION_ERROR = 'VALIDATION_ERROR';
 
-},{}]},{},[357]);
+},{}],377:[function(require,module,exports){
+'use strict';
+
+var _stent = require('stent');
+
+var _states = require('./states');
+
+var _transitions = require('./transitions');
+
+var _transitions2 = _interopRequireDefault(_transitions);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var InitialState = { name: _states.LOGIN_FORM };
+var machine = _stent.Machine.create('LoginFormSM', { state: InitialState, transitions: _transitions2.default });
+
+},{"./states":378,"./transitions":379,"stent":366}],378:[function(require,module,exports){
+'use strict';
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+var LOGIN_FORM = exports.LOGIN_FORM = 'LOGIN_FORM';
+var LOADING = exports.LOADING = 'LOADING';
+var TRY_AGAIN = exports.TRY_AGAIN = 'TRY_AGAIN';
+var WRONG_CREDENTIALS = exports.WRONG_CREDENTIALS = 'WRONG_CREDENTIALS';
+var PROFILE = exports.PROFILE = 'PROFILE';
+
+},{}],379:[function(require,module,exports){
+'use strict';
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _transitions;
+
+var _helpers = require('stent/lib/helpers');
+
+var _errors = require('../services/errors');
+
+var _Auth = require('../services/Auth');
+
+var _Auth2 = _interopRequireDefault(_Auth);
+
+var _states = require('./states');
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
+
+var submit = /*#__PURE__*/regeneratorRuntime.mark(function submit(state, credentials) {
+  var user;
+  return regeneratorRuntime.wrap(function submit$(_context) {
+    while (1) {
+      switch (_context.prev = _context.next) {
+        case 0:
+          _context.next = 2;
+          return _states.LOADING;
+
+        case 2:
+          _context.prev = 2;
+          _context.next = 5;
+          return (0, _helpers.call)(_Auth2.default.login, credentials);
+
+        case 5:
+          user = _context.sent;
+
+
+          this.success(user);
+          _context.next = 12;
+          break;
+
+        case 9:
+          _context.prev = 9;
+          _context.t0 = _context['catch'](2);
+
+          this.error(_context.t0, credentials);
+
+        case 12:
+        case 'end':
+          return _context.stop();
+      }
+    }
+  }, submit, this, [[2, 9]]);
+});
+var success = function success(state, user) {
+  return { name: _states.PROFILE, user: user };
+};
+var error = function error(state, _error, credentials) {
+  console.log(_error, _error.message);
+  return _error.message === _errors.CONNECTION_ERROR ? { name: _states.TRY_AGAIN, credentials: credentials } : { name: _states.WRONG_CREDENTIALS, error: _error };
+};
+var tryAgain = /*#__PURE__*/regeneratorRuntime.mark(function tryAgain(_ref) {
+  var credentials = _ref.credentials;
+  return regeneratorRuntime.wrap(function tryAgain$(_context2) {
+    while (1) {
+      switch (_context2.prev = _context2.next) {
+        case 0:
+          submit(credentials);
+
+        case 1:
+        case 'end':
+          return _context2.stop();
+      }
+    }
+  }, tryAgain, this);
+});
+
+var transitions = (_transitions = {}, _defineProperty(_transitions, _states.LOGIN_FORM, {
+  'submit': submit
+}), _defineProperty(_transitions, _states.LOADING, {
+  'success': success,
+  'error': error
+}), _defineProperty(_transitions, _states.TRY_AGAIN, {
+  'try again': tryAgain
+}), _defineProperty(_transitions, _states.WRONG_CREDENTIALS, _states.LOGIN_FORM), _defineProperty(_transitions, _states.PROFILE, {
+  'view profile': function viewProfile() {},
+  'logout': _states.LOGIN_FORM
+}), _transitions);
+
+exports.default = transitions;
+
+},{"../services/Auth":375,"../services/errors":376,"./states":378,"stent/lib/helpers":363}]},{},[369]);
