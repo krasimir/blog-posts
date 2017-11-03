@@ -7,10 +7,6 @@ import { CONNECTION_ERROR } from '../services/errors';
 import { connect } from 'stent/lib/react';
 import { LOGIN_FORM, LOADING, TRY_AGAIN, WRONG_CREDENTIALS, PROFILE } from '../stent/states';
 
-const preventDefault = function () {
-
-}
-
 class Widget extends React.Component {
   constructor(props) {
     super(props);
@@ -29,7 +25,6 @@ class Widget extends React.Component {
     }
   }
   render() {
-    console.log(this.props.state);
     return this.renderMap[this.props.state];
   }
 }

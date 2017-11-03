@@ -28644,7 +28644,7 @@ function handleGenerator(machine, generator, done, resultOfPreviousOperation) {
               func = _result$value.func,
               args = _result$value.args;
 
-          var funcResult = func.apply(undefined, args);
+          var funcResult = func.apply(machine, args);
 
           // promise
           if (typeof funcResult.then !== 'undefined') {
@@ -29540,8 +29540,6 @@ function _possibleConstructorReturn(self, call) { if (!self) { throw new Referen
 
 function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
-var preventDefault = function preventDefault() {};
-
 var Widget = function (_React$Component) {
   _inherits(Widget, _React$Component);
 
@@ -29572,7 +29570,6 @@ var Widget = function (_React$Component) {
   _createClass(Widget, [{
     key: 'render',
     value: function render() {
-      console.log(this.props.state);
       return this.renderMap[this.props.state];
     }
   }]);
