@@ -1,8 +1,4 @@
-export const LOGIN = 'LOGIN';
-export const TRY_AGAIN = 'TRY_AGAIN';
-export const LOGOUT = 'LOGOUT';
-export const LOGIN_SUCCESSFUL = 'LOGIN_SUCCESSFUL';
-export const LOGIN_FAILED = 'LOGIN_FAILED';
+import { LOGIN, LOGOUT, TRY_AGAIN, LOGIN_SUCCESSFUL, LOGIN_FAILED } from './constants';
 
 export const login = data => ({ type: LOGIN, payload: data });
 export const logout = data => ({ type: LOGOUT });

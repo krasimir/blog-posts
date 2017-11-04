@@ -33161,7 +33161,7 @@ _reactDom2.default.render(_react2.default.createElement(
   _react2.default.createElement(App, null)
 ), document.querySelector('#content'));
 
-},{"./components/Widget.jsx":415,"./redux/store":420,"babel-polyfill":1,"react":382,"react-dom":364,"react-redux":374}],411:[function(require,module,exports){
+},{"./components/Widget.jsx":415,"./redux/store":421,"babel-polyfill":1,"react":382,"react-dom":364,"react-redux":374}],411:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -33335,7 +33335,8 @@ var LoginForm = function (_React$Component) {
 
   _createClass(LoginForm, [{
     key: '_submit',
-    value: function _submit() {
+    value: function _submit(event) {
+      event.preventDefault();
       this.props.submit({
         username: this.refs.username.value,
         password: this.refs.password.value
@@ -33353,8 +33354,8 @@ var LoginForm = function (_React$Component) {
         _react2.default.createElement('input', { type: 'password', ref: 'password', placeholder: 'Password' }),
         _react2.default.createElement(
           'button',
-          { onClick: function onClick() {
-              return _this2._submit();
+          { onClick: function onClick(event) {
+              return _this2._submit(event);
             } },
           'Submit'
         )
@@ -33545,9 +33546,11 @@ var Widget = function (_React$Component) {
 Widget.propTypes = {
   login: _propTypes2.default.func,
   tryAgain: _propTypes2.default.func,
+  logout: _propTypes2.default.func,
   isInProgress: _propTypes2.default.bool,
   isSuccessful: _propTypes2.default.bool,
   isFailed: _propTypes2.default.bool,
+  isConnectionError: _propTypes2.default.bool,
   name: _propTypes2.default.string
 };
 
@@ -33577,7 +33580,33 @@ var mapDispatchToProps = function mapDispatchToProps(dispatch) {
 
 exports.default = (0, _reactRedux.connect)(mapStateToProps, mapDispatchToProps)(Widget);
 
-},{"../redux/actions":416,"../services/errors":422,"./Error.jsx":411,"./LoginForm.jsx":413,"./Profile.jsx":414,"prop-types":360,"react":382,"react-redux":374}],416:[function(require,module,exports){
+},{"../redux/actions":416,"../services/errors":423,"./Error.jsx":411,"./LoginForm.jsx":413,"./Profile.jsx":414,"prop-types":360,"react":382,"react-redux":374}],416:[function(require,module,exports){
+'use strict';
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.loginFailed = exports.loginSuccessful = exports.tryAgain = exports.logout = exports.login = undefined;
+
+var _constants = require('./constants');
+
+var login = exports.login = function login(data) {
+  return { type: _constants.LOGIN, payload: data };
+};
+var logout = exports.logout = function logout(data) {
+  return { type: _constants.LOGOUT };
+};
+var tryAgain = exports.tryAgain = function tryAgain() {
+  return { type: _constants.TRY_AGAIN };
+};
+var loginSuccessful = exports.loginSuccessful = function loginSuccessful(userData) {
+  return { type: _constants.LOGIN_SUCCESSFUL, payload: userData };
+};
+var loginFailed = exports.loginFailed = function loginFailed(error) {
+  return { type: _constants.LOGIN_FAILED, payload: error };
+};
+
+},{"./constants":417}],417:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -33589,23 +33618,7 @@ var LOGOUT = exports.LOGOUT = 'LOGOUT';
 var LOGIN_SUCCESSFUL = exports.LOGIN_SUCCESSFUL = 'LOGIN_SUCCESSFUL';
 var LOGIN_FAILED = exports.LOGIN_FAILED = 'LOGIN_FAILED';
 
-var login = exports.login = function login(data) {
-  return { type: LOGIN, payload: data };
-};
-var logout = exports.logout = function logout(data) {
-  return { type: LOGOUT };
-};
-var tryAgain = exports.tryAgain = function tryAgain() {
-  return { type: TRY_AGAIN };
-};
-var loginSuccessful = exports.loginSuccessful = function loginSuccessful(userData) {
-  return { type: LOGIN_SUCCESSFUL, payload: userData };
-};
-var loginFailed = exports.loginFailed = function loginFailed(error) {
-  return { type: LOGIN_FAILED, payload: error };
-};
-
-},{}],417:[function(require,module,exports){
+},{}],418:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -33615,7 +33628,7 @@ exports.Auth = undefined;
 
 var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
 
-var _actions = require('./actions');
+var _constants = require('./constants');
 
 var initialState = {
   user: null,
@@ -33631,26 +33644,26 @@ var Auth = exports.Auth = function Auth() {
       payload = _ref.payload;
 
   switch (type) {
-    case _actions.LOGIN:
+    case _constants.LOGIN:
       return _extends({}, state, {
         requestInFlight: true,
         credentials: payload
       });
-    case _actions.LOGIN_SUCCESSFUL:
+    case _constants.LOGIN_SUCCESSFUL:
       return {
         user: payload,
         error: null,
         requestInFlight: false,
         credentials: null
       };
-    case _actions.LOGIN_FAILED:
+    case _constants.LOGIN_FAILED:
       return _extends({}, state, {
         error: payload,
         requestInFlight: false
       });
-    case _actions.LOGOUT:
+    case _constants.LOGOUT:
       return initialState;
-    case _actions.TRY_AGAIN:
+    case _constants.TRY_AGAIN:
       return _extends({}, state, {
         requestInFlight: true
       });
@@ -33659,7 +33672,7 @@ var Auth = exports.Auth = function Auth() {
   }
 };
 
-},{"./actions":416}],418:[function(require,module,exports){
+},{"./constants":417}],419:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -33668,6 +33681,8 @@ Object.defineProperty(exports, "__esModule", {
 exports.default = saga;
 
 var _effects = require('redux-saga/effects');
+
+var _constants = require('./constants');
 
 var _actions = require('./actions');
 
@@ -33687,7 +33702,7 @@ function saga() {
       switch (_context2.prev = _context2.next) {
         case 0:
           _context2.next = 2;
-          return (0, _effects.takeLatest)([_actions.LOGIN, _actions.TRY_AGAIN], /*#__PURE__*/regeneratorRuntime.mark(function _callee() {
+          return (0, _effects.takeLatest)([_constants.LOGIN, _constants.TRY_AGAIN], /*#__PURE__*/regeneratorRuntime.mark(function _callee() {
             var credentials, userData;
             return regeneratorRuntime.wrap(function _callee$(_context) {
               while (1) {
@@ -33733,7 +33748,7 @@ function saga() {
   }, _marked, this);
 }
 
-},{"../services/Auth":421,"./actions":416,"./selectors":419,"redux-saga/effects":383}],419:[function(require,module,exports){
+},{"../services/Auth":422,"./actions":416,"./constants":417,"./selectors":420,"redux-saga/effects":383}],420:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -33743,7 +33758,7 @@ var getCredentials = exports.getCredentials = function getCredentials(state) {
   return state.credentials;
 };
 
-},{}],420:[function(require,module,exports){
+},{}],421:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -33772,7 +33787,7 @@ sagaMiddleware.run(_saga2.default);
 
 exports.default = store;
 
-},{"./reducers":417,"./saga":418,"redux":404,"redux-saga":384}],421:[function(require,module,exports){
+},{"./reducers":418,"./saga":419,"redux":404,"redux-saga":384}],422:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -33804,7 +33819,7 @@ var Auth = {
 
 exports.default = Auth;
 
-},{"./errors":422}],422:[function(require,module,exports){
+},{"./errors":423}],423:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {

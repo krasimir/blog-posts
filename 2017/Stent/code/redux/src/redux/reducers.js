@@ -1,4 +1,4 @@
-import { LOGIN, LOGOUT, TRY_AGAIN, LOGIN_SUCCESSFUL, LOGIN_FAILED } from './actions';
+import { LOGIN, LOGOUT, TRY_AGAIN, LOGIN_SUCCESSFUL, LOGIN_FAILED } from './constants';
 
 const initialState = {
   user: null,

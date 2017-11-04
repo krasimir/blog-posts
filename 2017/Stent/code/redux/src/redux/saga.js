@@ -1,5 +1,6 @@
 import { takeLatest, call, put, select } from 'redux-saga/effects';
-import { LOGIN, TRY_AGAIN, loginSuccessful, loginFailed } from './actions';
+import { LOGIN, TRY_AGAIN } from './constants';
+import { loginSuccessful, loginFailed } from './actions';
 import { getCredentials } from './selectors';
 import Auth from '../services/Auth';
 
