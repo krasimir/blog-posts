@@ -1,6 +1,8 @@
-# Combine Redux with a state machine
+# Replacing Redux with a state machine
 
-This article is about [Stent](https://github.com/krasimir/stent) - a [Redux](http://redux.js.org/)-liked library that creates and manages state machines for you. At the end of the material we will see that both libraries has a lot in common. In fact Stent is designed to look like Redux. It is just using state machines under the hood. And if you wonder what is a state machine and why it makes UI development easier check out ["You are managing state? Think twice."](http://krasimirtsonev.com/blog/article/managing-state-in-javascript-with-state-machines-stent) article.
+This article is about [Stent](https://github.com/krasimir/stent) - a [Redux](http://redux.js.org/)-liked library that creates and manages state machines for you. The title is not really correct because Stent implements some of the Redux's core ideas and in fact looks a lot like Redux. At the end of the material we will see that both libraries have a lot in common. Stent is just using state machines under the hood and eliminates some of the boilerplate that comes with Redux.
+
+If you wonder what is a state machine and why it makes UI development easier check out ["You are managing state? Think twice."](http://krasimirtsonev.com/blog/article/managing-state-in-javascript-with-state-machines-stent) article.
 
 *The source code of the examples in this post is available [here](https://github.com/krasimir/blog-posts/tree/master/2017/Stent/code).*
 
@@ -272,6 +274,96 @@ case TRY_AGAIN:
 
 If the user want to log out we just bring the initial state where the everything is equal to `null` and `requestInFlight` is false. The `TRY_AGAIN` is just turning `requestInFlight` to `true` and keeps everything else.
 
-### Wiring Redux to a React component
+### Making the HTTP request
 
-`Widget.jsx` will be the component which is wired via the Redux's `connect` function.
+Last year or so I am experimenting with different options for handling async processes. Right now [redux-saga](https://redux-saga.js.org/) library makes the most sense to me. That is why I decided to use it here too _(a really good introduction to the saga pattern could be found [here](https://formidable.com/blog/category/redux-saga/))_. The example is small enough so we can go with a single saga.
+
+```js
+// redux/saga.js
+import { takeLatest, call, put, select } from 'redux-saga/effects';
+import { LOGIN, TRY_AGAIN } from './constants';
+import { loginSuccessful, loginFailed } from './actions';
+import { getCredentials } from './selectors';
+import Auth from '../services/Auth';
+
+export default function * saga() {
+  yield takeLatest([ LOGIN, TRY_AGAIN ], function * () {
+    try {
+      const credentials = yield select(getCredentials);
+      const userData = yield call(Auth.login, credentials);
+      yield put(loginSuccessful(userData));
+    } catch (error) {
+      yield put(loginFailed(error));
+    }
+  });
+}
+```
+
+The saga stops and waits for `LOGIN` or `TRY_AGAIN` actions. They both should lead to firing the HTTP request. If everything is ok we call the `loginSuccessful` action creator. The reducer processes the `LOGIN_SUCCESSFUL` action and we now we have the user data in the Redux's store. If there is an error we call `loginFailed` with the given error. Later the `Widget` component decides what to render on that error.
+
+### Wiring our main React component to Redux
+
+`Widget.jsx` will be the component which is wired to Redux's via the `connect` function. We will need both map state and dispatch to props in order to implement everything.
+
+```js
+import { CONNECTION_ERROR } from '../services/errors';
+
+class Widget extends React.Component {
+  render() {
+    ...
+  }
+}
+
+const mapStateToProps = state => ({
+  isInProgress: state.requestInFlight,
+  isSuccessful: state.user !== null,
+  isFailed: state.error !== null,
+  name: state.user ? state.user.name : null,
+  isConnectionError: state.error && state.error.message === CONNECTION_ERROR
+});
+
+const mapDispatchToProps = dispatch => ({
+  login: credentials => dispatch(login(credentials)),
+  tryAgain: () => dispatch(tryAgain()),
+  logout: () => dispatch(logout())
+});
+
+export default connect(mapStateToProps, mapDispatchToProps)(Widget);
+```
+
+Let's first talk about `mapStateToProps`. The first three are booleans that basically tell us in which part of the process the user is. Making a request, successfully logged in or something failed. We use almost all the props from our state - `requestInFlight`, `user` and `error`. The `name` is directly derived from the user's profile data. And because we have different UI based on the type of error we need a fourth flag `isConnectionError`.
+
+The actions that are triggered by the user are `LOGIN`, `TRY_AGAIN` and `LOGOUT`. In `mapDispatchToProps` we create anonymous functions to dispatch those actions.
+
+### The rendering bit
+
+The last part which I want to show you is how we render the [dummy components](#the-dummy-react-components). That's the `render` function of the `Widget` component:
+
+```js
+render() {
+  const { isInProgress, isSuccessful, isFailed } = this.props;
+
+  if (isInProgress) {
+    return &lt;p className='tac'>Loading. please wait.&lt;/p>;
+  } else if (isSuccessful) {
+    return &lt;Profile name={ this.props.name } logout={ this.props.logout } />;
+  } else if (isFailed) {
+    return this.props.isConnectionError ?
+      &lt;Error
+        tryAgain={ this.props.tryAgain } 
+        message='Connection problem!' /> :
+      (&lt;div>
+        &lt;LoginForm submit={ this.props.login } />
+        &lt;p className='error'>Missing or invalid data.&lt;/p>
+      &lt;/div>)
+  }
+  return &lt;LoginForm submit={ this.props.login } />;
+}
+```
+
+When having the boolean flags as props we need four `if` statements to achieve the desired result.
+
+* If `isInProgress` is set to `true` we render the loading screen.
+* If the request is successful the `Profile` component is displayed.
+* If the request fails we check the error's type and based on it decide to either render the `Error` component or the same login form but with an error message.
+* If none of the above is truthy we return only the `LoginForm` component.
