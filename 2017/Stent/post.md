@@ -299,11 +299,11 @@ export default function * saga() {
 }
 ```
 
-The saga stops and waits for `LOGIN` or `TRY_AGAIN` actions. They both should lead to firing the HTTP request. If everything is ok we call the `loginSuccessful` action creator. The reducer processes the `LOGIN_SUCCESSFUL` action and we now we have the user data in the Redux's store. If there is an error we call `loginFailed` with the given error. Later the `Widget` component decides what to render on that error.
+The saga stops and waits for `LOGIN` or `TRY_AGAIN` actions. They both should lead to firing the HTTP request. If everything is ok we call the `loginSuccessful` action creator. The reducer processes the `LOGIN_SUCCESSFUL` action and we now we have the user data in the Redux's store. If there is an error we call `loginFailed` with the given error. Later the `Widget` component decides what to render based on that error.
 
 ### Wiring our main React component to Redux
 
-`Widget.jsx` will be the component which is wired to Redux's via the `connect` function. We will need both map state and dispatch to props in order to implement everything.
+`Widget.jsx` will be the component which is wired to Redux's store via the `connect` function. We will need both map state and dispatch to props.
 
 ```js
 import { CONNECTION_ERROR } from '../services/errors';
@@ -367,3 +367,9 @@ When having the boolean flags as props we need four `if` statements to achieve t
 * If the request is successful the `Profile` component is displayed.
 * If the request fails we check the error's type and based on it decide to either render the `Error` component or the same login form but with an error message.
 * If none of the above is truthy we return only the `LoginForm` component.
+
+### Redux implementation - done
+
+More or less this is how I will approach a feature implementation if I have to use Redux. It is a definition of actions and their action creators. Then reducers and eventually handling async processes. At the end is the actual rendering (via React in our case).
+
+The application follows [one-direction data flow](http://krasimirtsonev.com/blog/article/react-js-in-design-patterns#one-way-direction-data-flow) where the user interacts with the UI which leads to dispatching of an action. The reducer picks that action and returns a new version of the state. As a result Redux triggers re-rendering of the React components tree.
