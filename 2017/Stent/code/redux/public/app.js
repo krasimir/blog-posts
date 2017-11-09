@@ -33168,8 +33168,6 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
 var _react = require('react');
 
 var _react2 = _interopRequireDefault(_react);
@@ -33184,46 +33182,24 @@ var _Link2 = _interopRequireDefault(_Link);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
-
-function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
-
-var Error = function (_React$Component) {
-  _inherits(Error, _React$Component);
-
-  function Error() {
-    _classCallCheck(this, Error);
-
-    return _possibleConstructorReturn(this, (Error.__proto__ || Object.getPrototypeOf(Error)).apply(this, arguments));
-  }
-
-  _createClass(Error, [{
-    key: 'render',
-    value: function render() {
-      return _react2.default.createElement(
-        'div',
-        { className: 'tac' },
-        _react2.default.createElement(
-          'p',
-          { className: 'error' },
-          this.props.message
-        ),
-        _react2.default.createElement(
-          _Link2.default,
-          { onClick: this.props.tryAgain },
-          'Try again'
-        )
-      );
-    }
-  }]);
-
-  return Error;
-}(_react2.default.Component);
-
-exports.default = Error;
-
+var Error = function Error(_ref) {
+  var message = _ref.message,
+      tryAgain = _ref.tryAgain;
+  return _react2.default.createElement(
+    'div',
+    { className: 'tac' },
+    _react2.default.createElement(
+      'p',
+      { className: 'error' },
+      message
+    ),
+    _react2.default.createElement(
+      _Link2.default,
+      { onClick: tryAgain },
+      'Try again'
+    )
+  );
+};
 
 Error.defaultProps = {
   message: 'Ops ...'
@@ -33233,6 +33209,8 @@ Error.propTypes = {
   message: _propTypes2.default.string,
   tryAgain: _propTypes2.default.func.isRequired
 };
+
+exports.default = Error;
 
 },{"./Link.jsx":412,"prop-types":360,"react":382}],412:[function(require,module,exports){
 'use strict';
@@ -33379,8 +33357,7 @@ LoginForm.propTypes = {
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+exports.default = Profile;
 
 var _react = require('react');
 
@@ -33396,51 +33373,31 @@ var _Link2 = _interopRequireDefault(_Link);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+function Profile(_ref) {
+  var name = _ref.name,
+      viewProfile = _ref.viewProfile,
+      logout = _ref.logout;
 
-function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
-
-function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
-
-var Profile = function (_React$Component) {
-  _inherits(Profile, _React$Component);
-
-  function Profile() {
-    _classCallCheck(this, Profile);
-
-    return _possibleConstructorReturn(this, (Profile.__proto__ || Object.getPrototypeOf(Profile)).apply(this, arguments));
-  }
-
-  _createClass(Profile, [{
-    key: 'render',
-    value: function render() {
-      return _react2.default.createElement(
-        'div',
-        null,
-        'Welcome, ',
-        this.props.name,
-        _react2.default.createElement('hr', null),
-        _react2.default.createElement(
-          _Link2.default,
-          { onClick: this.props.viewProfile },
-          'Profile'
-        ),
-        _react2.default.createElement('br', null),
-        _react2.default.createElement(
-          _Link2.default,
-          { onClick: this.props.logout },
-          'Log out'
-        ),
-        _react2.default.createElement('br', null)
-      );
-    }
-  }]);
-
-  return Profile;
-}(_react2.default.Component);
-
-exports.default = Profile;
-
+  return _react2.default.createElement(
+    'div',
+    null,
+    'Welcome, ',
+    name,
+    _react2.default.createElement('hr', null),
+    _react2.default.createElement(
+      _Link2.default,
+      { onClick: viewProfile },
+      'Profile'
+    ),
+    _react2.default.createElement('br', null),
+    _react2.default.createElement(
+      _Link2.default,
+      { onClick: logout },
+      'Log out'
+    ),
+    _react2.default.createElement('br', null)
+  );
+}
 
 Profile.defaultProps = {
   viewProfile: function viewProfile() {},
@@ -33624,7 +33581,7 @@ var LOGIN_FAILED = exports.LOGIN_FAILED = 'LOGIN_FAILED';
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.Auth = undefined;
+exports.Reducer = undefined;
 
 var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
 
@@ -33637,7 +33594,7 @@ var initialState = {
   credentials: null
 };
 
-var Auth = exports.Auth = function Auth() {
+var Reducer = exports.Reducer = function Reducer() {
   var state = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : initialState;
   var _ref = arguments[1];
   var type = _ref.type,
@@ -33781,7 +33738,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 var sagaMiddleware = (0, _reduxSaga2.default)();
 var composeEnhancers = window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ || _redux.compose;
-var store = (0, _redux.createStore)(_reducers.Auth, composeEnhancers((0, _redux.applyMiddleware)(sagaMiddleware)));
+var store = (0, _redux.createStore)(_reducers.Reducer, composeEnhancers((0, _redux.applyMiddleware)(sagaMiddleware)));
 
 sagaMiddleware.run(_saga2.default);
 

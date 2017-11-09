@@ -7,7 +7,7 @@ const initialState = {
   credentials: null
 }
 
-export const Auth = (state = initialState, { type, payload }) => {
+export const Reducer = (state = initialState, { type, payload }) => {
   switch(type) {
     case LOGIN:
       return {
