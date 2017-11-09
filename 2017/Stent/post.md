@@ -373,3 +373,5 @@ When having the boolean flags as props we need four `if` statements to achieve t
 More or less this is how I will approach a feature implementation if I have to use Redux. It is a definition of actions and their action creators. Then reducers and eventually handling async processes. At the end is the actual rendering (via React in our case).
 
 The application follows [one-direction data flow](http://krasimirtsonev.com/blog/article/react-js-in-design-patterns#one-way-direction-data-flow) where the user interacts with the UI which leads to dispatching of an action. The reducer picks that action and returns a new version of the state. As a result Redux triggers re-rendering of the React components tree.
+
+![Redux implementation](./imgs/redux.jpg)
