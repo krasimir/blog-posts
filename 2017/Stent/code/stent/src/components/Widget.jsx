@@ -3,7 +3,6 @@ import PropTypes from 'prop-types';
 import LoginForm from './LoginForm.jsx';
 import Profile from './Profile.jsx';
 import Error from './Error.jsx';
-import { CONNECTION_ERROR } from '../services/errors';
 import { connect } from 'stent/lib/react';
 import { LOGIN_FORM, LOADING, TRY_AGAIN, WRONG_CREDENTIALS, PROFILE } from '../stent/states';
 

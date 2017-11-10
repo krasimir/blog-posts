@@ -523,4 +523,76 @@ const transitions = {
 };
 ```
 
-Receiving `success` means transitioning to `PROFILE` state and keeping the user data in the state object. This is probably the first place where we see how a machine transition produces output - the `user` object returned by the `Auth` service layer. If there is an error we check the type 
+Receiving `success` means transitioning to `PROFILE` state and keeping the user data in the state object. This is probably the first place where we see how a machine transition produces output - the `user` object returned by the `Auth` service layer.
+
+We may also receive an `error` input which has some conditional logic. Based on the error we decide what the next state will be. Either we display an error screen with a "Try again" link (`WRONG_CREDENTIALS` statte) or we show the same login form with an error message below it (`LOGIN_FORM` state). Notice how when transitioning to different states we keep only what we need. For example when entering `LOADING` state we do have `credentials` stored in but later moving to `WRONG_CREDENTIALS` we completely flush this out and have only `name` and `error`. That is because at this point we don't need credentials. The user have to type new ones.
+
+We should also mention the `try again` action. Its handler is an interesting one because we have a generator calling another generator. That is one of my favorite [redux-saga](https://redux-saga.js.org/) features. Composing by chaining generators is a really powerful way to shift responsibilities. It is also nice from a unit testing point of view. The important bit here is to pass the `state` and action payload required by the other generator. In our case `submit` expects to receive the machine's state and user's credentials.
+
+### The rendering
+
+If you noticed in this section we didn't mention the [Auth](#the-authorization-service) service or the [dummy react components](#the-dummy-react-components). That is because they are the same like in the Redux example. The only one difference is the `Widget.jsx` component. Because most of the logic is done via the state machine we have a clear rendering path. What I mean by that is that we have an explicit machine states that one-to-one match with the screens that we have to render. The React bit becomes a lot more easier and simple. Here is how the wiring happens:
+
+```js
+// components/Widget.jsx
+import React from 'react';
+import { connect } from 'stent/lib/react';
+
+class Widget extends React.Component {
+  ...
+}
+
+export default connect(Widget)
+  .with('LoginFormSM')
+  .map(machine => ({
+    login: machine.submit,
+    tryAgain: machine.tryAgain,
+    logout: machine.logout,
+    state: machine.state.name
+  }));
+```
+
+We say "Wire this component (Widget) with a machine (LoginFormSM)". The function that we pass to the `map` method is similar to Redux's `mapStateToProps` or `mapDispatchToProps`. We simply pass down methods of the machine and the current state. Same as Redux's store, when we transition to a new state the Widget component gets re-rendered.
+
+At the end here is how the rendering looks like:
+
+```js
+// components/Widget.jsx
+import LoginForm from './LoginForm.jsx';
+import Profile from './Profile.jsx';
+import Error from './Error.jsx';
+import { LOGIN_FORM, LOADING, TRY_AGAIN, WRONG_CREDENTIALS, PROFILE } from '../stent/states';
+
+class Widget extends React.Component {
+  constructor(props) {
+    super(props);
+
+    this.renderMap = {
+      [LOGIN_FORM]: &lt;LoginForm submit={ props.login } />,
+      [LOADING]: &lt;p className='tac'>Loading. please wait.&lt;/p>,
+      [TRY_AGAIN]: &lt;Error tryAgain={ props.tryAgain } message='Connection problem!' />,
+      [WRONG_CREDENTIALS]: (
+        &lt;div>
+          &lt;LoginForm submit={ props.login } />
+          &lt;p className='error'>Missing or invalid data.&lt;/p>
+        &lt;/div>
+      ),
+      [PROFILE]: &lt;Profile name={ props.name } logout={ props.logout } />
+    }
+  }
+  render() {
+    return this.renderMap[this.props.state];
+  }
+}
+```
+
+We have something which I call a "render map". It is mapping between a machine state and React component/s.
+
+### Stent implementation - done
+
+For me, using a state machine means asking questions that lead to higher level of predictability. We see how the state machine pattern protects our app being in a wrong state or state which we don't know about. There is no conditional logic in the view layer because the machine is capable of providing information of what should be rendered.
+
+![Stent implementation](./imgs/stent.jpg)
+
+## Final words
+
