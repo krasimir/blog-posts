@@ -1,10 +1,16 @@
-# Getting from Redux to a state machine
-
 This article is about [Stent](https://github.com/krasimir/stent) - a [Redux](http://redux.js.org/)-liked library that creates and manages state machines. Stent implements some of the Redux's core ideas and in fact looks a lot like it. At the end of this post we will see that both libraries have a lot in common. Stent is just using state machines under the hood and eliminates some of the boilerplate that comes with Redux's workflow.
 
 If you wonder what is a state machine and why it makes UI development easier check out ["You are managing state? Think twice."](http://krasimirtsonev.com/blog/article/managing-state-in-javascript-with-state-machines-stent) article. I strongly recommend reading it so you get a better context.
 
 *The source code of the examples in this post is available [here](https://github.com/krasimir/blog-posts/tree/master/2017/Stent/code).*
+
+* [The idea](#the-idea)
+* [Teaching by example](#teaching-by-example)
+* [The authorization service](#the-authorization-service)
+* [The dummy React components](#the-dummy-react-components)
+* [Redux implementation](#redux-implementation)
+* [Implementing with Stent](#implementing-with-stent)
+* [Final words](#final-words)
 
 ![Stent](./imgs/logo.gif)
 
