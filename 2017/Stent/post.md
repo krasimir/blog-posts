@@ -1,6 +1,6 @@
-# Replacing Redux with a state machine
+# Getting from Redux to a state machine
 
-This article is about [Stent](https://github.com/krasimir/stent) - a [Redux](http://redux.js.org/)-liked library that creates and manages state machines for you. The title is not really correct because Stent implements some of the Redux's core ideas and in fact looks a lot like Redux. At the end of the material we will see that both libraries have a lot in common. Stent is just using state machines under the hood and eliminates some of the boilerplate that comes with Redux.
+This article is about [Stent](https://github.com/krasimir/stent) - a [Redux](http://redux.js.org/)-liked library that creates and manages state machines. Stent implements some of the Redux's core ideas and in fact looks a lot like it. At the end of this post we will see that both libraries have a lot in common. Stent is just using state machines under the hood and eliminates some of the boilerplate that comes with Redux's workflow.
 
 If you wonder what is a state machine and why it makes UI development easier check out ["You are managing state? Think twice."](http://krasimirtsonev.com/blog/article/managing-state-in-javascript-with-state-machines-stent) article. I strongly recommend reading it so you get a better context.
 
@@ -10,7 +10,7 @@ If you wonder what is a state machine and why it makes UI development easier che
 
 ## The idea
 
-In medicine, a stent is a metal or plastic tube inserted into the lumen of an anatomic vessel or duct to keep the passageway open[*](https://en.wikipedia.org/wiki/Stent). Or in other words it is a tool that restores blood flow through narrow or blocked arteries. I've made the parallel with an application that I worked on. The application state there had many dependencies so I was basically stuck into a logical loop and that little library helped me solve the problem. It kinda freed my mind and made me define clear states and simple transitions. At the same time Stent is following some of the core ideas of Redux and I felt comfortable working with it. The concepts which I _stolen_ from there:
+In medicine, a stent is a metal or plastic tube inserted into the lumen of an anatomic vessel or duct to keep the passageway open[*](https://en.wikipedia.org/wiki/Stent). Or in other words it is a tool that restores blood flow through narrow or blocked arteries. I've made the parallel with an application that I worked on. The application's state there had many dependencies so I was basically stuck into a logical loop and that little library helped me solve the problem. It kinda freed my mind and made me define clear states and simple transitions. At the same time Stent is not a lot different then Redux because:
 
 * There are still **actions** that drive the application. Firing an action means transitioning the machine from one state to another.
 * The transitions are defined similarly to Redux's **reducers**. They accept current state and action and return the new state.
@@ -21,17 +21,17 @@ My main goal was to create a library that controls state machines but has an API
 
 ## Teaching by example
 
-To show the difference I decided to use an example close to the one from ["You are managing state? Think twice."](http://krasimirtsonev.com/blog/article/managing-state-in-javascript-with-state-machines-stent) article and create it first with Redux then with Stent. It is about a login form and its various states.
+To show the difference I decided to use an example close to the one from ["You are managing state? Think twice."](http://krasimirtsonev.com/blog/article/managing-state-in-javascript-with-state-machines-stent) article and create it first with Redux then with Stent. It is about an user widget and its various states.
 
 ![Login form states](./imgs/screens.jpg)
 
 * State **A** is the default one. That is the first thing that we should render.
 * Screen **B** appears when the user clicks the "Submit" button
-* If everything is ok and the credentials are correct we display **C**. Where the user may click "Log out" which will lead to flushing all the user info and displaying again **A**.
+* If everything is ok and the credentials are correct we display **C**. Where the user may click "Log out" which leads to flushing all the user's data and displaying again **A**.
 * Screen **D** is rendered when the user submits an empty form (or when using wrong credentials)
 * And **E** is an edge case where we send some data but there is no connection to the server. In this case we just give an option to re-send the form.
 
-To make this example working let's first write a simulation of our server. For the purpose of this post is enough to write a simple mock that returns a promise.
+For the purpose of this post let's write a simulation of a back-end service first. We call a method that returns a promise. A second later we resolve the promise like it was really making a HTTP request.
 
 ## The authorization service
 
@@ -64,21 +64,21 @@ const Auth = {
 export default Auth;
 ```
 
-The `Auth` module has one method `login` that accepts `username` and `password`. The service returns a promise and there are three possible results:
+The `Auth` module has one method `login` that accepts `username` and `password`. There are three possible results:
 
 * If the user submits the form with no username and password we reject the promise with `VALIDATION_ERROR`
 * If the user types `z` for both username and password we reject the promise with `CONNECTION_ERROR`
-* In every other case where the use fills the fields with _some_ data we resolve the promise with dummy data (the `USER` constant)
+* In every other case where the user fills the fields with _some_ data we resolve the promise with dummy data (the `USER` constant)
 
-The resolving/rejecting is wrapped in a `setTimeout` call so we get the feeling of real HTTP request.
+*Notice that the resolving/rejecting is wrapped in a `setTimeout` call so we get the feeling of real HTTP request.*
 
 ## The dummy React components
 
-How the application looks like really doesn't matter. Here is a list of components that are the same for both implementations. They are [*presentational components*](http://krasimirtsonev.com/blog/article/react-js-presentational-container-components) which simply render stuff and fire callbacks. You may easily skip this section and jump directly to the [Redux implementation](#redux-implementation). It's here just for a reference.
+How the application looks like really doesn't matter. Here is a list of components that are the same for both implementations. They are [presentational components](http://krasimirtsonev.com/blog/article/react-js-presentational-container-components) which simply render stuff and fire callbacks. You may easily skip this section and jump directly to the [Redux implementation](#redux-implementation). It's here just for a reference.
 
 **A component for rendering links.**
 
-I didn't want to write `event.preventDefault()` everywhere.
+I didn't want to write `event.preventDefault()` everywhere so here is a `Link` component:
 
 ```js
 // components/Link.jsx
@@ -152,24 +152,15 @@ export default function Profile({ name, viewProfile, logout }) {
 }
 ```
 
-And we have one more `components/Widget.jsx` but it is different for both examples so it will be discussed later. The project so far looks like this:
-
-```
-/components
-  /Error.jsx
-  /Link.jsx
-  /LoginForm.jsx
-  /Profile.jsx
-  /Widget.jsx
-```
+And we have one more `components/Widget.jsx` but it is different for both examples so it will be discussed later.
 
 ## Redux implementation
 
-When I start working on a Redux application I always think about actions first. What kind of processes will need to handle. 
+When I start working on a Redux application I always think about actions first. That is because they drive state changes and eventually re-rendering of the UI.
 
 ### Actions
 
-In our example we have a request to a back-end which is followed by either success or failure screens. If it fails we have a try-again process. We may also log out. So here are the constants that will represent these actions:
+In our example we have a request to a back-end which is followed by either success or failure screens. If it fails we have a try-again process. We may also log out. So let's start by defining a couple of constants.
 
 ```js
 // redux/constants.js
@@ -184,7 +175,7 @@ And the action creators that use them:
 
 ```js
 // redux/actions.js
-export const login = data => ({ type: LOGIN, payload: data });
+export const login = credentials => ({ type: LOGIN, payload: credentials });
 export const loginSuccessful = userData => ({ type: LOGIN_SUCCESSFUL, payload: userData });
 export const logout = data => ({ type: LOGOUT });
 export const loginFailed = error => ({ type: LOGIN_FAILED, payload: error });
@@ -193,7 +184,7 @@ export const tryAgain = () => ({ type: TRY_AGAIN });
 
 ### Reducer
 
-The next step is to handle the actions above. Or in other words to write the reducer. The function that accepts current state and action and returns the new state.
+The next step is to handle the actions above. Or in other words to write the reducer. The function that accepts the current state and action and returns the new state.
 
 ```js
 // redux/reducers.js
@@ -204,7 +195,7 @@ export const Reducer = (state = initialState, { type, payload }) => {
 }
 ```
 
-And here it becomes interesting because we should start thinking about state management. What *state* means for us and how we will represent it in the store. I came up with the following:
+And here it becomes interesting because we should start thinking about state management. What *state* means for us and how we will represent it in the store. I came up with the following object:
 
 ```js
 // redux/reducers.js
@@ -216,7 +207,7 @@ const initialState = {
 }
 ```
 
-The `user` is probably the most important part of our store. We will use it to keep the user's data returned from the back-end. The thing is that alone is not enough to cover our UI screens. When `null` we may say that the request didn't happen yet or it's in progress or maybe it happened but the logging process failed. Because of this uncertainty we have to introduce `error` and `requestInFlight`. They will be used like flags to define an error state and split the flow to before and after the HTTP request. `credentials` is a storage for what the user typed so we can submit the form again when covering the try-again feature.
+The `user` is probably the most important part of our state. We will use it to keep the user's data returned by the back-end. The thing is that alone is not enough to cover our UI screens. When it is `null` we may say that the request didn't happen yet or it's in progress or maybe it happened but it failed. Because of this uncertainty we have to introduce `error` and `requestInFlight`. They will be used like flags to form the error state and split the flow to before and after the HTTP request. `credentials` is a storage for what the user typed so we can submit the form again when covering the try-again feature.
 
 Let's see how our reducer modifies the state when receiving actions. The `LOGIN` action:
 
@@ -235,7 +226,7 @@ export const Reducer = (state = initialState, { type, payload }) => {
 }
 ```
 
-We have to turn `requestInFlight` flag on and keep the credentials. Now the view layer may check if `requestInFlight` is `true` and if yes display the loading screen. If the request succeed we will receive `LOGIN_SUCCESSFUL`.
+We turn the `requestInFlight` flag _on_ and store the credentials. Now the view layer may check if `requestInFlight` is `true` and if yes display the loading screen. If the request succeeds we will receive `LOGIN_SUCCESSFUL` type of action.
 
 ```js
 case LOGIN_SUCCESSFUL:
@@ -247,7 +238,7 @@ case LOGIN_SUCCESSFUL:
   };
 ```
 
-`requestInFlight` should be turned off and the `user` property may be filled in with the action's payload. We don't need to keep the `credentials` anymore so we set it to `null`. We also have to flush out the `error` (if any) because we may have an UI which depends on it. When however the request fails we will receive action of type `LOGIN_FAILED`:
+`requestInFlight` should be turned _off_ and the `user` property may be filled in with the action's payload. We don't need to keep the `credentials` anymore so we set it back to `null`. We also have to flush out the `error` (if any) because we may have an UI which depends on it. When however the request fails we will receive action of type `LOGIN_FAILED`:
 
 ```js
 case LOGIN_FAILED:
@@ -258,7 +249,7 @@ case LOGIN_FAILED:
   };
 ```
 
-`LOGIN_FAILED` is dispatched always after `LOGIN` so we know that the `credentials` are currently in the store. We use the spread operator (`...state`) which guarantees that we keep that information. The action's payload contains the actual error so we assign it to the `error` property. The request process is finished so we turn `requestInFlight` off. This will let the view to show an appropriate UI based on the error.
+`LOGIN_FAILED` is dispatched always after `LOGIN` so we know that the `credentials` are currently in the store. We use the spread operator (`...state`) which guarantees that we keep that information in. The action's payload contains the actual error so we assign it to the `error` property. The request process is finished so we have to turn `requestInFlight` _off_. This will let the view to render an appropriate UI based on the error.
 
 The last two type of actions `LOGOUT` and `TRY_AGAIN` look like that:
 
@@ -272,7 +263,7 @@ case TRY_AGAIN:
   }
 ```
 
-If the user want to log out we just bring the initial state where the everything is equal to `null` and `requestInFlight` is false. The `TRY_AGAIN` is just turning `requestInFlight` to `true` and keeps everything else.
+If the user want to log out we just bring the initial state where everything is `null` and `requestInFlight` is false. The `TRY_AGAIN` is just turning `requestInFlight` to `true`. There is no HTTP request so far. Just pure state modifications done in an immutable way.
 
 ### Making the HTTP request
 
@@ -283,8 +274,9 @@ Last year or so I am experimenting with different options for handling async pro
 import { takeLatest, call, put, select } from 'redux-saga/effects';
 import { LOGIN, TRY_AGAIN } from './constants';
 import { loginSuccessful, loginFailed } from './actions';
-import { getCredentials } from './selectors';
 import Auth from '../services/Auth';
+
+const getCredentials = state => state.credentials;
 
 export default function * saga() {
   yield takeLatest([ LOGIN, TRY_AGAIN ], function * () {
@@ -299,11 +291,11 @@ export default function * saga() {
 }
 ```
 
-The saga stops and waits for `LOGIN` or `TRY_AGAIN` actions. They both should lead to firing the HTTP request. If everything is ok we call the `loginSuccessful` action creator. The reducer processes the `LOGIN_SUCCESSFUL` action and we now we have the user data in the Redux's store. If there is an error we call `loginFailed` with the given error. Later the `Widget` component decides what to render based on that error.
+The saga stops and waits for `LOGIN` or `TRY_AGAIN` actions. They both should lead to firing the HTTP request. If everything is ok we call the `loginSuccessful` action creator. The reducer processes the `LOGIN_SUCCESSFUL` action and we have the user data in the store. If there is an error we call `loginFailed` with the given error. Later the `Widget` component decides what to render based on that error.
 
 ### Wiring our main React component to Redux
 
-`Widget.jsx` will be the component which is wired to Redux's store via the `connect` function. We will need both map state and dispatch to props.
+`Widget.jsx` will be the component which is wired to the Redux's store via the `connect` function. We will need both mapping of state to props and mapping of dispatch to props.
 
 ```js
 import { CONNECTION_ERROR } from '../services/errors';
@@ -341,14 +333,14 @@ The last part which I want to show you is how we render the [dummy components](#
 
 ```js
 render() {
-  const { isInProgress, isSuccessful, isFailed } = this.props;
+  const { isInProgress, isSuccessful, isFailed, isConnectionError } = this.props;
 
   if (isInProgress) {
     return &lt;p className='tac'>Loading. please wait.&lt;/p>;
   } else if (isSuccessful) {
     return &lt;Profile name={ this.props.name } logout={ this.props.logout } />;
   } else if (isFailed) {
-    return this.props.isConnectionError ?
+    return isConnectionError ?
       &lt;Error
         tryAgain={ this.props.tryAgain } 
         message='Connection problem!' /> :
@@ -364,17 +356,19 @@ render() {
 When having the boolean flags as props we need four `if` statements to achieve the desired result.
 
 * If `isInProgress` is set to `true` we render the loading screen.
-* If the request is successful the `Profile` component is displayed.
+* If `isInProgress` is `false` and the request is successful the `Profile` component is displayed.
 * If the request fails we check the error's type and based on it decide to either render the `Error` component or the same login form but with an error message.
-* If none of the above is truthy we return only the `LoginForm` component.
+* If none of the above is truthy we return the `LoginForm` component only.
 
 ### Redux implementation - done
 
-More or less this is how I will approach a feature implementation if I have to use Redux. It is a definition of actions and their action creators. Then reducers and eventually handling async processes. At the end is the actual rendering (via React in our case).
+More or less this is how I will approach a feature implementation if I have to use Redux. It is a definition of actions and their action creators. Then writing reducers and probably handling async processes via sagas. At the end is the actual rendering (via React in our case).
 
 The application follows [one-direction data flow](http://krasimirtsonev.com/blog/article/react-js-in-design-patterns#one-way-direction-data-flow) where the user interacts with the UI which leads to dispatching of an action. The reducer picks that action and returns a new version of the state. As a result Redux triggers re-rendering of the React components tree.
 
 ![Redux implementation](./imgs/redux.jpg)
+
+Source code of the example [here](https://github.com/krasimir/blog-posts/tree/master/2017/Stent/code/redux).
 
 ## Implementing with Stent
 
@@ -382,7 +376,7 @@ The main idea behind Stent is to manage state by using a state machine. And ever
 
 ### State machine table/graph
 
-There are two questions which we ask ourself while making this table. And I noticed that these two questions are actually a really nice way to avoid bugs and make our application predictable - "In what states my app may be in?" and "What is the possible input in every of these states?". The answers in our case produce the following table:
+There are two questions which we ask ourself while making this table. And I noticed that these two questions are actually a really nice way to avoid bugs and make our application predictable - "In what states out app may be in?" and "What is the possible input in every of these states?". The answers of this questions produce the following table:
 
 ![State machine table](http://krasimirtsonev.com/blog/articles/state-management/table.jpg)
 
@@ -399,7 +393,7 @@ If we scroll up to the beginning of the article we will see exactly these four s
 
 ### Defining the state machine
 
-To define the machine we have to use the `Machine.create` factory provided by Stent. We have to provide a name, initial state and transition map.
+To define the machine we have to use the `Machine.create` factory function. We have to provide a name, initial state and transitions' map.
 
 ```js
 // stent/states.js
@@ -421,13 +415,13 @@ const machine = Machine.create(
 );
 ```
 
-A _state_ in the context of Stent is just a regular JavaScript object with one reserved prop - `name`. As we will see in a bit we may store whatever we want there but the `name` is used by the library for its own internal purposes. We should always provide that `name` and its value should be a string representing one of the machine's states.
+A _state_ in the context of Stent is just a regular JavaScript object with one reserved prop - `name`. As we will see in a bit we may store whatever we want there but the `name` key is used by the library for its internal processes. We should always provide that `name` and its value should be a string representing one of the machine's states.
 
 The name of the machine `LoginFormSM` is also important in our case because we are going to wire it to a React component. Let's now see what is behind the `transitions` object.
 
-### The state machine transitions map
+### State machine transitions' map
 
-The transitions map is an object of objects using the following convention:
+The transitions map is an object of objects following the convention:
 
 ```js
 {
@@ -445,11 +439,11 @@ The transitions map is an object of objects using the following convention:
 }
 ```
 
-* `STATE 1` and `STATE 2` are strings which will be used as a `name` prop while transitioning the machine. Stent dynamically produces helper methods for checking if the machine is in a particular state. For example if we define `LOG IN FORM` state we will have `machine.isLogInForm()` method that returns `true` or `false`.
-* The inputs are also strings like `submit` or `try again`. Sending input to the machine is the same as dispatching an action in Redux. However, instead of defining a constant, then action creator and call that creator Stent provides a machine method directly. It is again dynamically created. For example if we say that we accept a `submit` input we will have `machine.submit(credentials)`. Where `credentials` is an action payload which we will receive in the handler.
-* The handler of an input may be four different things. (1) Just a state name like `LOG IN FORM` and `LOADING`. (2) An actual state object like `{ name: LOADING }`. (3) A redux-like reducer function which have a signature like `function (currentState, payload)`. That function should return either a string (`LOG IN FORM`) or a state object (`{ name: LOADING }`). And the last option (4) is to provide a saga (generator). Inside that generator we may transition the machine multiple times by `yield`ing a new state object. There is also a `call` helper for handling side effects similarly like in the [redux-saga](https://redux-saga.js.org/) library.
+* `STATE 1` and `STATE 2` are strings which will be used as a `name` key while transitioning the machine. Stent dynamically produces helper methods for checking if the machine is in a particular state. For example if we define `LOG IN FORM` state we will have `machine.isLogInForm()` method that returns `true` or `false`.
+* The inputs are also strings like `submit` or `try again`. Sending input to the machine is the same as dispatching an action in Redux. However, instead of defining a constant, then action creator and call that creator Stent provides a machine method directly. It is again dynamically generated. For example if we say that we accept a `submit` input we will have `machine.submit(credentials)`. Where `credentials` is the action's payload which we will receive in the handler.
+* The handler of an input may be four different things. (1) Just a state name like `LOG IN FORM` and `LOADING`. (2) An actual state object like `{ name: LOADING }`. (3) A redux-like reducer function which have a signature `function (currentState, payload)`. That function should return either a string (`LOG IN FORM`) or a state object (`{ name: LOADING }`). And the last option (4) is a generator function (saga). Inside that generator we may transition the machine multiple times by `yield`ing a new state object. There is also a `call` helper for handling side effects similarly to [redux-saga](https://redux-saga.js.org/) library.
 
-Now, when we know what Stent expects let's dive in and create our transition map. The easiest way to produce it is to look at the table/graph that we discussed earlier and just copy/paste states with their possible inputs. In our example the first one is `LOGIN`.
+Now, when we know what Stent expects let's dive in and create our transitions' map. The easiest way to produce it is to look at the table/graph that we discussed earlier and just copy/paste states with their possible inputs. The first one is `LOGIN`.
 
 ```js
 // stent/transitions.js
@@ -482,9 +476,9 @@ const transitions = {
 export default transitions;
 ```
 
-The `LOGIN_FORM` is the default state so the only one possible input is `submit`. We will see how the UI sends this input to the machine in the following sections. It is handled by a generator that receives the current state and a payload `credentials`. The very first thing that we do is to transition the machine to a `LOADING` state. This immediately protect us from accepting another `submit` input. That is because in `LOADING` state the machine accepts only `success` and `error`. Next in the generator we fire our side effect `Auth.login` call and wait for the user's data. If everything is ok we dispatch the `success` action. If not `error` one and pass the error along side the `credentials` so we trigger the try-again logic later. I should mention that a function or a generator as a handler is always called with the machine itself as a context. So inside those handlers we may use `this.<machine method>`.
+The `LOGIN_FORM` is the default state so the only one possible input is `submit`. It is handled by a generator that receives the current state and a payload `credentials`. The very first thing that we do is to transition the machine to a `LOADING` state. This immediately protect us from accepting another `submit` input. That is because in `LOADING` state the machine accepts only `success` and `error`. Next in the generator we fire our side effect `Auth.login`. We start waiting for the user's data (the generator pauses at this point). If everything is ok we dispatch the `success` action. If not the `error` one and pass the error together with the `credentials`. This is important because we need to trigger the try-again logic later. We should mention that a function or a generator as a handler is always called with the machine as a context. So inside those handlers we may use `this.<machine method>`.
 
-At this point we have feedback for the request and the machine is in a `LOADING` state. Here are how the handlers look like:
+At this point we have feedback for the request and the machine is in a `LOADING` state. Here are the rest of the states and their handlers.
 
 ```js
 const submit = function * (state, credentials) {
@@ -525,13 +519,15 @@ const transitions = {
 
 Receiving `success` means transitioning to `PROFILE` state and keeping the user data in the state object. This is probably the first place where we see how a machine transition produces output - the `user` object returned by the `Auth` service layer.
 
-We may also receive an `error` input which has some conditional logic. Based on the error we decide what the next state will be. Either we display an error screen with a "Try again" link (`WRONG_CREDENTIALS` statte) or we show the same login form with an error message below it (`LOGIN_FORM` state). Notice how when transitioning to different states we keep only what we need. For example when entering `LOADING` state we do have `credentials` stored in but later moving to `WRONG_CREDENTIALS` we completely flush this out and have only `name` and `error`. That is because at this point we don't need credentials. The user have to type new ones.
+We may also receive an `error` input which handler has some conditional logic inside. Based on the error we decide what the next state will be. Either we display an error screen with a "Try again" link (`WRONG_CREDENTIALS` state) or we show the same login form with an error message below it (`LOGIN_FORM` state). Notice how when transitioning between different states we keep only what we need. For example when entering the `LOADING` state we do keep the `credentials` but later when moving to `WRONG_CREDENTIALS` we completely flush this out and have only `name` and `error`. That is because at this point we don't need credentials.
 
 We should also mention the `try again` action. Its handler is an interesting one because we have a generator calling another generator. That is one of my favorite [redux-saga](https://redux-saga.js.org/) features. Composing by chaining generators is a really powerful way to shift responsibilities. It is also nice from a unit testing point of view. The important bit here is to pass the `state` and action payload required by the other generator. In our case `submit` expects to receive the machine's state and user's credentials.
 
 ### The rendering
 
-If you noticed in this section we didn't mention the [Auth](#the-authorization-service) service or the [dummy react components](#the-dummy-react-components). That is because they are the same like in the Redux example. The only one difference is the `Widget.jsx` component. Because most of the logic is done via the state machine we have a clear rendering path. What I mean by that is that we have an explicit machine states that one-to-one match with the screens that we have to render. The React bit becomes a lot more easier and simple. Here is how the wiring happens:
+If you noticed in this section we didn't mention the [Auth](#the-authorization-service) service neither the [dummy react components](#the-dummy-react-components). That is because they are the same like in the Redux example. The only one difference is the `Widget.jsx` component. 
+
+Because most of the logic is done via the state machine we have a clear rendering path. What I mean by that is that we have an explicit machine states that one-to-one map with the screens that we have to render. The React bit becomes a lot more easier and simple. Here is how the wiring happens:
 
 ```js
 // components/Widget.jsx
@@ -552,9 +548,9 @@ export default connect(Widget)
   }));
 ```
 
-We say "Wire this component (Widget) with a machine (LoginFormSM)". The function that we pass to the `map` method is similar to Redux's `mapStateToProps` or `mapDispatchToProps`. We simply pass down methods of the machine and the current state. Same as Redux's store, when we transition to a new state the Widget component gets re-rendered.
+We say "Wire this component (Widget) with a machine (LoginFormSM)". The function that we pass to the `map` method is similar to Redux's `mapStateToProps` or `mapDispatchToProps`. We simply pass down methods of the machine and the current state's name. Same as Redux's store, when we transition to a new state the `Widget` component gets re-rendered.
 
-At the end here is how the rendering looks like:
+And here is how the rendering looks like:
 
 ```js
 // components/Widget.jsx
@@ -586,16 +582,18 @@ class Widget extends React.Component {
 }
 ```
 
-We have something which I call a "render map". It is mapping between a machine state and React component/s.
+We have something which I call a "render map". It is direct mapping between a machine state and React component/s.
 
 ### Stent implementation - done
 
-For me, using a state machine means asking questions that lead to higher level of predictability. We see how the state machine pattern protects our app being in a wrong state or state which we don't know about. There is no conditional logic in the view layer because the machine is capable of providing information of what should be rendered.
+For me, using a state machine means asking the right questions. This approach simply leads to higher level of predictability. We see how the state machine pattern protects our app being in a wrong state or state that we don't know about. There is no conditional logic in the view layer because the machine is capable of providing information of what should be rendered.
 
 ![Stent implementation](./imgs/stent.jpg)
 
+Source code of the example [here](https://github.com/krasimir/blog-posts/tree/master/2017/Stent/code/stent).
+
 ## Final words
 
-I've made Stent because I wanted to have the state machine concept in my applications. At the same time I didn't want to stop using Redux. I took lots of stuff from there and this is the result. We still have actions which are handled by reducers. The saga pattern is built-in so we can handle side effects in a synchronous fashion. Stent knows the possible actions upfront and it generates methods which in the context of Redux we call action creators. This always bugs me a little because in order to dispatch an action I have to define a constant and then an action creator. Later somewhere in the code import it and finally call it. With Stent is just a method of the machine.
+I've made Stent because I wanted state machines in my applications and at the same time I didn't want to stop using Redux. I took lots of stuff from Redux and this is the result. We still have actions which are handled by reducers. The saga pattern is built-in so we can handle side effects in a synchronous fashion. Stent knows the possible actions upfront and it generates methods which in the context of Redux we call action creators. This always bugs me a little because in order to dispatch an action in Redux application I have to define a constant and then an action creator. Later somewhere in the code import it and finally call it. With Stent is just a method of the machine.
 
-To be honest I didn't use Stent in a big production app. I'm still experimenting with small projects but it goes really well so far. I also changed my mindset. I started thinking in states and not in transitions. So far I was mostly interesting in what action to dispatch and what the reducer was doing. When the store grows we have more and more things to consider. Very often I caught myself asking "Can I update this portion of the state?" and I wasn't able to give a clear answer. That is because we don't have well defined states. We have variables and combination of values that form states. It is like a car driver trying to control an airplane. We have a rough idea what is going on but because there are billion buttons and switches we are scared to move forward. The state machine pattern has the power to convert your airplane into a car. Fewer possible actions at a given time, fewer bugs.
+To be honest I didn't use Stent in a big production app. I'm still experimenting with small projects but it goes really well so far. It makes me change my mindset. I started **thinking in states and not in transitions**. So far I was mostly interested in what actions to dispatch and what the reducers were doing. When the store grows we have more and more things to consider. Very often I caught myself asking "Can I update this portion of the state?" and honestly I wasn't able to give a clear answer. That is because we don't have well defined states. We have variables and combination of values that form states. It is like a car driver trying to control an airplane. We have a rough idea what is going on but because there are billion buttons and switches we are scared to move forward. The state machine pattern has the power to convert our airplane into a car. Fewer possible actions at a given time, fewer bugs. Try thinking in states, not in transitions and you will see the difference.

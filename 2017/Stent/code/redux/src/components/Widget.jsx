@@ -9,14 +9,14 @@ import { CONNECTION_ERROR } from '../services/errors';
 
 class Widget extends React.Component {
   render() {
-    const { isInProgress, isSuccessful, isFailed } = this.props;
+    const { isInProgress, isSuccessful, isFailed, isConnectionError } = this.props;
 
     if (isInProgress) {
       return <p className='tac'>Loading. please wait.</p>;
     } else if (isSuccessful) {
       return <Profile name={ this.props.name } logout={ this.props.logout } />;
     } else if (isFailed) {
-      return this.props.isConnectionError ?
+      return isConnectionError ?
         <Error
           tryAgain={ this.props.tryAgain } 
           message='Connection problem!' /> :
