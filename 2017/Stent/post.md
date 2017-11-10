@@ -2,7 +2,7 @@
 
 This article is about [Stent](https://github.com/krasimir/stent) - a [Redux](http://redux.js.org/)-liked library that creates and manages state machines for you. The title is not really correct because Stent implements some of the Redux's core ideas and in fact looks a lot like Redux. At the end of the material we will see that both libraries have a lot in common. Stent is just using state machines under the hood and eliminates some of the boilerplate that comes with Redux.
 
-If you wonder what is a state machine and why it makes UI development easier check out ["You are managing state? Think twice."](http://krasimirtsonev.com/blog/article/managing-state-in-javascript-with-state-machines-stent) article.
+If you wonder what is a state machine and why it makes UI development easier check out ["You are managing state? Think twice."](http://krasimirtsonev.com/blog/article/managing-state-in-javascript-with-state-machines-stent) article. I strongly recommend reading it so you get a better context.
 
 *The source code of the examples in this post is available [here](https://github.com/krasimir/blog-posts/tree/master/2017/Stent/code).*
 
@@ -375,3 +375,152 @@ More or less this is how I will approach a feature implementation if I have to u
 The application follows [one-direction data flow](http://krasimirtsonev.com/blog/article/react-js-in-design-patterns#one-way-direction-data-flow) where the user interacts with the UI which leads to dispatching of an action. The reducer picks that action and returns a new version of the state. As a result Redux triggers re-rendering of the React components tree.
 
 ![Redux implementation](./imgs/redux.jpg)
+
+## Implementing with Stent
+
+The main idea behind Stent is to manage state by using a state machine. And every state machine begins with a table (or a graph) that defines the possible states and their transitions.
+
+### State machine table/graph
+
+There are two questions which we ask ourself while making this table. And I noticed that these two questions are actually a really nice way to avoid bugs and make our application predictable - "In what states my app may be in?" and "What is the possible input in every of these states?". The answers in our case produce the following table:
+
+![State machine table](http://krasimirtsonev.com/blog/articles/state-management/table.jpg)
+
+<small>_(Image taken from ["You are managing state? Think twice."](http://krasimirtsonev.com/blog/article/managing-state-in-javascript-with-state-machines-stent))_</small>
+
+If we scroll up to the beginning of the article we will see exactly these four states shown as screens:
+
+* **LOG IN FORM** (A/D) - that is the state where we display a form for accepting username and password. We may have this state displaying an error message too. That is the case where the user submitted the form empty or typed wrong credentials. This state accepts only one action `Submit` and transitions the machine to a **LOADING** state.
+* **LOADING** (B) - the request to the back-end is in flight. We may either `Success` or `Failure` here and transition to **PROFILE** or **ERROR** states.
+* **PROFILE** (C) - this is the state after successful log in so we display a welcome message and two links. The first may trigger a change in another part of our app and keeps the machine in a **PROFILE** state while the other one logs the user out and transitions the machine to **LOG IN FORM** state.
+* **ERROR** (E) - the last possible state is when we receive a connection error. We have the credentials and we have to proceed with the try-again logic. So we accept only `Try again` input and transition the machine to a **LOADING** state.
+
+![Login form states](./imgs/screens.jpg)
+
+### Defining the state machine
+
+To define the machine we have to use the `Machine.create` factory provided by Stent. We have to provide a name, initial state and transition map.
+
+```js
+// stent/states.js
+export const LOGIN_FORM = 'LOGIN_FORM';
+export const LOADING = 'LOADING';
+export const TRY_AGAIN = 'TRY_AGAIN';
+export const WRONG_CREDENTIALS = 'WRONG_CREDENTIALS';
+export const PROFILE = 'PROFILE';
+
+// stent/machine.js
+import { Machine } from 'stent';
+import { LOGIN_FORM } from './states';
+import transitions from './transitions';
+
+const InitialState = { name: LOGIN_FORM };
+const machine = Machine.create(
+  'LoginFormSM',
+  { state: InitialState, transitions }
+);
+```
+
+A _state_ in the context of Stent is just a regular JavaScript object with one reserved prop - `name`. As we will see in a bit we may store whatever we want there but the `name` is used by the library for its own internal purposes. We should always provide that `name` and its value should be a string representing one of the machine's states.
+
+The name of the machine `LoginFormSM` is also important in our case because we are going to wire it to a React component. Let's now see what is behind the `transitions` object.
+
+### The state machine transitions map
+
+The transitions map is an object of objects using the following convention:
+
+```js
+{
+  [STATE 1]: {
+    [INPUT A]: [HANDLER],
+    [INPUT B]: [HANDLER],
+    ...
+  },
+  [STATE 2]: {
+    [INPUT C]: [HANDLER],
+    [INPUT D]: [HANDLER],
+    ...
+  },
+  ...
+}
+```
+
+* `STATE 1` and `STATE 2` are strings which will be used as a `name` prop while transitioning the machine. Stent dynamically produces helper methods for checking if the machine is in a particular state. For example if we define `LOG IN FORM` state we will have `machine.isLogInForm()` method that returns `true` or `false`.
+* The inputs are also strings like `submit` or `try again`. Sending input to the machine is the same as dispatching an action in Redux. However, instead of defining a constant, then action creator and call that creator Stent provides a machine method directly. It is again dynamically created. For example if we say that we accept a `submit` input we will have `machine.submit(credentials)`. Where `credentials` is an action payload which we will receive in the handler.
+* The handler of an input may be four different things. (1) Just a state name like `LOG IN FORM` and `LOADING`. (2) An actual state object like `{ name: LOADING }`. (3) A redux-like reducer function which have a signature like `function (currentState, payload)`. That function should return either a string (`LOG IN FORM`) or a state object (`{ name: LOADING }`). And the last option (4) is to provide a saga (generator). Inside that generator we may transition the machine multiple times by `yield`ing a new state object. There is also a `call` helper for handling side effects similarly like in the [redux-saga](https://redux-saga.js.org/) library.
+
+Now, when we know what Stent expects let's dive in and create our transition map. The easiest way to produce it is to look at the table/graph that we discussed earlier and just copy/paste states with their possible inputs. In our example the first one is `LOGIN`.
+
+```js
+// stent/transitions.js
+import { call } from 'stent/lib/helpers';
+import Auth from '../services/Auth';
+import { CONNECTION_ERROR, VALIDATION_ERROR } from '../services/errors';
+import { LOGIN_FORM, LOADING } from './states';
+
+const submit = function * (state, credentials) {
+  yield LOADING;
+  try {
+    const user = yield call(Auth.login, credentials);
+
+    this.success(user);
+  } catch (error) {
+    this.error(error, credentials);
+  }
+};
+
+const transitions = {
+  [LOGIN_FORM]: {
+    'submit': submit
+  },
+  [LOADING]: {
+    'success': ...,
+    'error': ...
+  }
+};
+
+export default transitions;
+```
+
+The `LOGIN_FORM` is the default state so the only one possible input is `submit`. We will see how the UI sends this input to the machine in the following sections. It is handled by a generator that receives the current state and a payload `credentials`. The very first thing that we do is to transition the machine to a `LOADING` state. This immediately protect us from accepting another `submit` input. That is because in `LOADING` state the machine accepts only `success` and `error`. Next in the generator we fire our side effect `Auth.login` call and wait for the user's data. If everything is ok we dispatch the `success` action. If not `error` one and pass the error along side the `credentials` so we trigger the try-again logic later. I should mention that a function or a generator as a handler is always called with the machine itself as a context. So inside those handlers we may use `this.<machine method>`.
+
+At this point we have feedback for the request and the machine is in a `LOADING` state. Here are how the handlers look like:
+
+```js
+const submit = function * (state, credentials) {
+  ...
+}
+const success = function (state, user) {
+  return { name: PROFILE, user };
+};
+const error = function (state, error, credentials) {
+  return error.message === CONNECTION_ERROR ?
+    { name: TRY_AGAIN, credentials } :
+    { name: WRONG_CREDENTIALS, error };
+};
+const tryAgain = function * (state) {
+  yield call(submit, state, state.credentials);
+}
+
+const transitions = {
+  [LOGIN_FORM]: {
+    'submit': submit
+  },
+  [LOADING]: {
+    'success': success,
+    'error': error
+  },
+  [TRY_AGAIN]: {
+    'try again': tryAgain
+  },
+  [WRONG_CREDENTIALS]: {
+    'submit': submit
+  },
+  [PROFILE]: {
+    'view profile': () => {},
+    'logout': LOGIN_FORM
+  }
+};
+```
+
+Receiving `success` means transitioning to `PROFILE` state and keeping the user data in the state object. This is probably the first place where we see how a machine transition produces output - the `user` object returned by the `Auth` service layer. If there is an error we check the type 
