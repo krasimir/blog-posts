@@ -1,0 +1,77 @@
+﻿<p>If you are writing React applications you probably know about <a href="http://krasimirtsonev.com/blog/article/react-the-powerful-higher-order-component-pattern">higher order components</a> or <a href="https://cdb.reacttraining.com/use-a-render-prop-50de598f11ce">render props</a> (which by the way I think is kind of a form of higher order component pattern). In both cases we have a component that encapsulates logic and passes props down to children. Recently at work we came to the idea that we may push this further and represent some functionalities which are out of React in the same fashion - with a single tag in our components tree.</p>[STOP]
+<p>Recently I also saw this on Twitter:</p>
+<blockquote class="twitter-tweet" data-lang="en"><p lang="en" dir="ltr">In <a href="https://twitter.com/hashtag/React?src=hash&amp;ref_src=twsrc%5Etfw">#React</a>-land: is it legit to have a component that only *does* stuff, but isn&#39;t visible? i.e. for setting cookie from a dispatched redux action, or kick off a background task, etc.</p>&mdash; @rem (@rem) <a href="https://twitter.com/rem/status/936319265795428354?ref_src=twsrc%5Etfw">November 30, 2017</a></blockquote>
+<script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+<p>The idea is interesting so I decided to experiment and see the pros and cons. Imagine how we add/compose functionality with markup only. Instead of doing it in a JavaScript function we just drop a tag. But let’s do couple of examples and see how it looks like.</p>
+<p>No matter what we use for our React applications we always have that mapping between logic layer and rendering layer. In the Redux land this is the so called <code>connect</code> function where we say map this portion of the state to props or map this actions to this props.</p>
+<pre><code>function Greeting({ isChristmas }) {
+  return (
+    &lt;p&gt;
+      { this.props.isChristmas ? 'Merry Christmas' : 'Hello' } dear user!
+    &lt;/p&gt;
+  );
+}
+
+const mapStateToProps = state =&gt; ({ isChristmas: state.calendar.isChristmas });
+
+export default connect(mapStateToProps)(Greeting);
+</code></pre>
+<p><code>isChristmas</code> is just a boolean for <code>Greeting</code>. The component doesn’t know where this boolean is coming from. We may easily extract the function into an external file which will make it completely blind for Redux and friends. That is fine and it works well. But what if we have the following:</p>
+<pre><code>import IsChristmas from './IsChristmas.jsx';
+
+export default function Greeting() {
+  return (
+    &lt;div&gt;
+      &lt;IsChristmas&gt;
+        { answer =&gt; answer ? 'Merry Christmas' : 'Hello' } dear user!
+      &lt;/IsChristmas&gt;
+    &lt;/div&gt;
+  );
+}
+</code></pre>
+<p>Now <code>Greeting</code> does not accept any properties but still does the same job. It is the <code>IsChristmas</code> component having the wiring and fetching the knowledge from the state. Then we have the <a href="https://cdb.reacttraining.com/use-a-render-prop-50de598f11ce">render props pattern</a> to make the decision what string to render.</p>
+<pre><code>// IsChristmas.jsx
+
+const IsChristmas = ({ isChristmas, children }) =&gt; children(isChristmas);
+
+export default connect(
+  state =&gt; ({ isChristmas: state.calendar.isChristmas })
+)(IsChristmas);
+</code></pre>
+<p>Using this technique we are shifting the dependency of the state to an external component. <code>Greeting</code> becomes a composition layer with zero knowledge of the application state.</p>
+<p>This example is a simple one and looks pointless. Let’s go with a more <a href="https://codesandbox.io/s/rlrr1lq53q">complicated scenario</a>:</p>
+<pre><code>function UserProfile() {
+  return (
+    &lt;UserDataProvider&gt;{
+      user =&gt; (
+        &lt;ActionsProvider&gt;{
+          actions =&gt; (
+            &lt;section&gt;
+              Hello, { user.fullName },
+              please &lt;a onClick={ actions.purchase }&gt;order&lt;/a&gt; here.
+            &lt;/section&gt;
+          )
+        }&lt;/ActionsProvider&gt;
+      )
+    }&lt;/UserDataProvider&gt;
+  )
+}
+</code></pre>
+<p>We have two <em>providers</em> the role of which is to deliver (a) some data for the current user and (b) a redux action creator <code>purchase</code> so we can fire it when the user click on the <code>order</code> link. These providers are nothing more then functions that use the <code>children</code> prop as a regular function:</p>
+<pre><code>// UserDataProvider.jsx
+function UserDataProvider({ children }) {
+  return children({ fullName: 'Jon Snow'});
+}
+connect(state =&gt; ({ user: state.user }))
+  (UserDataProvider);
+
+// ActionsProvider.jsx
+function ActionsProvider({ children }) {
+  return children({ purchase: () =&gt; alert('Woo') });
+}
+connect(null, dispatch =&gt; ({ purchase: () =&gt; dispatch(purchaseActionCreator()) }))
+  (UserDataProvider);
+</code></pre>
+<p>This idea shifts the dependencies resolution into JSX syntax which to be honest I really like. We don’t have to know about wiring and on a later stage we may completely swap the provider by just re-implementing the component. For example in the code above if we say that the user’s data comes from the cookie and not from a Redux’s store we may just change the body of <code>UserDataProvider</code>.</p>
+<p>Of course I do see some problems with this approach. First, testing wise we still need the same setup to make our main component testable. <code>UserProfile</code> still needs the Redux stuff because its internal components are using them. While if we do the wiring directly to <code>UserProfile</code> we will get <code>user</code> and <code>purchase</code> as props and we could mock them. Second, the code looks a little bit ugly if we need to use the render props pattern.</p>
+<p>Overall, I don’t know :) The idea seems interesting but as with most of the patterns can not be applied to every case. Let’s see how it evolves and I will post an update soon.</p>
