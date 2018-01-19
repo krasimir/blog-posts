@@ -10,131 +10,7 @@ Then I started thinking about the people that create those movies. How cool and 
 
 ## The script
 
-Let's say that we want to make a HTTP request and render the users in our system. It is 2019 and we use some kind of a framework that abstracts basic data and [DOM manipulations](http://krasimirtsonev.com/blog/article/Convert-HTML-string-to-DOM-element). Like for example:
-
-```
-const App = {
-  state: {
-    error: null,
-    users: []
-  },
-  setState(newState) {
-    this.state = newState;
-    this.render();
-  },
-  render() {
-    document.body.innerHTML = `We have ${ this.state.users.length } users loaded.`;
-  }
-}
-
-App.render();
-```
-
-Our `App` has a state where we will store the data (`users`) and if something goes wrong an `error`. To update the state we will be using `setState` method which will update the page's content. The last method `render` is simply filling the `<body>` element with the desired message.
-
-Now let's load some data and render it on the page. There is a nice service for writing such small apps at [jsonplaceholder.typicode.com](https://jsonplaceholder.typicode.com). It is a fake publicly available REST API. We will query the `/users` endpoint like so:
-
-```
-const endpoint = 'https://jsonplaceholder.typicode.co';
-const App = {
-  state: {
-    error: null,
-    users: []
-  },
-  setState(newState) {
-    this.state = newState;
-    this.render();
-  },
-  render() {
-    if (this.state.error) {
-      document.body.innerHTML = this.state.error;
-    } else if (this.state.users.length > 0) {
-      document.body.innerHTML = `We have ${ this.state.users.length } users loaded.`;
-    }
-  },
-  loadItems() {
-    fetch(`${ endpoint }/users`)
-      .then(
-        users => users.json(),
-        error => this.setState({ error: 'Ops!', users: [] })
-      )
-      .then(users => this.setState({ error: null, users }));
-  }
-}
-
-App.loadItems();
-```
-
-Our `App` looks a little bit like a thing right. It fetches data from an endpoint, handles errors and renders result. It is ready to be tested. I loaded that code in a [Codepen](https://codepen.io/krasimir/pen/BJPBGM?editors=0010) and I was expecting the users to show up. However, the result was `Ops!` and the following error in the console:
-
-```
-Uncaught (in promise) TypeError: Cannot read property 'length' of undefined
-    at Object.render (VM8889 pen.js:28)
-    at Object.setState (VM8889 pen.js:20)
-    at VM8889 pen.js:46
-    at <anonymous>
-```
-
-It is not working, we _have no idea why_ and have to debug it.
-
-## Debugging nowadays
-
-Nowadays we have the luck to work with browsers that come with an awesome developer tools built in. For example the debugger or Chrome is pretty nice. We may set a breakpoint in the `loadItems` and follow step by step the script execution. This approach helps indeed but very often turns into a tricky process. If we use something like React or Angular the debugger goes into internals of those frameworks and finding what we need gets difficult. Another really cheap option is to place `console.log`s here and there and run the whole thing one more time. I know that we are all doing it often so let's add `console.log` in the `render` method:
-
-```
-render() {
-  console.log('render', this.state)
-```
-
-We will get `render` followed by the current state of the app. Here is the result:
-
-![broken app](./broken1.png)
-
-* The first and the last lines show us that the request to the API failed and if we read them carefully we will see that there is a missing `m` at the end of the URL. Should end with `com` not `co`. So this is where our problem comes from. But if that is the case then why we get `Cannot read property 'length' of undefined` error in the console. We were suppose to handle such errors. Continue reading.
-* The second line indicates rendering with an error set in and empty array for `users`. This is correct and it is where our logic should stop.
-* However, we have the third line where we render again but with no error and `undefined` set to `users`
-
-Not enough `console.log`s. Let's add one more in the `setState` function. The result is:
-
-![broken app](./broken2.png)
-
-Now we see that `setState` is fired twice after the call of `loadItems`.
-
-```
-loadItems() {
-  fetch(`${ endpoint }/users`)
-    .then(
-      users => users.json(),
-      error => this.setState({ error: 'Ops!', users: [] })
-    )
-    .then(users => this.setState({ error: null, users }));
-}
-```
-
-We see those two calls and we can make the conclusion that the second `then` is also fired. This explains why `users` is set to `undefined` and `error` to `null`. The bug comes from the fact that if we have chained `then`s they are always executed no matter what. For example:
-
-```
-Promise.reject('Ops!')
-  .then(
-    () => console.log('success'),
-    error => console.log(error)
-  )
-  .then(() => console.log('bar'))
-```
-
-It prints out `Ops!` and then `bar` even though we have a function for handling the rejected promise. To fix that we have to move the second `then` inside the first one.
-
-```
-loadItems() {
-  fetch(`${ endpoint }/users`)
-    .then(
-      users => users.json().then(users => this.setState({ error: null, users })),
-      error => this.setState({ error: 'Ops!', users: [] })
-    );      
-}
-```
-
-This will result in a proper error handling.
+The robots are big part of our life so they are here to stay. Let's assume that is 2019 and we have a home robot. We give commands, the robot understands them and does what we want. Unfortunately is just 2019 not 3019 so our robot is kinda dumb and can do only two things - it can print stuff to the console or wait a promise to be resolved. 
 
 ## A better debugging experience
 
@@ -334,6 +210,11 @@ Please, if you are an author of a framework or library and you want to see it su
 * [Machina.js](https://github.com/krasimir/kuker#integration-with-machinajs)
 * [MobX](https://github.com/krasimir/kuker#integration-with-mobx)
 * [Base emitter](https://github.com/krasimir/kuker#baseemitter)
+
+## Links
+
+* [Kuker in Chrome's web store](https://chrome.google.com/webstore/detail/glgnienmpgmfpkigngkmieconbnkmlcn)
+* [Official documentation](https://github.com/krasimir/kuker)
 
 
 
