@@ -296,6 +296,44 @@ At the same bar where the gear for filtering is we have two other buttons. Addin
 
 ### Monitoring the state
 
-In the right panel by default we see the current state of the application. That is the state at the given time (given event). 
+In the right panel by default we see the current state of the application. It shows what was the state at the time when the event is dispatched. Once we have two or more events we are able to calculate a diff between them. It appears below the state tree in a dedicated section showing the path of the changed property, the old and the new value. Additions and deletions are also captured.
+
+![TodoMVC](./kuker_state.png)
+
+That is cool and we have it in redux-devtools. What I was missing in there is a marker that shows me which of the events are mutating state. Imagine that you have 50+ events to examine for a specific state change. We have to play them one by one to find out which amended the data. In Kuker we have a marker to support this case. It is a small white rectangle that appears on the right side of the event. Events having this marker mutated the state. However, this is not completely solving our issue because what if they all apply some data transformations. If we look closely to the state tree items we will see that every property has an eye icon next to it. By clicking it we are saying "I am interested in this bit of the state. Show me who is changing it.". Here is an example demonstrating both markers:
+
+![TodoMVC](./kuker_state_markers.png)
+
+As we mentioned above, "state" for the different [emitters](https://github.com/krasimir/kuker#emitters) mean different thing. In the following screenshot we see how the currently selected event is produced by the [React emitter](https://github.com/krasimir/kuker#integration-with-react) and the right panel shows the React components which are on the page. Same as the case above, we are able to click the eye icon and see which of the events affected that part of the component tree. When displaying a HTML-like state we have additional information for every of the nodes. It appears below the tree. Like in this example we see the props of the `<App>` component.
+
+![TodoMVC](./kuker_state_html.png)
+
+Kuker uses the same approach when displaying events coming from the [Vue](https://github.com/krasimir/kuker#integration-with-vue), [Angular](https://github.com/krasimir/kuker#integration-with-angular) and [HTML](https://github.com/krasimir/kuker#html-emitter) emitters.
+
+### Detail view of an event
+
+Next to the "State" tab in the right panel we have "Event". The tree that we see there displays some details about the event and the actual data send from the page.
+
+![TodoMVC](./kuker_event.png)
+
+## Final words
+
+Debugging is an important part of every developer's life. It takes a big chunk of our time and it should be a flawless experience. I strongly believe that the tools that we use while debugging should be context specific. What I mean by that is that they should display information about process and not about implementation. The source panel of Chrome's devtools for example is awesome to track what exactly happened in the JavaScript world but sometimes is way more noisy then redux-devtools. And that is fine because it targets the low level JavaScript execution while redux-devtools is targeting Redux flow. What I'm aiming by creating [Kuker](https://github.com/krasimir/kuker) is to provide a context specific debugging experience.
+
+## Call for contributors
+
+Please, if you are an author of a framework or library and you want to see it supported by Kuker do submit an issue in the [Kuker's repository](https://github.com/krasimir/kuker). I'll be more then happy to integrate it. What Kuker support so far is: 
+
+* [React](https://github.com/krasimir/kuker#integration-with-react)
+* [Angular](https://github.com/krasimir/kuker#integration-with-angular)
+* [Vue and Vuex](https://github.com/krasimir/kuker#integration-with-vue)
+* [Redux](https://github.com/krasimir/kuker#integration-with-redux)
+* [redux-saga](https://github.com/krasimir/kuker#integration-with-redux-saga)
+* [HTML](https://github.com/krasimir/kuker#html-emitter)
+* [Stent](https://github.com/krasimir/kuker#integration-with-stent)
+* [Machina.js](https://github.com/krasimir/kuker#integration-with-machinajs)
+* [MobX](https://github.com/krasimir/kuker#integration-with-mobx)
+* [Base emitter](https://github.com/krasimir/kuker#baseemitter)
+
 
 
