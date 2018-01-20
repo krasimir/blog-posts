@@ -4,7 +4,7 @@ _(If you are lazy jump to [this](#todomvc-done-with-react-redux-and-redux-saga) 
 
 Remember [The Island](https://en.wikipedia.org/wiki/The_Island_(2005_film%29) movie from 2005. I watched it again these days and I realized that the old sci-fi titles start with something really interesting. It is funny how they create a world of flying vehicles and say something like _"The year is 2019 ..."_. Well, we are 2018 and the public transport is still on the ground. We still can't clone people (I hope so) or travel in a giant spaceship which looks like a fully-functional city.
 
-![the island 2005](./theisland.png)
+![the island 2005](./theisland.jpg)
 
 Then I started thinking about the people that created those movies. How cool and exciting is to think about the future and try to visualize it. This is what we are going to do in this article. We will try to create a tool that will be used by a generation of developers. A tool that these future people will find funny and incomplete.
 
