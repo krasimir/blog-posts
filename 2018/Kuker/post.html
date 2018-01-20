@@ -1,0 +1,205 @@
+<p><em>(If you are lazy jump to <a href="#todomvcdonewithreactreduxandreduxsaga">this</a> section to learn what is this article all about.)</em></p>
+<p>Remember <a href="https://en.wikipedia.org/wiki/The_Island_(2005_film%29">The Island</a> movie from 2005. I watched it again these days and I realized that the old sci-fi titles start with something really interesting. It is funny how they create a world of flying vehicles and say something like <em>"The year is 2019 …"</em>. Well, we are 2018 and the public transport is still on the ground. We still can't clone people (I hope so) or travel in a giant spaceship which looks like a fully-functional city.</p>[STOP]
+<p><img src="http://krasimirtsonev.com/blog/articles/kuker/theisland.jpg" alt="the island 2005" /></p>
+<p>Then I started thinking about the people that created those movies. How cool and exciting is to think about the future and try to visualize it. This is what we are going to do in this article. We will try to create a tool that will be used by a generation of developers. A tool that these future people will find funny and incomplete.</p>
+<h2 id="thescript">The script</h2>
+<p>Let's assume that it is 2019 and we have a home robot. We give commands, the robot understands them and does what we want. Unfortunately it is just 2019 not 3019 so our robot is kinda dumb and can do only two things - it can print stuff to the console or wait a promise to be resolved. The developers of the future also don't like making calculations manually. They use cloud computing. Let's say that we have a <code>compute</code> function that accepts two numbers, asks an API to make the calculation and returns the result. We will simulate the remote request by using a promise and <code>setTimeout</code> call.</p>
+<pre><code>const compute = (a, b) =&gt; new Promise(done =&gt; setTimeout(done, 2000, a + b));
+</code></pre>
+<p>Now, here are our commands in a form of a JavaScript generator.</p>
+<pre><code>var answer = null;
+function * commands() {
+  yield 'Hey there!';
+  yield 'Let me find the answer for you.';
+  yield compute(10, 32);
+  yield `I am done and the answer is ${ answer }.`;
+}
+</code></pre>
+<p>The last actor in our script is the robot. It must be a function that iterates over our generator and executes the commands. In fact this is exactly the <a href="http://krasimirtsonev.com/blog/article/javascript-pattern-of-the-year-handle-async-like-a-boss">command pattern implemented via generators</a>.</p>
+<pre><code>const robot = function (gen) {
+  const step = gen.next();
+
+  if (step.value) {
+    if (typeof step.value === 'string') {
+      console.log(step.value);
+      if (!step.done) robot(gen);
+    } else {
+      step.value.then(result =&gt; {
+        answer = result;
+      });
+      if (!step.done) robot(gen);
+    }
+  }
+}
+</code></pre>
+<p>We use recursion to loop over the values produced by the generator. On every iteration we check if the value is a string. If yes then we print it out. If not we assume that it is a promise. Once that promise is resolved we assign the result to the <code>answer</code> variable.</p>
+<p>The script seems ready. It is available on <a href="https://codepen.io/krasimir/pen/BJPBGM?editors=0010">this</a> codepen but unfortunately when we run it we are getting:</p>
+<pre><code>Hey there!
+Let me find the answer for you.
+I am done and the answer is null.
+</code></pre>
+<p>So, not exactly what we expected. It is time for debugging.</p>
+<h2 id="debugging">Debugging</h2>
+<p>Nowadays the debugging of JavaScript is supported by amazing tools. The browsers come with built-in instruments showing detailed view about every function call. Let's take the Chrome's devtools for example and try to debug our little  application. We will place a <code>debugger</code> statement in the <code>robot</code> method which will stop the execution. We will effectively add a break point.</p>
+<p>const robot = function (gen) {
+  const step = gen.next();
+  debugger; // <------
+  if (step.value) {
+    if (typeof step.value === 'string') {
+      console.log(step.value);
+      if (!step.done) robot(gen);
+    } else {
+      step.value.then(result => {
+        answer = result;
+      });
+      if (!step.done) robot(gen);
+    }
+  }
+}</p>
+<p>Let's also add few expressions to watch - <code>step.value</code>, <code>step.done</code> and <code>answer</code>. Here is the result:</p>
+<p><img src="http://krasimirtsonev.com/blog/articles/kuker/chrome_debugger.gif" alt="Redux devtools" /></p>
+<p>What we see is that the <code>answer</code> is always <code>null</code>. It never gets filled with a number. <code>step.value</code> seems correct though.</p>
+<pre><code>-- (1) ----------------------------------------
+step.value -&gt; 'Hey there!'
+step.done -&gt; false
+answer -&gt; null
+-- (2) ----------------------------------------
+step.value -&gt; 'Let me find the answer for you.'
+step.done -&gt; false
+answer -&gt; null
+-- (3) ----------------------------------------
+step.value -&gt; Promise
+step.done -&gt; false
+answer -&gt; null
+-- (4) ----------------------------------------
+step.value -&gt; 'I am done and the answer is null.'
+step.done -&gt; false
+answer -&gt; null
+-- (5) ----------------------------------------
+step.value -&gt; undefined
+step.done -&gt; true
+answer -&gt; null
+</code></pre>
+<p>What is also visible is the fact that there is no delay between <code>(3)</code> and <code>(4)</code>. That is also the key to our problem. We are not waiting the promise to be resolved and we resume the generator immediately.</p>
+<pre><code>...
+} else {
+  step.value.then(result =&gt; {
+    answer = result;
+  });
+  if (!step.done) robot(gen);
+}
+</code></pre>
+<p>should be </p>
+<pre><code>...
+} else {
+  step.value.then(result =&gt; {
+    answer = result;
+    if (!step.done) robot(gen);
+  });
+}
+</code></pre>
+<p>Once this change is done we will see the expected result:</p>
+<pre><code>Hey there!
+Let me find the answer for you.
+I am done and the answer is 42.
+</code></pre>
+<p>That is pretty much how I solve issues daily. Very often instead of adding breakpoints and using the debugger I simply place <code>console.logs</code> here and there to see what is going on. Unfortunately, that is not always helpful. In this small example we saw a low level mistake where the bug was related to generator iteration. Those are easy to spot and fix. What gets difficult is logical mistakes where we update data in our store too early or set a wrong flag. In such cases we need a better debugging tool. A tool that provides contextual information about how our application works.</p>
+<h2 id="abetterdebuggingexperience">A better debugging experience</h2>
+<p>I am doing programming for roughly <a href="http://krasimirtsonev.com/#bio">10 years</a> and more or less I am following the same debugging patterns. There are questions which I ask myself and when I find the answers I am able to solve the problem.</p>
+<ul>
+<li>What exactly happened and in what order? - the answer of this question is list of events.</li>
+<li>How is my application state/data changed based on those events?</li>
+</ul>
+<p>Answering on only one of these questions is not enough. The combination of them helps me visualize how the application worked. Otherwise the picture is not complete.</p>
+<p>For the first time after so many years of writing code I saw a tool that kind of answers on my questions quickly without much effort on my side. That is the  <a href="https://github.com/gaearon/redux-devtools">redux-devtools</a> browser extension.</p>
+<p><img src="http://krasimirtsonev.com/blog/articles/kuker/redux-devtools.png" alt="Redux devtools" /></p>
+<p>We have two panels. The left one answers on my first question showing what happened and in what order. The one on the right shows the application state corresponding to an event from the left side. We are also able to see details for the event and the diff that this event applied to the state. This is basically what I need to restore the user journey.</p>
+<p><a href="https://github.com/gaearon/redux-devtools">redux-devtools</a> is awesome. It helped me work faster. The thing is that it is Redux related. Unfortunately we have bunch of other stuff going on. <a href="https://www.antidote.me/">At work</a> we have several big progressive apps that use <a href="https://redux-saga.js.org/">redux-saga</a> and very often I need to debug those bits too. Also developing a progressive app means that our code runs on the server and the initial render happens there. All the Redux actions and saga processes are happening server-side first and there is no way (<a href="https://github.com/zalmoxisus/redux-devtools-extension/issues/181">yet</a>) to see them via the <a href="https://github.com/gaearon/redux-devtools">redux-devtools</a>.</p>
+<p>So, I came with the idea that I may try creating a similar extension but collecting information from various sources. Not only Redux. That is how <a href="https://github.com/krasimir/kuker">Kuker</a> was born. Supporting Redux and redux-saga was fun but then I realized that I may extend the idea and now the extension supports frameworks like <a href="https://github.com/krasimir/kuker#integration-with-angular">Angular</a> and <a href="https://github.com/krasimir/kuker#integration-with-vue">Vue</a>.</p>
+<h2 id="meetkukerhttpsgithubcomkrasimirkuker">Meet <a href="https://github.com/krasimir/kuker">Kuker</a></h2>
+<p>My solution is simple and basically consist of two parts:</p>
+<ul>
+<li>A <a href="https://github.com/krasimir/kuker">Chrome extension</a> with two panels where the left one answers "What happened and in what order?" question while the one on the right talks about application state and how it mutates. What exactly is "state" depends on what events we send. For Redux this is the data in the store, for React it is the component tree, for the DOM is the HTML elements.</li>
+<li>A collection of short scripts that monitor the application and inform the extension. I call them <a href="https://github.com/krasimir/kuker#emitters">emitters</a>.</li>
+</ul>
+<p><em>(The Chrome extension may be installed from <a href="https://chrome.google.com/webstore/detail/glgnienmpgmfpkigngkmieconbnkmlcn">here</a>. The available emitters are listed <a href="https://github.com/krasimir/kuker#emitters">here</a>.)</em></p>
+<p>To demonstrate how everything works we will use the example above. We will write a custom emitter that will communicate with the extension.</p>
+<h2 id="writingacustomemitter">Writing a custom emitter</h2>
+<p>In order to send a message to Kuker's DevTools UI we have to do one thing - calling of <code>window.postMessage</code> function. It is by the way a <a href="https://developer.mozilla.org/en-US/docs/Web/API/Window/postMessage">standard API</a>:</p>
+<pre><code>var step = 0;
+const emit = function (state) {
+  window.postMessage({
+    kuker: true, // mandatory
+    type: `GENERATOR_STEP_${ ++step }`, // mandatory
+    state, // optional but important
+    time: (new Date()).getTime(),  // optional but important
+    icon: 'fa-hand-o-right', // optional
+    color: '#8cc8ea' // optional
+  }, '*');
+}
+</code></pre>
+<p>Let's add this helper to <a href="https://codepen.io/krasimir/pen/BJPBGM?editors=0010">our broken codepen</a>. Inside the <code>robot</code> function we will call <code>emit</code> with the following parameters:</p>
+<pre><code>emit({
+  value: String(step.value),
+  done: step.done,
+  answer
+});
+</code></pre>
+<p>If <a href="https://chrome.google.com/webstore/detail/glgnienmpgmfpkigngkmieconbnkmlcn">Kuker</a> is installed and we open it in the devtools panel we will see the following sequence of events:</p>
+<p><img src="http://krasimirtsonev.com/blog/articles/kuker/codepen1.gif" alt="Kuker" /></p>
+<p>Let's fix our bug and see the difference. We move the <code>if (!step.done) robot(gen);</code> inside the promise and <a href="https://chrome.google.com/webstore/detail/glgnienmpgmfpkigngkmieconbnkmlcn">Kuker</a> now shows a slightly different picture:</p>
+<p><img src="http://krasimirtsonev.com/blog/articles/kuker/codepen2.gif" alt="Kuker" /></p>
+<p><code>GENERATOR_STEP_4</code> event now has +2 seconds in time and the <code>answer</code> is set to <code>42</code>. We will mention this in the section below but also notice that all the events except the first one have a small white rectangle on the right side. This indicates that they are modifying the state. Which in our case consist of <code>value</code>, <code>step</code> and <code>answer</code>. We know for sure that those events come with changes in some of these variables. However, what we are interested in the most is the <code>answer</code> one. So why not watch that specifically:</p>
+<p><img src="http://krasimirtsonev.com/blog/articles/kuker/codepen3.gif" alt="Kuker" /></p>
+<p>That was fun but kinda trivial right. Let's explore a more complex scenario where we have some mature framework like React.</p>
+<h2 id="todomvcdonewithreactreduxandreduxsaga">TodoMVC done with React, Redux and redux-saga</h2>
+<p>I forked a <a href="https://github.com/philmein/todomvc-react-redux-saga">repository</a> that implements <a href="http://todomvc.com/">TodoMVC</a> using <a href="https://reactjs.org/">React</a>, <a href="https://redux.js.org/">Redux</a> and <a href="https://redux-saga.js.org/">redux-saga</a>. It's a fairly complex app having couple of user journeys so I always like to use it as an example. The source code which is deployed <a href="http://work.krasimirtsonev.com/git/redux-react-saga-todomvc">here</a> is available at <a href="https://github.com/krasimir/todomvc-react-redux-saga">github.com/krasimir/todomvc-react-redux-saga</a> and you can browse it to see the integration of Kuker's emitters. They are three:</p>
+<ul>
+<li><a href="https://github.com/krasimir/kuker#integration-with-react">React emitter</a> - source code <a href="https://github.com/krasimir/todomvc-react-redux-saga/blob/master/src/app.js">here</a></li>
+<li><a href="https://github.com/krasimir/kuker#integration-with-redux">Redux emitter</a> - source code <a href="https://github.com/krasimir/todomvc-react-redux-saga/blob/master/src/config/store.js">here</a></li>
+<li><a href="https://github.com/krasimir/kuker#integration-with-redux-saga">redux-saga emitter</a> - source code <a href="https://github.com/krasimir/todomvc-react-redux-saga/blob/master/src/config/business-logic.js">here</a></li>
+</ul>
+<p>You may install the extension from the <a href="https://chrome.google.com/webstore/detail/glgnienmpgmfpkigngkmieconbnkmlcn">Chrome's web store</a> and open <a href="http://work.krasimirtsonev.com/git/redux-react-saga-todomvc">this url</a>. Start using the app, open devtools and pick the Kuker tab.</p>
+<p><img src="http://krasimirtsonev.com/blog/articles/kuker/todomvc1.png" alt="TodoMVC" /></p>
+<p>In here we see events coming from all the three emitters. The rows that start with a number like <code>#67</code> are saga effects. That is actually the id of the saga. Next to that number, on the right side there is another one which is showing the id of the parent saga. We do see two Redux actions <code>CREATE_NEW_TODO</code> and <code>TODOS/INSERT</code>. At the end of the screenshot are listed React <code>Update</code> event and a mounting of one new component.</p>
+<p>Let's play with the extension and see what can offer to us.</p>
+<h3 id="filtering">Filtering</h3>
+<p>There is a small gear at the top of the left panel. It brings a list of all the event types dispatched to the extension and we are able to filter out the ones that are not relevant to us. For example, if we want to see only the Redux events:</p>
+<p><img src="http://krasimirtsonev.com/blog/articles/kuker/kuker_filtering.png" alt="filtering" /></p>
+<p>Also notice that together with the event types we may filter the sources. Usually we have only one but if we server-side render this app we will get node as a source too. The Kuker emitters check if they run in browser environment and if not they assume that it is node. Then a socket server is started which the Kuker extension is connecting to. That is how we see events from SSR phase of our application.</p>
+<h3 id="addingamarkerandclearingevents">Adding a marker and clearing events</h3>
+<p>At the same bar where the gear for filtering is we have two other buttons. Adding a marker and clearing the events. The marker is useful when you have lots of event coming and you want to see which are the new ones. For example we reach a specific point of the user journey and we know that after doing a certain action we will get bunch of events which will give us the information that we need. In this case we just add a marker and we know that the events after that red line are what we need.</p>
+<p><img src="http://krasimirtsonev.com/blog/articles/kuker/kuker_marker.png" alt="marker" /></p>
+<h3 id="monitoringthestate">Monitoring the state</h3>
+<p>At the right panel by default we see the current state of the application. It shows what was the state at the time when the event is dispatched. Once we have two or more events we are able to calculate a diff between them. It appears below the state tree in a dedicated section showing the path of the changed property, the old and the new value. Additions and deletions are also captured.</p>
+<p><img src="http://krasimirtsonev.com/blog/articles/kuker/kuker_state.png" alt="state" /></p>
+<p>That is cool and we have it in redux-devtools too. What I'm missing there is a marker that shows me which of the events are mutating state. Imagine that we have 50+ events to examine for a specific state change. We have to go over all of them. In Kuker we have a marker to support this need. It is a small white rectangle that appears on the right side of the event. Events having this marker mutated the state. However, this is not completely solving our issue because what if they all apply some data transformations. If we look closely to the state tree items we will see that every property has an eye icon next to it. By clicking it we are saying "I am interested in this bit of the state. Show me who is changing it.". Here is an example demonstrating both markers:</p>
+<p><img src="http://krasimirtsonev.com/blog/articles/kuker/kuker_state_markers.png" alt="state markers" /></p>
+<p>As we mentioned above, "state" for the different <a href="https://github.com/krasimir/kuker#emitters">emitters</a> mean different thing. In the following screenshot we see how the currently selected event is produced by the <a href="https://github.com/krasimir/kuker#integration-with-react">React emitter</a> and the right panel shows the React components which are on the page. Same as the case above, we are able to click the eye icon and see which of the events affected that part of the component tree. When displaying a HTML-like state we have additional information for every of the nodes. It appears below the tree. Like in this example we see the props of the <code>&lt;App&gt;</code> component.</p>
+<p><img src="http://krasimirtsonev.com/blog/articles/kuker/kuker_state_html.png" alt="html-like state" /></p>
+<p>Kuker uses the same approach when displaying events coming from the <a href="https://github.com/krasimir/kuker#integration-with-vue">Vue</a>, <a href="https://github.com/krasimir/kuker#integration-with-angular">Angular</a> and <a href="https://github.com/krasimir/kuker#html-emitter">HTML</a> emitters.</p>
+<h3 id="detailviewofanevent">Detail view of an event</h3>
+<p>Next to the "State" tab we have "Event". The tree that we see there displays some details about the event and the actual data send from the page.</p>
+<p><img src="http://krasimirtsonev.com/blog/articles/kuker/kuker_event.png" alt="event" /></p>
+<h2 id="finalwords">Final words</h2>
+<p>Debugging is an important part of the developer's life. It takes a big chunk of our time and it should be flawless experience. I strongly believe that the tools that we use while debugging should be context specific. What I mean by that is that they should display information about process and not about implementation. The source panel of Chrome's devtools for example is awesome to track what exactly happened in the JavaScript world but sometimes is way more noisy then redux-devtools. And that is fine because it targets the low level JavaScript execution while redux-devtools is targeting Redux flow. What I'm aiming by creating <a href="https://github.com/krasimir/kuker">Kuker</a> is to provide a context specific debugging experience.</p>
+<h2 id="callforcontributors">Call for contributors</h2>
+<p>Please, if you are an author of a framework or library and you want to see it supported by Kuker do submit an issue in the <a href="https://github.com/krasimir/kuker">Kuker's repository</a>. I'll be more then happy to integrate it. What Kuker support so far is: </p>
+<ul>
+<li><a href="https://github.com/krasimir/kuker#integration-with-react">React</a></li>
+<li><a href="https://github.com/krasimir/kuker#integration-with-angular">Angular</a></li>
+<li><a href="https://github.com/krasimir/kuker#integration-with-vue">Vue and Vuex</a></li>
+<li><a href="https://github.com/krasimir/kuker#integration-with-redux">Redux</a></li>
+<li><a href="https://github.com/krasimir/kuker#integration-with-redux-saga">redux-saga</a></li>
+<li><a href="https://github.com/krasimir/kuker#html-emitter">HTML</a></li>
+<li><a href="https://github.com/krasimir/kuker#integration-with-stent">Stent</a></li>
+<li><a href="https://github.com/krasimir/kuker#integration-with-machinajs">Machina.js</a></li>
+<li><a href="https://github.com/krasimir/kuker#integration-with-mobx">MobX</a></li>
+<li><a href="https://github.com/krasimir/kuker#baseemitter">Base emitter</a></li>
+</ul>
+<p>If you want to write an emitter on your own check out the <a href="https://github.com/krasimir/kuker#writing-your-own-emitter">Writing your own Emitter</a> section.</p>
+<h2 id="links">Links</h2>
+<ul>
+<li><a href="https://chrome.google.com/webstore/detail/glgnienmpgmfpkigngkmieconbnkmlcn">Kuker in Chrome's web store</a></li>
+<li><a href="https://github.com/krasimir/kuker">Official documentation</a></li>
+</ul>
