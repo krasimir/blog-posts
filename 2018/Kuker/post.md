@@ -10,7 +10,138 @@ Then I started thinking about the people that create those movies. How cool and 
 
 ## The script
 
-The robots are big part of our life so they are here to stay. Let's assume that is 2019 and we have a home robot. We give commands, the robot understands them and does what we want. Unfortunately is just 2019 not 3019 so our robot is kinda dumb and can do only two things - it can print stuff to the console or wait a promise to be resolved. 
+Let's assume that is 2019 and we have a home robot. We give commands, the robot understands them and does what we want. Unfortunately is just 2019 not 3019 so our robot is kinda dumb and can do only two things - it can print stuff to the console or wait a promise to be resolved. The developers of the future also don't like making calculations manually. They use cloud computing. Let's say that we have a `compute` function that accepts two numbers, asks someone to make the calculation and returns the result. We will simulate the remote request by using a promise and `setTimeout` call.
+
+```
+const compute = (a, b) => new Promise(done => setTimeout(done, 2000, a + b));
+```
+
+Now, here are our commands in a form of a JavaScript generator.
+
+```
+function * commands() {
+  yield 'Hey there!';
+  yield 'Let me find the answer for you.';
+  yield compute(10, 32);
+  yield `I am done and the answer is ${ answer }.`;
+}
+```
+
+The last actor in our script is the robot. It must be a function that iterates over our generator and executes the commands. In fact this is exactly the [command pattern implemented via generators](http://krasimirtsonev.com/blog/article/javascript-pattern-of-the-year-handle-async-like-a-boss).
+
+```
+var answer = null;
+const robot = function (gen) {
+  const step = gen.next();
+
+  if (step.value) {
+    if (typeof step.value === 'string') {
+      console.log(step.value);
+      if (!step.done) robot(gen);
+    } else {
+      step.value.then(result => {
+        answer = result;
+      });
+      if (!step.done) robot(gen);
+    }
+  }
+}
+```
+
+We use recursion to loop over the values produced by the generator. On every iteration we check if the value is a string. If yes then we print it out. If not we assume that it is a promise. Once that promise is resolved we assign the result to `answer` variable.
+
+The script seems ready. It is available on [this](https://codepen.io/krasimir/pen/BJPBGM?editors=0010) codepen but unfortunately when we run it we are getting:
+
+```
+Hey there!
+Let me find the answer for you.
+I am done and the answer is null.
+```
+
+So, not exactly what we expected. It is time for debugging.
+
+## Debugging
+
+Nowadays the debugging of JavaScript is supported by amazing tools. The browsers come with built-in instruments showing detailed view about every function call. Let's take the Chrome's devtools for example and try to debug our little  application. We will place a `debugger` statement in the `robot` method which will stop the execution. We are effectively adding a break point.
+
+const robot = function (gen) {
+  const step = gen.next();
+  debugger; // <------
+  if (step.value) {
+    if (typeof step.value === 'string') {
+      console.log(step.value);
+      if (!step.done) robot(gen);
+    } else {
+      step.value.then(result => {
+        answer = result;
+      });
+      if (!step.done) robot(gen);
+    }
+  }
+}
+
+I added a few expressions to watch - `step.value`, `step.done` and `answer`. Here is the result:
+
+![Redux devtools](./chrome_debugger.gif)
+
+What we see is that the `answer` is always `null`. It never gets filled with a number. `step.value` seems correct though.
+
+```
+-- (1) ----------------------------------------
+step.value -> 'Hey there!'
+step.done -> false
+answer -> null
+-- (2) ----------------------------------------
+step.value -> 'Let me find the answer for you.'
+step.done -> false
+answer -> null
+-- (3) ----------------------------------------
+step.value -> Promise
+step.done -> false
+answer -> null
+-- (4) ----------------------------------------
+step.value -> 'I am done and the answer is null.'
+step.done -> false
+answer -> null
+-- (5) ----------------------------------------
+step.value -> undefined
+step.done -> true
+answer -> null
+```
+
+What is also visible is the fact that there is no delay between `(3)` and `(4)`. That is also the key to our problem. We are not waiting the promise and resume the generator immediately.
+
+```
+...
+} else {
+  step.value.then(result => {
+    answer = result;
+  });
+  if (!step.done) robot(gen);
+}
+```
+
+should be 
+
+```
+...
+} else {
+  step.value.then(result => {
+    answer = result;
+    if (!step.done) robot(gen);
+  });
+}
+```
+
+Once this change is done we will see the expected result:
+
+```
+Hey there!
+Let me find the answer for you.
+I am done and the answer is 42.
+```
+
+That is pretty much how I solve issues daily. Very often instead of using the adding breakpoints and using the debugger I simply place `console.logs` here and there to see what is going on. Unfortunately, that is not always helpful. In this small example we saw a low level mistake where the bug was related to generator iteration. Those are easy to spot and fix. What gets difficult is logical mistakes where for example we update data in our store too early or set a wrong flag. In such cases we need a better debugging tool. A tool that provides contextual information about how our application works.
 
 ## A better debugging experience
 
@@ -29,7 +160,7 @@ We have two panels. The left one answers on my first question showing what happe
 
 [redux-devtools](https://github.com/gaearon/redux-devtools) is awesome. It helped me work faster. The thing is that it is Redux related. Unfortunately we have bunch of other stuff going on. [At work](https://www.antidote.me/) we have several big progressive apps that use [redux-saga](https://redux-saga.js.org/) and very often I need to debug those bits too. Also developing a progressive app means that our code runs on the server and the initial render happen there. All the Redux actions and saga processes are happening there first and there is no way ([yet](https://github.com/zalmoxisus/redux-devtools-extension/issues/181)) to see them via the [redux-devtools](https://github.com/gaearon/redux-devtools).
 
-So, I came with the idea that I may try creating a similar extension but collecting information from various sources. Not only Redux. That is how [Kuker](https://github.com/krasimir/kuker) was born.
+So, I came with the idea that I may try creating a similar extension but collecting information from various sources. Not only Redux. That is how [Kuker](https://github.com/krasimir/kuker) was born. Supporting Redux and redux-saga was fun but then I realized that I may extend the idea and now the extension supports frameworks like [Angular](https://github.com/krasimir/kuker#integration-with-angular) and [Vue](https://github.com/krasimir/kuker#integration-with-vue).
 
 ## Meet [Kuker](https://github.com/krasimir/kuker)
 
@@ -44,101 +175,45 @@ To demonstrate how everything works we will use the example above. We will write
 
 ## Writing a custom emitter
 
-In order to send a message to Kuker's DevTools UI we have to do one thing - calling of `window.postMessage` function. It is a [standard API](https://developer.mozilla.org/en-US/docs/Web/API/Window/postMessage). Like for example:
+In order to send a message to Kuker's DevTools UI we have to do one thing - calling of `window.postMessage` function. It is a [standard API](https://developer.mozilla.org/en-US/docs/Web/API/Window/postMessage).:
 
 ```
-window.postMessage({
-  kuker: true,
-  type: 'SOMETHING_HAPPENED',
-  state: { foo: 'bar' }
-}, '*');
-```
-
-`kuker: true` and `type` are mandatory properties. I added this five lines to a [Codepen](https://codepen.io/krasimir/pen/KZxWEo?editors=0010) and the result is as follows:
-
-![Kuker](./codepen1.png)
-
-Now let's say that something else happened and our application state is changed a little bit. Let's emit a `HELLO` event where `foo` is equal to `Hello world!`.
-
-window.postMessage({
-  kuker: true,
-  type: 'HELLO',
-  state: { foo: 'Hello world!' }
-}, '*');
-
-Kuker now shows two events and when focusing on the second one we see the exact mutation of the state.
-
-![Kuker](./codepen2.png)
-
-The gray theme may be boring so let's make it a little bit prettier:
-
-```
-window.postMessage({
-  kuker: true,
-  type: 'SOMETHING_HAPPENED',
-  label: 'Something happened in our application',
-  state: { foo: 'bar' },
-  icon: 'fa-check-square',
-  color: '#bada55'
-}, '*');
-window.postMessage({
-  kuker: true,
-  type: 'HELLO',
-  label: `Someone said 'Hello'`,
-  state: { foo: 'Hello world!' },
-  icon: 'fa-smile-o',
-  color: '#c3d0e5'
-}, '*');
-```
-
-Adding proper `label`, `icon` and `color` made it look like:
-
-![Kuker](./codepen3.png)
-
-Nice. Now let's write an emitter that will be used in our example. Remember how we `console.log` in `render` and `setState` methods. Those logs will be replaced with [Kuker](https://github.com/krasimir/kuker) events.
-
-```
-const emit = function (type, state) {
+var step = 0;
+const emit = function (state) {
   window.postMessage({
     kuker: true,
-    type,
+    type: `GENERATOR_STEP_${ ++step }`,
     state,
     icon: 'fa-hand-o-right',
-    color: '#8cc8ea'
+    color: '#8cc8ea',
+    time: (new Date()).getTime()
   }, '*');
 }
-
-const endpoint = 'https://jsonplaceholder.typicode.com';
-const App = {
-  state: {
-    error: null,
-    users: []
-  },
-  setState(newState) {
-    this.state = newState;
-    emit('SET_STATE', this.state);
-    this.render();
-  },
-  render() {
-    emit('RENDER', this.state);
-    ...
-  },
-  loadItems() {
-    emit('LOAD_ITEMS', this.state);
-    ...
-  }
-}
-
-App.loadItems();
 ```
 
-[Codepen](https://codepen.io/krasimir/pen/KZxWEo?editors=0010)
+Let's add this helper to [our broken codepen](https://codepen.io/krasimir/pen/BJPBGM?editors=0010). Inside the `robot` function we will call `emit` with the following parameters:
 
-If everything works as expected we should see `LOAD_ITEMS` followed by `SET_STATE` and `RENDER`.
+```
+emit({
+  value: String(step.value),
+  done: step.done,
+  answer
+});
+```
 
-![Kuker](./codepen4.png)
+If [Kuker](https://chrome.google.com/webstore/detail/glgnienmpgmfpkigngkmieconbnkmlcn) is installed and we open it in the devtools panel we will see the following sequence of events:
 
-Of course this is silly example and what we see in Kuker is not so beneficial. Let's move on and see how Kuker works when we have a complex app and there are couple of emitters in the game.
+![Kuker](./codepen1.gif)
+
+Let's fix our bug and see the difference. We move the `if (!step.done) robot(gen);` inside the promise and [Kuker](https://chrome.google.com/webstore/detail/glgnienmpgmfpkigngkmieconbnkmlcn) now shows a slightly different picture:
+
+![Kuker](./codepen2.gif)
+
+`GENERATOR_STEP_4` event now has +2 seconds in time and the `answer` is set to `42`. We will mention this in the section below but also notice that that all the events except the first one has a small white rectangle on the right side. This indicates that they do modify the state. Which in our case consist of `value`, `step` and `answer`. The thing is that we know that those events come with changes in some of these variables. However, what we are interested in the most is the `answer` one. So why not watch that specifically:
+
+![Kuker](./codepen3.gif)
+
+That was fun but kinda trivial right. Let's explore a more complex scenario where we have some mature framework like React involved.
 
 ## TodoMVC done with React, Redux and redux-saga
 
