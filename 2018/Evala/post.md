@@ -21,4 +21,4 @@ The `evala` command starts a web server that listens at `9788` port. In fact the
 
 The browser extension connects to `9788` port to get an access to a spawn shell and basically provide the same experience like I use iTerm.
 
-
+![evala](./evala.gif)
