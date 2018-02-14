@@ -41,7 +41,7 @@ I am done and the answer is null.
 <p>So, not exactly what we expected. It is time for debugging.</p>
 <h2 id="debugging">Debugging</h2>
 <p>Nowadays the debugging of JavaScript is supported by amazing tools. The browsers come with built-in instruments showing detailed view about every function call. Let's take the Chrome's devtools for example and try to debug our little  application. We will place a <code>debugger</code> statement in the <code>robot</code> method which will stop the execution. We will effectively add a break point.</p>
-<p>const robot = function (gen) {
+<pre><code>const robot = function (gen) {
   const step = gen.next();
   debugger; // <------
   if (step.value) {
@@ -55,7 +55,7 @@ I am done and the answer is null.
       if (!step.done) robot(gen);
     }
   }
-}</p>
+}</code></pre>
 <p>Let's also add few expressions to watch - <code>step.value</code>, <code>step.done</code> and <code>answer</code>. Here is the result:</p>
 <p><img src="http://krasimirtsonev.com/blog/articles/kuker/chrome_debugger.gif" alt="Redux devtools" /></p>
 <p>What we see is that the <code>answer</code> is always <code>null</code>. It never gets filled with a number. <code>step.value</code> seems correct though.</p>
