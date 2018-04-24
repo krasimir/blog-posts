@@ -1,0 +1,43 @@
+<p>On my machine I have four applications always open - VSCode, Chrome, iTerm and Slack. I spend most of my time in Chrome and VSCode. My editor is full with awesome extensions and I feel pretty good there. What I am doing for the browser is making sure that I have fewer tabs open and install only extensions that I really use. One thing though I can achieve so far. I can't find the perfect <a href="https://developer.chrome.com/extensions/override">new tab extension</a>.</p>[STOP]
+<p>I tried the most famous ones - <a href="https://chrome.google.com/webstore/detail/momentum/laookkfknpbbblfpciffpaejjkokdgca">Momentum</a>, <a href="https://chrome.google.com/webstore/detail/currently/ojhmphdkpgbibohbnpbfiefkgieacjmh">Currently</a>, <a href="https://chrome.google.com/webstore/detail/zen-tab-beautiful-simple/lbhkibbnhbkppaidinikfepgfhegmoak?hl=en">ZenTab</a> and a couple of others. My main goal was simplicity, seeing the time and the forecast plus maybe a TODO list or a notebook. All the options that I tried look good but some of them provide a little bit more features then I wanted. Those which were simple didn't completely match with my requirements. So, I am a programmer and I thought why not reinvent the wheel again. Because is fun and because I wanted different I created <a href="https://github.com/krasimir/evala">Evala</a> - a web app that is available as new-tab extension for <a href="https://addons.mozilla.org/en-US/firefox/addon/evala/">Firefox</a> or <a href="https://chrome.google.com/webstore/detail/evala/bmaojegjknddmkhfbkhfijcblmamgino">Chrome</a>.</p>
+<p><img src="http://krasimirtsonev.com/blog/articles/evala/screenshot_1280x800.png" alt="Evala"></p>
+<p>It shows the time, it shows the weather forecast from <a href="https://darksky.net">DarkSky</a> and opens my shell right there, in the browser. Not like there are no extensions that provide the same but what I wanted was really these three things - clock, forecast and terminal.</p>
+<p>Of course we can't fully implement the last bit without little help from the outside. That is why there is a <a href="https://www.npmjs.com/package/evala">npm package called <code>evala</code></a>. Once installed we have an <code>evala</code> command available.</p>
+<pre><code>> npm install evala -g
+> evala --shell=$SHELL
+</code></pre>
+<p><code>--shell=$SHELL</code> argument is important because otherwise we will end up using just <code>bash</code> (or <code>cmd.exe</code> under windows).</p>
+<p>The <code>evala</code> command starts a web server that listens on <code>9788</code> port. In fact the whole app is available at http://0.0.0.0:9788 and we can open it as a regular web page (no need to install the browser extension).</p>
+<p>When we open the app the browser connects to <code>9788</code> port and gets an access to a spawn shell and basically provide the same experience.</p>
+<p><img src="http://krasimirtsonev.com/blog/articles/evala/evala.gif" alt="evala"></p>
+<p>Let me talk a little bit about what I used.</p>
+<h2 id="the-front-end">The front-end</h2>
+<p>The front-end part is made in <a href="https://github.com/krasimir/react-in-patterns">React</a> by using <a href="https://github.com/krasimir/stent">Stent</a> for data flow and state management. <a href="https://xtermjs.org/">XTerm.js</a> provides the shell and to be honest is the best option for such kind stuff. Even VSCode uses it internally. I had some wonderings how to actually make it work but the demo of the project helped me a lot. The easiest way is to use the <a href="https://xtermjs.org/docs/api/addons/attach/"><code>attach</code> addon</a> which is basically saying &quot;Please, send whatever the user types to <em>this</em> socket and pipe the stdout from the actual shell in here&quot;.</p>
+<pre><code>socket = new WebSocket(...);
+socket.onopen = () => {
+  term.attach(socket);
+};
+</code></pre>
+<p>As long as the <code>evala</code> process is running, there is an open socket and the terminal replication works.</p>
+<h2 id="the-back-end">The back-end</h2>
+<p>On the server side we have a small <a href="https://expressjs.com/">Express</a> server that serves the bundled app as a static resource at http://0.0.0.0:9788. We also have <a href="https://www.npmjs.com/package/express-ws">express-ws package</a> that provides web sockets support and <a href="https://www.npmjs.com/package/node-pty">node-pty</a> that forks processes with pseudoterminal file descriptors. The rest was just wiring:</p>
+<pre><code>// opening a spawned terminal
+let term = pty.spawn(shell, [], {
+  name: 'xterm-color',
+  cwd: process.env.PWD,
+  env: process.env
+});
+
+// getting the stdout of the terminal and sending through the socket to the client
+term.on('data', function (data) {
+  ws.send(data);
+});
+
+// getting the user's input and sending to the spawned terminal
+ws.on('message', function (msg) {
+  term.write(msg);
+});
+</code></pre>
+<p>It works pretty well I would say. All the key mappings and stuff are just like in my iTerm. The aliases and setup are also the same. Overall <a href="https://xtermjs.org/">XTerm.js</a> and <a href="https://www.npmjs.com/package/node-pty">node-pty</a> play well together</p>
+<h2 id="final-words">Final words</h2>
+<p>I have several points in my TODO list. Like for example add a screen split so we have multiple terminals in one place. Fixing some bugs around key mappings and add some new once to switch between terminals. I'll be happy if you try the app (<a href="https://addons.mozilla.org/en-US/firefox/addon/evala/">Firefox</a> or <a href="https://chrome.google.com/webstore/detail/evala/bmaojegjknddmkhfbkhfijcblmamgino">Chrome</a>) and let me know what you think. The code is of course free and published on GitHub - <a href="https://github.com/krasimir/evala">github.com/krasimir/evala</a>.</p>
