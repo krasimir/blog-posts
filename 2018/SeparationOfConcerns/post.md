@@ -81,3 +81,95 @@ function UserCard({ name, avatar }) {
 So, as we can see it is all matter of composition. In my opinion React even makes our applications more compact because everything is defined as a reusable components and lives in the same context - JavaScript.
 
 There are bunch of libraries that help writing maintainable CSS in JavaScript (and to be more specific in React ecosystem). I have experience with [Glamorous](https://glamorous.rocks/) and [styled-components](https://www.styled-components.com/) and I could say that they both work really well. The result of such libraries is usually a ready for use component that encapsulates the styling and renders a specific HTML tag.
+
+## Logic
+
+Very often we write logic inside our React components which is more then clicking a button and showing a message. The snippet below demonstrates a component that fetches data from a fake API and renders users on the screen.
+
+```js
+class App extends React.Component {
+  constructor(props) {
+    super(props);
+
+    this.state = {
+      loading: false,
+      users: null,
+      error: null
+    };
+  }
+  componentDidMount() {
+    this.setState({ loading: true }, () => {
+      fetch('https://jsonplaceholder.typicode.com/users')
+        .then(response => response.json())
+        .then(users => this.setState({ users, loading: false }))
+        .catch(error => this.setState({ error, loading: false }));
+    });
+  }
+  render() {
+    const { loading, users, error } = this.state;
+
+    if (isRequestInProgress) return <p>Loading</p>;
+    if (error) return <p>Ops, sorry. No data loaded.</p>;
+    if (users) return users.map(({ name }) => <p>{name}</p>);
+    return null;
+  }
+}
+```
+
+Quite a lot of things are happening isn't it. When first rendered the component shows nothing - `null`. Then we get the life-cycle `componentDidMount` method fired where we set the `loading` flag to `true` and fire the API request. While the request is in flight we display a paragraph containing the text `"Loading"`. In the end if everything is ok we turn `loading` to false and render list of user names. In case of error we display `"Ops, sorry. No data loaded"`.
+
+Now I agree that the `App` component is kind of violating the separation of concerns. It contains data fetching and data representation. There are couple of ways to solve this problem and my favorite one is [FaCC (Function as Child Components)](https://github.com/krasimir/react-in-patterns/blob/master/book/chapter-4/README.md#function-as-a-children-render-prop). Let's write a `FetchUsers` component that will take care for the API request.
+
+```js
+class FetchUsers extends React.Component {
+  constructor(props) {
+    super(props);
+
+    this.state = {
+      loading: false,
+      users: null,
+      error: null
+    };
+  }
+  componentDidMount() {
+    this.setState({ loading: true }, () => {
+      fetch('https://jsonplaceholder.typicode.com/users')
+        .then(response => response.json())
+        .then(users => this.setState({ users, loading: false }))
+        .catch(error => this.setState({ error, loading: false }));
+    });
+  }
+  render() {
+    const { loading, users, error } = this.state;
+
+    return this.props.children({ loading, users, error });
+  }
+}
+```
+
+The very first thing that we notice is that the constructor and `componentDidMount` method body are the same. The difference is that we render nothing (no data representation) but call the `children` as a function passing the status/result of the request. Having `FetchUsers` we may transform our `App` component into a stateless one.
+
+```js
+function App() {
+  return (
+    <FetchUsers>
+      {({ loading, users, error }) => {
+        if (loading) return <p>Loading</p>;
+        if (error) return <p>Ops, sorry. No data loaded.</p>;
+        if (users) return users.map(({ name }) => <p>{name}</p>);
+        return null;
+      }}
+    </FetchUsers>
+  );
+}
+```
+
+At this point our markup is separated from the logic. We still operate with the same data though and as a bonus we have this reusable `FetchUsers` component that may be dropped anywhere.
+
+## Markup
+
+JSX syntax is following the XML/HTML semantics and as such comes with a huge benefit - composability. My opinion is that React is one level up over the HTML because it allows us to group complex markup into a single component. What if we have a `<header>` with some `<h1>`, `<nav>` and `<p>` tags inside. We may easily create a `<Header>` component and put all those bits inside. We still keep them together but now they are easy to move around.
+
+## Conclusion
+
+No, I don't think that React is against the separation of concerns. It is matter of design and composition. There are [patterns](https://github.com/krasimir/react-in-patterns) that help solving such problems and we can still write well organized apps with clearly defined modules responsibilities.
