@@ -1,0 +1,1 @@
+marked ./SeparationOfConcerns/post.md -o ./SeparationOfConcerns/post.html

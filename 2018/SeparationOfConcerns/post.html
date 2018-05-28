@@ -1,0 +1,144 @@
+<p>Years ago when Facebook announced their JSX syntax we had a wave of comments how this was against some of the well established good practices. The main point of most people was that it violates the <a href="https://en.wikipedia.org/wiki/Separation_of_concerns#HTML,_CSS,_JavaScript">separation of concerns</a>. They said that React and its JSX are mixing HTML, CSS and JavaScript which were suppose to be separated.</p>
+<p>In this article we will see how React and its ecosystem has quite good separation of concerns. We will prove that markup, styles and logic may live in the same JavaScript land and still be separated.</p>[STOP]
+<h2 id="styling">Styling</h2>
+<p>React components render to DOM elements. Nothing stops us to use the good old <code>class</code> attribute and attach a CSS class to the produced HTML element. The only one difference is that the attribute is called <code>className</code> instead of <code>class</code>. The rest still works which means that if we want we may put our styles into external <code>.css</code> files. Following this approach we are not breaking the separation of concerns principle and still build a React app using JSX.</p>
+<pre><code>// assets/css/styles.css
+.pageTitle {
+  color: pink;
+}
+
+// assets/js/app.js
+function PageTitle({ text }) {
+  return &lt;h1 className=&#39;pageTitle&#39;&gt;{ text }&lt;/h1&gt;;
+}</code></pre>
+<p>The &quot;problem&quot; became a problem when <a href="https://vimeo.com/116209150">developers</a> started talking about &quot;CSS in JavaScript&quot;. Back in 2014 this looked weird and wrong. However, the next couple of years showed that this is not that bad. Let&#39;s take the following example:</p>
+<pre><code>function UserCard({ name, avatar }) {
+  const cardStyles = {
+    padding: &#39;1em&#39;,
+    boxShadow: &#39;0px 0px 45px 0px #000&#39;
+  };
+  const avatarStyles = {
+    float: &#39;left&#39;,
+    display: &#39;block&#39;,
+    marginRight: &#39;1em&#39;
+  };
+  return (
+    &lt;div style={cardStyles}&gt;
+      &lt;img src={avatar} width=&quot;50&quot; style={avatarStyles} /&gt;
+      &lt;p&gt;{name}&lt;/p&gt;
+    &lt;/div&gt;
+  );
+}</code></pre>
+<p>This is the pain point. The place where we are mixing CSS and markup or we may say mixing styling and structure. To solve the issue let&#39;s keep <code>UserCard</code> still responsible for the structure, but extract the styling out into dedicated components <code>Card</code> and <code>Avatar</code>:</p>
+<pre><code>function Card({ children }) {
+  const styles = {
+    padding: &#39;1em&#39;,
+    boxShadow: &#39;0px 0px 45px 0px #000&#39;,
+    maxWidth: &#39;200px&#39;
+  };
+  return &lt;div style={styles}&gt;{children}&lt;/div&gt;;
+}
+function Avatar({ url }) {
+  const styles = {
+    float: &#39;left&#39;,
+    display: &#39;block&#39;,
+    marginRight: &#39;1em&#39;
+  };
+  return &lt;img src={url} width=&quot;50&quot; style={styles} /&gt;;
+}</code></pre>
+<p>Then <code>UserCard</code> component becomes simpler and has no styling concerns:</p>
+<pre><code>function UserCard({ name, avatar }) {
+  return (
+    &lt;Card&gt;
+      &lt;Avatar url={avatar} /&gt;
+      &lt;p&gt;{name}&lt;/p&gt;
+    &lt;/Card&gt;
+  );
+}</code></pre>
+<p>So, as we can see, it is all matter of composition. React even makes our applications more compact because everything is defined as a reusable components and lives in the same context - JavaScript.</p>
+<p>There are bunch of libraries that help writing maintainable CSS in JavaScript (and to be more specific in React ecosystem). I have experience with <a href="https://glamorous.rocks/">Glamorous</a> and <a href="https://www.styled-components.com/">styled-components</a> and they both work really well. The result of such libraries is usually a ready for use component that encapsulates the styling and renders a specific HTML tag.</p>
+<h2 id="logic">Logic</h2>
+<p>Very often we write logic inside our React components which is more then clicking a button and showing a message. The snippet below demonstrates a component that fetches data from a fake API and renders users on the screen.</p>
+<pre><code>class App extends React.Component {
+  constructor(props) {
+    super(props);
+
+    this.state = {
+      loading: false,
+      users: null,
+      error: null
+    };
+  }
+  componentDidMount() {
+    this.setState({ loading: true }, () =&gt; {
+      fetch(&#39;https://jsonplaceholder.typicode.com/users&#39;)
+        .then(response =&gt; response.json())
+        .then(users =&gt; this.setState({ users, loading: false }))
+        .catch(error =&gt; this.setState({ error, loading: false }));
+    });
+  }
+  render() {
+    const { loading, users, error } = this.state;
+
+    if (isRequestInProgress) return &lt;p&gt;Loading&lt;/p&gt;;
+    if (error) return &lt;p&gt;Ops, sorry. No data loaded.&lt;/p&gt;;
+    if (users) return users.map(({ name }) =&gt; &lt;p&gt;{name}&lt;/p&gt;);
+    return null;
+  }
+}</code></pre>
+<p>Quite a lot of things are happening isn&#39;t it. When first rendered the component shows nothing - <code>null</code>. Then we get the life-cycle <code>componentDidMount</code> method fired where we set the <code>loading</code> flag to <code>true</code> and fire the API request. While the request is in flight we display a paragraph containing the text <code>&quot;Loading&quot;</code>. In the end, if everything is ok we turn <code>loading</code> to false and render list of user names. In case of error we display <code>&quot;Ops, sorry. No data loaded&quot;</code>.</p>
+<p>Now I agree that the <code>App</code> component is kind of violating the separation of concerns. It contains data fetching and data representation. There are couple of ways to solve this problem but my favorite one is <a href="https://github.com/krasimir/react-in-patterns/blob/master/book/chapter-4/README.md#function-as-a-children-render-prop">FaCC (Function as Child Components)</a>. Let&#39;s write a <code>FetchUsers</code> component that will take care for the API request.</p>
+<pre><code>class FetchUsers extends React.Component {
+  constructor(props) {
+    super(props);
+
+    this.state = {
+      loading: false,
+      users: null,
+      error: null
+    };
+  }
+  componentDidMount() {
+    this.setState({ loading: true }, () =&gt; {
+      fetch(&#39;https://jsonplaceholder.typicode.com/users&#39;)
+        .then(response =&gt; response.json())
+        .then(users =&gt; this.setState({ users, loading: false }))
+        .catch(error =&gt; this.setState({ error, loading: false }));
+    });
+  }
+  render() {
+    const { loading, users, error } = this.state;
+
+    return this.props.children({ loading, users, error });
+  }
+}</code></pre>
+<p>The very first thing that we notice is that the constructor and <code>componentDidMount</code> method are just copy-pasted from the <code>App</code> component. The difference is that we render nothing (no data representation) but call the <code>children</code> as a function passing the status/result of the request. Having <code>FetchUsers</code> we may transform our <code>App</code> into a stateless component:</p>
+<pre><code>function App() {
+  return (
+    &lt;FetchUsers&gt;
+      {({ loading, users, error }) =&gt; {
+        if (loading) return &lt;p&gt;Loading&lt;/p&gt;;
+        if (error) return &lt;p&gt;Ops, sorry. No data loaded.&lt;/p&gt;;
+        if (users) return users.map(({ name }) =&gt; &lt;p&gt;{name}&lt;/p&gt;);
+        return null;
+      }}
+    &lt;/FetchUsers&gt;
+  );
+}</code></pre>
+<p>At this point our markup is separated from the logic. We still operate with the same data and as a bonus we have this reusable <code>FetchUsers</code> component that may be dropped anywhere.</p>
+<h2 id="markup">Markup</h2>
+<p>JSX syntax is following the XML/HTML semantics and as such comes with a huge benefit - composability. My opinion is that React is one level up over the HTML because it allows us to group complex markup into a single component. For example we have a <code>&lt;header&gt;</code> with some <code>&lt;h1&gt;</code>, <code>&lt;nav&gt;</code> and <code>&lt;p&gt;</code> tags inside. We may easily create a <code>&lt;Header&gt;</code> component and put all those bits inside. We still keep them together but now they are easy to move around. Perhaps, there are places where we write some logic directly into the markup like so:</p>
+<pre><code>function CallToActionButton({ service, token }) {
+  return &lt;button onClick={ () =&gt; service.request(token) } /&gt;;
+}
+
+&lt;CallToAction server={ service } token={ token } /&gt;</code></pre>
+<p>In such cases I again recommend to use composition and remove any app logic concerns out of the presentation.</p>
+<pre><code>function CallToActionButton({ onButtonClicked }) {
+  return &lt;button onClick={ onButtonClicked } /&gt;;
+}
+
+&lt;CallToAction server={ () =&gt; service.request(token) } /&gt;</code></pre>
+<p>It is just a matter of spotting those bits and change them on time.</p>
+<h2 id="conclusion">Conclusion</h2>
+<p>No, I don&#39;t think that React is against the separation of concerns. It is all about design and composition. There are <a href="https://github.com/krasimir/react-in-patterns">patterns</a> that help us to compose and logically separate our apps. We can still write well organized programs with clearly defined responsibilities.</p>
