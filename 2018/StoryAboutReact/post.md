@@ -109,7 +109,7 @@ const ConnectedApp = connect(
 export default ConnectedApp;
 ```
 
-Notice that we are using `componentWillMount` and not `componentDidMount`. That is because mainly because we don't have `componentDidMount` running on the server-side.
+Notice that we are using `componentWillMount` and not `componentDidMount`. That is because we don't have `componentDidMount` running on the server-side.
 
 `fetchUsers` is an async function passed as a prop which uses the [Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API) to retrieve the data from the fake endpoint. When the both promises returned by `fetch` and `json` functions are resolved we dispatch the `USERS_FETCHED` action. The reducer picks it up and returns the new state containing the users' information. And because our `App` component is *connect*ed to Redux it gets re-rendered.
 
@@ -130,5 +130,21 @@ ReactDOM.render(
 );
 ```
 
+## Bundling
+
+So, we have that small React application that uses Redux. It fetches data and renders. However, in order to load it in the browser we have to bundle it. Or in other words all the JavaScript that we wrote so far has to be transpiled to ES5 and combined in a single file. Of course if we have a big application we may need to code split components but for the purpose of this article we will stick to a single resource.
+
+Here are two script that get `client.js` as an entry point and produce `bundle.js`. The second one could be used while developing because it reacts on file changes. 
+
+```
+"scripts": {
+  "build": "browserify ./src/client/client.js -o ./build/bundle.js -t babelify",
+  "watch": "watchify ./src/client/client.js -o ./build/bundle.js -t babelify -v"
+}
+```
+
+Most people will probably use [webpack](https://webpack.js.org/) for that. However, I like the simplicity of the `package.json` scripts and to be honest if you need just transpiling and bundling you may rely on [browserify](https://www.npmjs.com/package/browserify) and [watchify](https://www.npmjs.com/package/watchify).
+
 ## Running the Node server
 
+The most trivial approach for running a HTTP server in JavaScript is using [Express](https://expressjs.com/). We will do the same. 
