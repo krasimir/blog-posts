@@ -2,7 +2,55 @@
 
 Long long time ago in a kingdom far away there was an app. The app was supported by the well known React and Redux families but there was a problem. It was damn slow. People started complaining and the app had to do something. It had to deliver its content quickly so it provides better user experience. Then the server-side rendering was born.
 
-Today we are going to build a simple React application that uses Redux. Then we will server-side render it. The example includes asynchronous data fetching.
+Today we are going to build a simple React application that uses Redux. Then we will server-side render it. The example includes asynchronous data fetching which makes the task a little bit more interesting.
+
+## Setup
+
+Before even starting with React we have to deal with some setup. We want to write our code using ES6 syntax which means that our code needs to be transpiled to ES5 before to be used. Transpilation is one of the things but we also need to bundle it. I already blogged on that topic some time ago - [
+The bare minimum to work with React](http://krasimirtsonev.com/blog/article/The-bare-minimum-to-work-with-React). The approach that we will take in this article is similar. We will use [browserify](https://www.npmjs.com/package/browserify) and [watchify](https://www.npmjs.com/package/watchify) with [babelify](https://www.npmjs.com/package/babelify) transform to bundle our client side code. For our server side code we will directly rely on [babel-cli](https://babeljs.io/docs/en/babel-cli). 
+
+Having the following file structure
+
+```
+build
+src
+  ├── client
+  │   └── client.js
+  └── server
+      └── server.js
+
+```
+
+we need these two scripts to build and develop the project.
+
+```
+"scripts": {
+    "build": "
+      browserify ./src/client/client.js -o ./build/bundle.js -t babelify &&
+      babel ./src/ --out-dir ./build/",
+    "watch": "
+      concurrently 
+        \"watchify ./src/client/client.js -o ./build/bundle.js -t babelify -v\"
+        \"babel ./src/ --out-dir ./build/ --watch\"
+      "
+}
+```
+
+*(Notice that I added the new lines and spaces for easy reading)*
+
+[concurrently](https://www.npmjs.com/package/concurrently) library helps running more then one process in parallel which is exactly what we need when watching for changes.
+
+There is one last script that we need. The one that runs our HTTP server.
+
+```
+"scripts": {
+  "build": "...",
+  "watch": "...",
+  "start": "nodemon ./build/server/server.js"
+}
+```
+
+Instead of just `node ./build/server/server.js` we will use [nodemon](https://nodemon.io/). Nodemon is an utility that will monitor for any changes in our code and it will automatically restart the server.
 
 ## React/Redux application
 
@@ -129,21 +177,6 @@ ReactDOM.render(
   document.querySelector('#content')
 );
 ```
-
-## Bundling
-
-So, we have that small React application that uses Redux. It fetches data and renders. However, in order to load it in the browser we have to bundle it. Or in other words all the JavaScript that we wrote so far has to be transpiled to ES5 and combined in a single file. Of course if we have a big application we may need to code split components but for the purpose of this article we will stick to a single resource.
-
-Here are two script that get `client.js` as an entry point and produce `bundle.js`. The second one could be used while developing because it reacts on file changes. 
-
-```
-"scripts": {
-  "build": "browserify ./src/client/client.js -o ./build/bundle.js -t babelify",
-  "watch": "watchify ./src/client/client.js -o ./build/bundle.js -t babelify -v"
-}
-```
-
-Most people will probably use [webpack](https://webpack.js.org/) for that. However, I like the simplicity of the `package.json` scripts and to be honest if you need just transpiling and bundling you may rely on [browserify](https://www.npmjs.com/package/browserify) and [watchify](https://www.npmjs.com/package/watchify).
 
 ## Running the Node server
 
