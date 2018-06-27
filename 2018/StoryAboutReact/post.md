@@ -2,7 +2,7 @@
 
 Long long time ago in a kingdom far away there was an app. The app was supported by the well known React and Redux families but there was a problem. It was damn slow. People started complaining and the app had to do something. It had to deliver its content quickly so it provides better user experience. Then the server-side rendering was born.
 
-Today we are going to build a simple React application that uses Redux. Then we will server-side render it. The example includes asynchronous data fetching which makes the task a little bit more interesting.
+Today we are going to build a simple React application that uses Redux. Then we will server-side render it. The example includes asynchronous data fetching which makes the task a little bit more interesting. We will have client-side but also server-side JavaScript.
 
 ## Setup
 
@@ -18,7 +18,6 @@ src
   │   └── client.js
   └── server
       └── server.js
-
 ```
 
 we need these two scripts to build and develop the project.
@@ -52,13 +51,29 @@ There is one last script that we need. The one that runs our HTTP server.
 
 Instead of just `node ./build/server/server.js` we will use [nodemon](https://nodemon.io/). Nodemon is an utility that will monitor for any changes in our code and it will automatically restart the server.
 
-## React/Redux application
+## React + Redux application
 
-Let's say that we have an endpoint that returns data for the users in our system. And our task is to get that data and render it. To keep the example simple we will do that with a single `<App>` component. In the `componentWillMount` lifecycle method we will trigger the data fetching and once the request succeeds we will dispatch an action which will update the store's state. Which will trigger a re-rendering of our component.
+Let's say that we have an endpoint that returns data for the users in our system in the following format:
+
+```js
+[
+  {
+    "id": <number>,
+    "first_name": <string>,
+    "last_name": <string>,
+    "avatar": <string>
+  },
+  {
+    ...
+  }
+]
+```
+
+And our task is to get that data and render it. To keep the example simple we will do that with a single `<App>` component. In the `componentWillMount` lifecycle method we will trigger the data fetching and once the request succeeds we will dispatch an action with type `USER_FETCHED` which will lead to an update in the our Redux store. This will trigger a re-rendering of our component with the given data.
 
 ![main redux flow](./img1.jpg)
 
-### Implementing Redux pattern
+### Implementing the Redux pattern
 
 Let's first start by modeling our application state. The endpoint returns an array of user profiles so we may go with the following:
 
@@ -157,11 +172,11 @@ const ConnectedApp = connect(
 export default ConnectedApp;
 ```
 
-Notice that we are using `componentWillMount` and not `componentDidMount`. That is because we don't have `componentDidMount` running on the server-side.
+Notice that we are using `componentWillMount` and not `componentDidMount`. The main reason is because we don't have `componentDidMount` running on the server-side. *(React's team also depricated those methods but that is another story.)*
 
-`fetchUsers` is an async function passed as a prop which uses the [Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API) to retrieve the data from the fake endpoint. When the both promises returned by `fetch` and `json` functions are resolved we dispatch the `USERS_FETCHED` action. The reducer picks it up and returns the new state containing the users' information. And because our `App` component is *connect*ed to Redux it gets re-rendered.
+`fetchUsers` is an async function passed as a prop which uses the [Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API) to retrieve the data from the fake endpoint. When the both promises returned by `fetch()` and `json()` functions are resolved we dispatch the `USERS_FETCHED` action. Later the reducer picks it up and returns the new state containing the users' data. And because our `App` component is *connect*ed to Redux it gets re-rendered.
 
-The last bit for the client-side is where we place an instance of `<App>` in the actual DOM.
+The client-side code ends with the placement of `<App>` component on the page.
 
 ```js
 // client.js
@@ -180,4 +195,47 @@ ReactDOM.render(
 
 ## Running the Node server
 
-The most trivial approach for running a HTTP server in JavaScript is using [Express](https://expressjs.com/). We will do the same. 
+The most trivial approach for running a HTTP server in JavaScript is using [Express](https://expressjs.com/) library. We will use it first because it is simple and helps the purpose of this article and second because it is anyway pretty stable solution.
+
+```js
+// server.js
+import express from 'express';
+
+const app = express();
+
+// Serving the content of the "build" folder. Remember that
+// after the transpiling and bundling we have:
+//
+// build
+//   ├── client
+//   ├── server
+//   │   └── server.js
+//   └── bundle.js
+app.use(express.static(__dirname + '/../'));
+
+app.get('*', (req, res) => {
+  res.set('Content-Type', 'text/html');
+  res.send(`
+    <html>
+      <head>
+        <title>App</title>
+      </head>
+      <body>
+        <div id="content"></div>
+        <script src="/bundle.js"></script>
+      </body>
+    </html>
+  `);
+});
+
+app.listen(
+  3000,
+  () => console.log('Example app listening on port 3000!')
+);
+```
+
+Having this file we may run `npm run start` and visit `http://localhost:3000`. We will see the application working. The data will be fetched and the users' data will be rendered.
+
+## The server-side rendering
+
+It all works 
