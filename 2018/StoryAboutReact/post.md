@@ -234,8 +234,76 @@ app.listen(
 );
 ```
 
-Having this file we may run `npm run start` and visit `http://localhost:3000`. We will see the application working. The data will be fetched and the users' data will be rendered.
+Having this file we may run `npm run start` and visit `http://localhost:3000`. We will see the application working. The data will be fetched and the users will be rendered.
 
 ## The server-side rendering
 
-It all works 
+It all works so far but everything is happening on the client. This means that our server initially sends a blank page to the user. Then the browser needs to download `bundle.js` and runs it. Once the data fetching happens we show the result to the user. And here is where the server-side rendering comes in to the game. Instead of leaving all the work for the browser we may do everything on the server and send the final markup. And then React is smart enough to understand the markup that is currently on the page and reuse it.
+
+The API of React that we have to use in node is delivered by the [react-dom](http://npmjs.com/package/react-dom) package. Remember how on the client we did the following:
+
+```js
+import ReactDOM from 'react-dom';
+
+ReactDOM.render(
+  <Provider store={ createStore() }><App /></Provider>,
+  document.querySelector('#content')
+);
+```
+
+Well, on the server is almost the same.
+
+```js
+import ReactDOMServer from 'react-dom/server';
+
+const markupAsString = ReactDOMServer.renderToString(
+  <Provider store={ store }><App /></Provider>
+);
+```
+
+We use the same `<App>` component and the same store. It is just a different React API that returns a string instead of rendering into a DOM element. Later we inject that string in our Express response and the user receives some server-side rendered markup. So our `server.js` changes to:
+
+```js
+const store = createStore();
+const content = ReactDOMServer.renderToString(
+  <Provider store={ store }><App /></Provider>
+);
+
+app.get('*', (req, res) => {
+  res.set('Content-Type', 'text/html');
+  res.send(`
+    <html>
+      <head>
+        <title>App</title>
+      </head>
+      <body>
+        <div id="content">${ content }</div>
+        <script src="/bundle.js"></script>
+      </body>
+    </html>
+  `);
+});
+```
+
+If we restart the server and open the same `http://localhost:3000` page we will see the following response:
+
+```html
+<html>
+  <head>
+    <title>App</title>
+  </head>
+  <body>
+    <div id="content"><div data-reactroot=""></div></div>
+    <script src="/bundle.js"></script>
+  </body>
+</html>
+```
+
+We do have some content inside our container but it is just `<div data-reactroot=""></div>`. This doesn't mean that something is broken. It is absolutely correct. React indeed renders our page but it renders only the static content. In our `<App>` component we have nothing until we get the data and on the server we simply don't give enough time for all this to happen. The fetching of the data is an asynchronous process and we have to take this into account when we render. And this is where the server-side rendering becomes tricky. It really boils down to what you application is doing. In our example the app depends on one specific request but this could be many requests or maybe a completed root saga if [redux-saga](https://redux-saga.js.org/) library is used. I recognize two ways of dealing with the problem:
+
+* We know exactly what the requested page needs. We fetch the data and create the Redux store with that data. If we render with already fulfilled store we will get rendering of the full page.
+* We rely completely on the code that runs on the client and we wait till everything there is complete.
+
+The first approach requires some level of routing and it means that we have to manage the data fetching on two different places. The second approach means that we have to be careful with what we do on the client and make sure that the same thing may happen on the server.
+
+
