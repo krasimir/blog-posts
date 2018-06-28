@@ -304,6 +304,102 @@ We do have some content inside our container but it is just `<div data-reactroot
 * We know exactly what the requested page needs. We fetch the data and create the Redux store with that data. If we render with already fulfilled store we will get rendering of the full page.
 * We rely completely on the code that runs on the client and we wait till everything there is complete.
 
-The first approach requires some level of routing and it means that we have to manage the data fetching on two different places. The second approach means that we have to be careful with what we do on the client and make sure that the same thing may happen on the server.
+The first approach requires some level of routing and it means that we have to manage the data flow on two different places. The second approach means that we have to be careful with what we do on the client and make sure that the same thing may happen on the server. Even though sometimes it requires more efforts I prefer that second approach because I have to maintain a single code base. It just takes a little bit more instrumentation on the server to make this possible. Like for example in our case we use [Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API) to make the request to the endpoint. On the server we don't have this by default. Thankfully there is a [isomorphic-fetch](https://www.npmjs.com/package/isomorphic-fetch) package that adds `fetch` method as a global one. All we have to do is to import it somewhere before the usage of `fetch`. Like in `server.js`:
 
+```js
+import 'isomorphic-fetch';
+```
 
+Once we deal with the APIs that the client code uses we have to render and wait till the data is in the store. Once this is done we fire `ReactDOMServer.renderToString` which will give us the desired markup. Here is how our Express handler looks like:
+
+```js
+app.get('*', (req, res) => {
+  const store = createStore();
+
+  const unsubscribe = store.subscribe(() => {
+    const users = getUsers(store.getState());
+
+    if (users !== null && users.length > 0) {
+      unsubscribe();
+
+      const content = ReactDOMServer.renderToString(
+        <Provider store={ store }><App /></Provider>
+      );
+
+      res.set('Content-Type', 'text/html');
+      res.send(`
+        <html>
+          <head>
+            <title>App</title>
+          </head>
+          <body>
+            <div id="content">${ content }</div>
+            <script src="/bundle.js"></script>
+          </body>
+        </html>
+      `);
+    }
+  });
+
+  ReactDOMServer.renderToString(<Provider store={ store }><App /></Provider>);
+});
+```
+
+We are using the `subscribe` method of the Redux store to understand when an action is dispatched or the state is updated. Once this happen we check the condition that we are interested in - is there any user data fetched. If the data is there we `unsubscribe()` so we don't have the same code run twice and we render to string using the same store instance. At the end we flush out the markup to the browser.
+
+There is one thing which bugs me and I still didn't find a proper fix. We have to render twice. We have to do that because the processes that we wait to finish start only when we render. Remember how we fire `fetchUsers` in `componentWillMount` hook. Without rendering the `<App>` component we are not firing the fetch request which means we don't have the store updated.
+
+With that code above we have our `<App>` component successfully server-side rendered. We are getting the following markup straight away from the server:
+
+```html
+<html>
+  <head>
+    <title>App</title>
+  </head>
+  <body>
+    <div id="content"><div data-reactroot=""><p>Eve Holt</p><p>Charles Morris</p><p>Tracey Ramos</p></div></div>    
+    <script src="/bundle.js"></script>
+  </body>
+</html>
+```
+
+Now the users are rendered. And of course React is able to understand the HTML and works with it. But we are not done yet. The client-side JavaScript has no idea what happened on the server and doesn't know that we already did the request to the API and we have the data. We have to inform the browser and pass down the state of the Redux store on the server so it can pick it up and work from there.
+
+```js
+const content = ReactDOMServer.renderToString(
+  <Provider store={ store }><App /></Provider>
+);
+
+res.set('Content-Type', 'text/html');
+res.send(`
+  <html>
+    <head>
+      <title>App</title>
+    </head>
+    <body>
+      <div id="content">${ content }</div>
+      <script>
+        window.__APP_STATE = ${ JSON.stringify(store.getState()) };
+      </script>
+      <script src="/bundle.js"></script>
+    </body>
+  </html>
+`);
+```
+
+We send the store's state as a global variable `__APP_STATE` which the client-side code is responsible to look after. Our reducer changes a little bit. We have a function `getInitialState` which we have to update:
+
+```js
+function getInitialState() {
+  if (typeof window !== 'undefined' && window.__APP_STATE) {
+    return window.__APP_STATE;
+  }
+  return { users: null };
+}
+```
+
+Notice `typeof window !== 'undefined'` check. We have to do that because this same reducer is run on the server. This is a perfect example of how we have to be careful with the globally available APIs when using SSR.
+
+## Conclusion
+
+Server-side rendering is an interesting topic. It comes with a lot of advantages and improves the overall user experience. It also affects the SEO of your single page applications. It is not simple though. In most of the cases requires additional instrumentation and carefully selected tools. How is the SSR happening in your apps? Is it similar to what we discussed so far?
