@@ -71,7 +71,7 @@ Let's say that we have an endpoint that returns data for the users in our system
 
 And our task is to get that data and render it. To keep the example simple we will do that with just one `<App>` component. In the `componentWillMount` lifecycle method of this component we will trigger the data fetching and once the request succeeds we will dispatch an action with type `USER_FETCHED`. That action will be processed by a reducer and we will get an update in the our Redux store. And that state change will trigger a re-rendering of our component with the given data.
 
-![main redux flow](./img1.jpg)
+![main redux flow](./redux.jpg)
 
 ### Implementing the Redux pattern
 
