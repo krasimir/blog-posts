@@ -1,15 +1,15 @@
 # A story about React, Redux and server-side rendering
 
-Long long time ago in a kingdom far away there was an app. The app was supported by the well known React and Redux families but there was a problem. It was damn slow. People started complaining and the app had to do something. It had to deliver its content quickly so it provides better user experience. Then the server-side rendering was born.
+*Long long time ago in a kingdom far far away there was an app. The app was supported by the well known React and Redux families but there was a problem. It was damn slow. People started complaining and the app had to do something. It had to deliver its content quickly so it provides better user experience. Then the server-side rendering was born.*
 
-Today we are going to build a simple React application that uses Redux. Then we will server-side render it. The example includes asynchronous data fetching which makes the task a little bit more interesting. We will have client-side but also server-side JavaScript.
+Today we are going to build a simple React application that uses Redux. Then we will server-side render it. The example includes asynchronous data fetching which makes the task a little bit more interesting.
 
 ## Setup
 
-Before even starting with React we have to deal with some setup. We want to write our code using ES6 syntax which means that our code needs to be transpiled to ES5 before to be used. Transpilation is one of the things but we also need to bundle it. I already blogged on that topic some time ago - [
+Before even starting with writing the application we have to deal with a building/compiling processes. We want to write our code in ES6 syntax which means that our code needs to be transpiled to ES5 so it can be used by browsers and node. We also have to bundle our client-side code. I already blogged on that topic some time ago - [
 The bare minimum to work with React](http://krasimirtsonev.com/blog/article/The-bare-minimum-to-work-with-React). The approach that we will take in this article is similar. We will use [browserify](https://www.npmjs.com/package/browserify) and [watchify](https://www.npmjs.com/package/watchify) with [babelify](https://www.npmjs.com/package/babelify) transform to bundle our client side code. For our server side code we will directly rely on [babel-cli](https://babeljs.io/docs/en/babel-cli). 
 
-Having the following file structure
+We will start with the following file structure:
 
 ```
 build
@@ -20,7 +20,7 @@ src
       └── server.js
 ```
 
-we need these two scripts to build and develop the project.
+And we need two scripts to build and develop the project.
 
 ```
 "scripts": {
@@ -35,7 +35,7 @@ we need these two scripts to build and develop the project.
 }
 ```
 
-*(Notice that I added the new lines and spaces for easy reading)*
+*(Notice that I added the new lines and spaces for readability reasons)*
 
 [concurrently](https://www.npmjs.com/package/concurrently) library helps running more then one process in parallel which is exactly what we need when watching for changes.
 
@@ -51,7 +51,7 @@ There is one last script that we need. The one that runs our HTTP server.
 
 Instead of just `node ./build/server/server.js` we will use [nodemon](https://nodemon.io/). Nodemon is an utility that will monitor for any changes in our code and it will automatically restart the server.
 
-## React + Redux application
+## Developing the React + Redux application
 
 Let's say that we have an endpoint that returns data for the users in our system in the following format:
 
@@ -69,7 +69,7 @@ Let's say that we have an endpoint that returns data for the users in our system
 ]
 ```
 
-And our task is to get that data and render it. To keep the example simple we will do that with a single `<App>` component. In the `componentWillMount` lifecycle method we will trigger the data fetching and once the request succeeds we will dispatch an action with type `USER_FETCHED` which will lead to an update in the our Redux store. This will trigger a re-rendering of our component with the given data.
+And our task is to get that data and render it. To keep the example simple we will do that with just one `<App>` component. In the `componentWillMount` lifecycle method of this component we will trigger the data fetching and once the request succeeds we will dispatch an action with type `USER_FETCHED`. That action will be processed by a reducer and we will get an update in the our Redux store. And that state change will trigger a re-rendering of our component with the given data.
 
 ![main redux flow](./img1.jpg)
 
@@ -123,7 +123,7 @@ import reducer from './reducer';
 export default () => createStore(reducer);
 ```
 
-Why a factory function and not directly returning `createStore(reducer)`. That is because when we server-side render we will need an instance of the same store but it needs to be a new one for every request.
+Why a factory function and not directly returning `createStore(reducer)`? That is because when we server-side render we will need a brand new instance of the store for every request.
 
 ### Writing the React component (`<App>`)
 
@@ -172,9 +172,9 @@ const ConnectedApp = connect(
 export default ConnectedApp;
 ```
 
-Notice that we are using `componentWillMount` and not `componentDidMount`. The main reason is because we don't have `componentDidMount` running on the server-side. *(React's team also depricated those methods but that is another story.)*
+Notice that we are using `componentWillMount` and not `componentDidMount`. The main reason is because we don't have `componentDidMount` fired on the server-side. *(React's team also depricated those methods but that is another story.)*
 
-`fetchUsers` is an async function passed as a prop which uses the [Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API) to retrieve the data from the fake endpoint. When the both promises returned by `fetch()` and `json()` functions are resolved we dispatch the `USERS_FETCHED` action. Later the reducer picks it up and returns the new state containing the users' data. And because our `App` component is *connect*ed to Redux it gets re-rendered.
+`fetchUsers` is an async function passed as a prop which uses the [Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API) to retrieve the data from the fake endpoint. When both promises returned by `fetch()` and `json()` functions are resolved we dispatch the `USERS_FETCHED` action. Later the reducer picks it up and returns the new state containing the users' data. And because our `App` component is *connect*ed to Redux it gets re-rendered.
 
 The client-side code ends with the placement of `<App>` component on the page.
 
@@ -299,12 +299,12 @@ If we restart the server and open the same `http://localhost:3000` page we will 
 </html>
 ```
 
-We do have some content inside our container but it is just `<div data-reactroot=""></div>`. This doesn't mean that something is broken. It is absolutely correct. React indeed renders our page but it renders only the static content. In our `<App>` component we have nothing until we get the data and on the server we simply don't give enough time for all this to happen. The fetching of the data is an asynchronous process and we have to take this into account when we render. And this is where the server-side rendering becomes tricky. It really boils down to what you application is doing. In our example the app depends on one specific request but this could be many requests or maybe a completed root saga if [redux-saga](https://redux-saga.js.org/) library is used. I recognize two ways of dealing with the problem:
+We do have some content inside our container but it is just `<div data-reactroot=""></div>`. This doesn't mean that something is broken. It is absolutely correct. React indeed renders our page but it renders only the static content. In our `<App>` component we have nothing until we get the data and on the server we simply don't give enough time for all this to happen. The fetching of the data is an asynchronous process and we have to take this into account when render on the server. And this is where our task becomes tricky. It really boils down to what our application is doing. In this acticle the client-side code depends on one specific request but it could be many requests or maybe a completed root saga if [redux-saga](https://redux-saga.js.org/) library is used. I recognize two ways of dealing with the problem:
 
-* We know exactly what the requested page needs. We fetch the data and create the Redux store with that data. If we render with already fulfilled store we will get rendering of the full page.
-* We rely completely on the code that runs on the client and we wait till everything there is complete.
+* We know exactly what the requested page needs. We fetch the data and create the Redux store with that data. Then we render the page by giving the fulfilled store and in theory we should get the whole markup.
+* We rely completely on the code that runs on the client and we wait till everything there is completed.
 
-The first approach requires some level of routing and it means that we have to manage the data flow on two different places. The second approach means that we have to be careful with what we do on the client and make sure that the same thing may happen on the server. Even though sometimes it requires more efforts I prefer that second approach because I have to maintain a single code base. It just takes a little bit more instrumentation on the server to make this possible. Like for example in our case we use [Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API) to make the request to the endpoint. On the server we don't have this by default. Thankfully there is a [isomorphic-fetch](https://www.npmjs.com/package/isomorphic-fetch) package that adds `fetch` method as a global one. All we have to do is to import it somewhere before the usage of `fetch`. Like in `server.js`:
+The first approach requires some level of routing and it means that we have to manage the data flow on two different places. The second approach means that we have to be careful with what we do on the client and make sure that the same thing may happen on the server. Even though sometimes it requires more efforts I prefer that second approach because I have to maintain single code base. It just takes a little bit more instrumentation on the server to make this possible. Like for example in our case we use [Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API) to make the request to the endpoint. On the server we don't have this by default. Thankfully there is a [isomorphic-fetch](https://www.npmjs.com/package/isomorphic-fetch) package that adds `fetch` method as a global function. All we have to do is to import it somewhere before the usage of `fetch`. Like in `server.js`:
 
 ```js
 import 'isomorphic-fetch';
@@ -345,9 +345,9 @@ app.get('*', (req, res) => {
 });
 ```
 
-We are using the `subscribe` method of the Redux store to understand when an action is dispatched or the state is updated. Once this happen we check the condition that we are interested in - is there any user data fetched. If the data is there we `unsubscribe()` so we don't have the same code run twice and we render to string using the same store instance. At the end we flush out the markup to the browser.
+We are using the `subscribe` method of the Redux store to understand when an action is dispatched or the state is updated. Once this happen we check the condition that we are interested in - is there any user data fetched. If the data is there we `unsubscribe()` so we don't have the same code running twice and we render to string using the same store instance. At the end we flush out the markup to the browser.
 
-There is one thing which bugs me and I still didn't find a proper fix. We have to render twice. We have to do that because the processes that we wait to finish start only when we render. Remember how we fire `fetchUsers` in `componentWillMount` hook. Without rendering the `<App>` component we are not firing the fetch request which means we don't have the store updated.
+There is one thing which bugs me and I still didn't find a proper solution. We have to render twice. We have to do that because the processes that we wait to finish start only when we render. Remember how we fire `fetchUsers` in `componentWillMount` hook. Without rendering the `<App>` component we are not firing the fetch request which means we don't have the store updated.
 
 With that code above we have our `<App>` component successfully server-side rendered. We are getting the following markup straight away from the server:
 
@@ -363,7 +363,7 @@ With that code above we have our `<App>` component successfully server-side rend
 </html>
 ```
 
-Now the users are rendered. And of course React is able to understand the HTML and works with it. But we are not done yet. The client-side JavaScript has no idea what happened on the server and doesn't know that we already did the request to the API and we have the data. We have to inform the browser and pass down the state of the Redux store on the server so it can pick it up and work from there.
+Now the users are rendered. And of course React is able to understand the HTML and works with it. But we are not done yet. The client-side JavaScript has no idea what happened on the server and doesn't know that we already did the request to the API. We have to inform the browser by passing down the state of the Redux store so it can pick it up.
 
 ```js
 const content = ReactDOMServer.renderToString(
@@ -387,7 +387,7 @@ res.send(`
 `);
 ```
 
-We send the store's state as a global variable `__APP_STATE` which the client-side code is responsible to look after. Our reducer changes a little bit. We have a function `getInitialState` which we have to update:
+We send the store's state as a global variable `__APP_STATE` which the client-side code is responsible to look for. Our reducer changes a little bit too. We have a function `getInitialState` which we have to update:
 
 ```js
 function getInitialState() {
@@ -398,8 +398,20 @@ function getInitialState() {
 }
 ```
 
-Notice `typeof window !== 'undefined'` check. We have to do that because this same reducer is run on the server. This is a perfect example of how we have to be careful with the globally available APIs when using SSR.
+Notice `typeof window !== 'undefined'` check. We have to do that because this same reducer is run on the server. This is a perfect example of how we have to be careful with the globally available browser APIs when using SSR.
+
+As a last optimization we also have to avoid doing the `fetch` when the data is already in the store. A little check in the `componentWillMount` method will do the trick:
+
+```js
+componentWillMount() {
+  const { users, fetchUsers } = this.props;
+
+  if (users === null) {
+    fetchUsers();
+  }
+}
+```
 
 ## Conclusion
 
-Server-side rendering is an interesting topic. It comes with a lot of advantages and improves the overall user experience. It also affects the SEO of your single page applications. It is not simple though. In most of the cases requires additional instrumentation and carefully selected tools. How is the SSR happening in your apps? Is it similar to what we discussed so far?
+Server-side rendering is an interesting topic. It comes with a lot of advantages and improves the overall user experience. It also affects the SEO of your single page applications. It is not simple though. In most of the cases requires additional instrumentation and carefully selected APIs. How is the SSR happening in your apps? Is it similar to what we discussed so far?
