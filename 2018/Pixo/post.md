@@ -1,0 +1,56 @@
+# Image editor for your web app
+
+If your users deal with images (photos, product images, etc.) it will be great if they have the ability to apply some basic editing after upload, e.g. adjust brightness and contrast for sharper view, crop, add some text, etc. However, if image editing is not the primary feature of your product, the profit from investment in such secondary feature won't cover the costs. Integrating a 3rd party image editor appears to be a wiser choice.
+
+[Pixo](https://pixoeditor.com/) is a web image editor. Its' primary purpose is to be integrated into 3rd party web apps, allowing their users to edit images. Pixo offers simple, but yet powerful API, and a bunch of editing features such as Instagram-like filters, adjustments (brightness, contrast, hue, saturation, RGB, etc.), crop, text editing. It appears to be quite new on the market and is currently under rapid development. Authors claim that new features will come soon, such as adding stickers, free drawing, frames, red-eye correction, and more. There's a Demo section in the [official site](https://pixoeditor.com/) where you can go for a test drive. The UI is simple and easy to use, very straightforward. 
+
+## Integration
+
+To integrate, simply load Pixo's Bridge class and instantiate it:
+
+```
+<script src="https://pixoeditor.com:8443/editor/scripts/bridge.m.js"></script>
+<script>
+  var editor = new Pixo.Bridge({ apikey: 'your api key here' });
+  editor.edit('image url here');
+</script>
+
+```
+
+As you can see from the example, you will need an API key. You can obtain such from [Pixo's website](https://pixoeditor.com/). In fact you can register more than one API key. You can have different key for each of your projects, and you can restrict your keys by domain name, to ensure unwanted usage.
+
+## Customization
+
+Pixo can be loaded both as a modal UI or in a separate browser window. The API allows you to customize styles for the modal overlay (when loading editor as modal) and even background colors for the editor itself. Pass your own logo, and voila – the image editor looks as if it is part of your web app! 
+
+![Pixo editor](http://krasimirtsonev.com/blog/articles/pixo/pixo.png)
+
+Let's have a look how to achieve that:
+
+```
+new Pixo.Bridge({
+  apikey: 'xxxxxxxxxxxx',
+  type: 'modal',
+  width: '75%',
+  height: '75%',
+  overlay: {
+      color: 'rgba( 0, 0, 0, .8 )',
+  },
+  styles: {
+      logosrc: 'https://www.yoursite.com/images/logo.jpg',
+      canvasbgcolor: 'white',
+      editmenubgcolor: '#ccc',
+      actionsmenubgcolor: '#ccc',
+      propertiespanelbgcolor: '#999',
+      textcolor: 'black',
+  }
+});
+```
+
+## Browser and platform support
+
+All modern browsers are supported, including IE11. Pixo also offers mobile support.
+
+## Pricing
+
+[Pixo](https://pixoeditor.com/) will be free till end of October. After that it will charge per edited and saved images only, as low as $0.07 per image. There will be pre-paid packages, as well as pay-as-you-go option.
