@@ -175,7 +175,16 @@ export default function CounterA() {
 }
 ```
 
-We can even go further 
+## Concerns
+
+So far we saw how beneficial the hooks are. However, I'm a little bit reserved about this feature. The same way as I did for the higher-order components and function as children patterns. I don't quite like it but then a couple of weeks later I can't wait to use these new patterns in my code. It bet it will be the same with the hooks. Till then I will question this approach of writing React and will try to make a fair judgement for myself. Here are couple of points which I'm thinking recently: 
+
+* The first thing which bothers me is changing the mindset for the functional React components. We used to think about them as dumb, short stateless functions that only render stuff. Of course we can still have them like that but if the hooks get adopted we can't continue saying "If it is a function it has no state and it is purely rendering thing".
+* So far for me React was a no-magic library. I didn't dig into the code but there was no API which made me think "How did they do it?". With the hooks I kinda felt the same way as I saw the Angular 2 dependency injection. Even though Dan [explained](https://medium.com/@dan_abramov/making-sense-of-react-hooks-fdbde8803889#44b2) that there is no really magic behind this feature it feels magical from the outside. I'm not saying that this is a bad thing. It is just something which I didn't see in React before. 
+
+
+
+
 
 
 https://medium.com/@dan_abramov/making-sense-of-react-hooks-fdbde8803889
