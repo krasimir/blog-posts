@@ -177,16 +177,48 @@ export default function CounterA() {
 
 ## Concerns
 
-So far we saw how beneficial the hooks are. However, I'm a little bit reserved about this feature. The same way as I did for the higher-order components and function as children patterns. I don't quite like it but then a couple of weeks later I can't wait to use these new patterns in my code. It bet it will be the same with the hooks. Till then I will question this approach of writing React and will try to make a fair judgement for myself. Here are couple of points which I'm thinking recently: 
+So far we saw how beneficial the hooks are. However, I'm a little bit reserved about this feature. The same way as I did for the higher-order components and function as children patterns. I don't quite like it but then a couple of weeks later I can't wait to use these new patterns in my code. It bet it will be the same with the hooks. Till then I will question this approach of writing React and will try to make a fair judgement for myself.
 
-* The first thing which bothers me is changing the mindset for the functional React components. We used to think about them as dumb, short stateless functions that only render stuff. Of course we can still have them like that but if the hooks get adopted we can't continue saying "If it is a function it has no state and it is purely rendering thing".
-* So far for me React was a no-magic library. I didn't dig into the code but there was no API which made me think "How did they do it?". With the hooks I kinda felt the same way as I saw the Angular 2 dependency injection. Even though Dan [explained](https://medium.com/@dan_abramov/making-sense-of-react-hooks-fdbde8803889#44b2) that there is no really magic behind this feature it feels magical from the outside. I'm not saying that this is a bad thing. It is just something which I didn't see in React before. 
+The first thing which bothers me is changing the mindset for the functional React components. We used to think about them as dumb, short stateless functions that only render stuff. Of course we can still have them like that but if the hooks became the new way of writing React we can't continue saying "If it is a function it has no state and it is purely rendering thing". Especially when using the `useEffect` hook where we pass a function and that function will probably do an async task. This means that the React component defined as a function is alive even it returns something. For example:
 
+```js
+function FriendStatus(props) {
+  const [isOnline, setIsOnline] = useState(null);
 
+  useEffect(function componentDidMount() {
+    ChatAPI.subscribeToFriendStatus(
+      props.friend.id,
+      status => setIsOnline(status.isOnline)
+    );
+  });
 
+  if (isOnline === null) {
+    return 'Loading...';
+  }
+  return isOnline ? 'Online' : 'Offline';
+}
+```
 
+Notice how `useEffect` receives a function `componentDidMount` which gets executed at some point in the future. We used to think that such functions are executed, they return something and that's it. And I think the confusing part is that `useEffect` handles logic which is not in sync with the rendering cycles of React. I mean we don't want to have our `componentDidMount` fired every time when `FriendStatus` is rendered. Of course there is an API to handle such cases - we may pass an array of variables as a second argument of `useEffect` which act as dependencies. Only if they change then our function is called.
 
+```js
+useEffect(function componentDidMount() {
+  ChatAPI.subscribeToFriendStatus(
+    props.friend.id,
+    status => setIsOnline(status.isOnline)
+  );
+}, [numberOfFriends]);
+```
 
-https://medium.com/@dan_abramov/making-sense-of-react-hooks-fdbde8803889
-https://www.youtube.com/watch?v=V-QO-KO90iQ&index=2&list=PLPxbbTqCLbGE5AihOSExAa4wUM-P42EIJ&t=0s
+Let's say that in this example we subscribe to a friend's status and that subscription depends for some reason on the number of the friends. We can just pass that number as a second argument and React will skip the effect if it is the same. So, to wrap my point here I will say that we have to change our mindset for the dumb components because they may be not so dumb anymore.
+
+So far for me React was a no-magic library. I didn't dig into the code but there was no API which made me think "How did they do it?". With the hooks I kind of felt the same way as I saw the Angular 2 dependency injection for the first time. Even though Dan [explained](https://medium.com/@dan_abramov/making-sense-of-react-hooks-fdbde8803889#44b2) that there is no really magic behind this feature it feels magical from the outside. I'm not saying that this is a bad thing. It is just something which I didn't see in React before. There are certain [rules](https://reactjs.org/docs/hooks-rules.html) that we have to follow to have the hooks working properly. Like for example we have to define the hooks at the top of the function and avoid placing them in conditional or looping logic. Which I think is anyway going to happen and makes total sense. It is not like we don't have similar rules even before hooks but this is a bit different.
+
+## Conclusion
+
+As I said in the beginning of the article, the hooks in React are experimental feature and they are still a proposal. You shouldn't rewrite your apps using hooks because their API may change. My thinking is that the hooks are a step in the right direction. However, they require some kind of a mindset shift in order to be adopted. That is because they are not just a pattern but a new paradigm that can significantly change how we build React apps. New ways of composition and share logic. 
+
+## How to start
+
+I'll suggest first to watch [this presentation](https://www.youtube.com/watch?v=V-QO-KO90iQ&index=2&list=PLPxbbTqCLbGE5AihOSExAa4wUM-P42EIJ&t=0s) and then read the [official docs](https://reactjs.org/docs/hooks-intro.html). Once you try how everything works you will probably want to read [Making Sense of React Hooks](https://medium.com/@dan_abramov/making-sense-of-react-hooks-fdbde8803889) article and also check the Kent C. Dodds videos [here](https://egghead.io/playlists/react-hooks-and-suspense-650307f2).
 
