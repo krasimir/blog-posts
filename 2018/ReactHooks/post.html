@@ -1,0 +1,165 @@
+<p>If you use <a href="https://reactjs.org/">React</a> you probably know about the so called <a href="https://reactjs.org/docs/hooks-intro.html">hooks</a>. They were officially announced at this year&#39;s ReactConf by Sophie Alpert and Dan Abramov. Their presentation could be seen <a href="https://www.youtube.com/watch?v=V-QO-KO90iQ&amp;index=2&amp;list=PLPxbbTqCLbGE5AihOSExAa4wUM-P42EIJ&amp;t=0s">here</a>. I, same as many others got intrigued by this new feature. A little bit confused by if I like them or not but kind of excited. This article pretty much sums up my thinkings around React hooks and aims to give a balanced opinion.</p>
+[STOP]
+<blockquote>
+<p>Have in mind that the hooks just got released and they are (maybe) a subject of change. Beign an experimental feature React team suggests to check the official documentation at <a href="https://reactjs.org/docs/hooks-intro.html">https://reactjs.org/docs/hooks-intro.html</a> and monitor the <a href="https://github.com/reactjs/rfcs/pull/68">RFC</a>.</p>
+</blockquote>
+<h2 id="what-are-hooks">What are hooks</h2>
+<p>I&#39;m not going to explain everything because (as usually happens) the React team provided a pretty good <a href="https://reactjs.org/docs/hooks-intro.html">documentation</a> on the topic. I will focus on two examples that are most interesting to me.</p>
+<pre><code>import React, { useState } from &#39;react&#39;;
+
+function Counter() {
+  const initialValue = 0;
+  const [ count, setCount ] = useState(initialValue);
+
+  return (
+    &lt;div&gt;
+      &lt;p&gt;You clicked {count} times&lt;/p&gt;
+      &lt;button onClick={() =&gt; setCount(count + 1)}&gt;
+        Click me
+      &lt;/button&gt;
+    &lt;/div&gt;
+  );
+}</code></pre>
+<p>First of all, the hooks are meant to be used only in stateless components. They don&#39;t makes sense (and don&#39;t work) in React components defined as classes. In the example above <code>useState</code> is the hook. What it does is that it makes our <code>Counter</code> component stateful. Or in other words we have the same local-state capabilities that we have if we are using classes. <code>useState</code> accepts the initial value of our state and returns an array of two items. The first one is the current value and the second one is a function that we may use to change the value. The decision of returning an array and not an object is pretty good. That&#39;s because we can name stuff properly with no efforts. Imagine how will be if we have an object as a result of the hook:</p>
+<pre><code>const { value: count, changeValue: setCount } = useState(initialValue);</code></pre>
+<p>A lot more verbose than it is supposed to be.</p>
+<p>So far the React components defined as functions lack of two things comparing to the ones defined as classes - managing local state and lifecycle methods. <code>useState</code> is addressing the first point. There is another hook called <code>useEffect</code> which is the de facto replacement of the lifecycle methods. Here is an example:</p>
+<pre><code>import React, { useEffect } from &#39;react&#39;;
+
+function Example() {
+  useEffect(() =&gt; {
+    document.title = `The component is rendered`;
+    return () =&gt; {
+      document.title = `The component is removed from the DOM`;
+    }
+  });
+
+  return &lt;p&gt;Hello world&lt;/p&gt;;
+}</code></pre>
+<p>The function passed to <code>useEffect</code> is called after the render is committed to the screen. It is something like <code>componentDidMount</code>. The function that we return inside is called when the component is removed from the screen similarly to <code>componentWillUnmount</code>. And because all this is defined inside our function we have access to the props and the state. Which effectively means that we can cover what <code>componentDidUpdate</code> is giving us.</p>
+<p>There is also <code>useContext</code> hook which is in the same <strong>Basic hooks</strong> section but I will skip it for now.</p>
+<h2 id="the-obvious-advantages">The obvious advantages</h2>
+<p>I think we will all agree that the idea is not bad. In fact if we use hooks we write less code and our code reads better. We write only functions and not classes. There is no usage of the keyword <code>this</code> and there is no weird bindings in the constructor. The React component is written in a declarative fashion with almost no branches and it becomes easier to follow. Consider the example below:</p>
+<pre><code>class Counter extends React.Component {
+  constructor(props) {
+    super(props);
+
+    this.state = { count: 0 };
+    this.onButtonClicked = this.onButtonClicked.bind(this);
+  }
+  onButtonClicked() {
+    this.setState({ count: this.state.count + 1 });
+  }
+  render() {
+    const { count } = this.state;
+
+    return (
+      &lt;div&gt;
+        &lt;p&gt;You clicked {count} times&lt;/p&gt;
+        &lt;button onClick={this.onButtonClicked}&gt;
+          Click me
+        &lt;/button&gt;
+      &lt;/div&gt;
+    );
+  }
+}</code></pre>
+<p>It is the equivalent of the same <code>Counter</code> function above. We have three methods so more or less we have to jump through all of them to fully understand what is going on. <code>this.onButtonClicked.bind(this)</code> seems weird but we have to do it because we can&#39;t leave <code>.bind</code> in the <code>render</code> method for performance reasons. Overall we have some sort of boilerplate that we have to deal with when writing React components using classes. Let&#39;s have a look again at the same <code>Counter</code> but written with hooks:</p>
+<pre><code>function Counter() {
+  const initialValue = 0;
+  const [ count, setCount ] = useState(initialValue);
+
+  return (
+    &lt;div&gt;
+      &lt;p&gt;You clicked {count} times&lt;/p&gt;
+      &lt;button onClick={() =&gt; setCount(count + 1)}&gt;
+        Click me
+      &lt;/button&gt;
+    &lt;/div&gt;
+  );
+}</code></pre>
+<p>Much simpler with less code we achieve the same thing. But more importantly for me are two things - the component becomes easier to read and the stateful logic becomes easier to share. Let&#39;s imagine that I want to use the same counter logic but with a different representation. If we decide to use classes we will probably go with the function as children pattern like so:</p>
+<pre><code>class Counter extends React.Component {
+  constructor(props) {
+    super(props);
+
+    this.state = { count: 0 };
+    this.onButtonClicked = this.onButtonClicked.bind(this);
+  }
+  onButtonClicked() {
+    this.setState({ count: this.state.count + 1 });
+  }
+  render() {
+    const { count } = this.state;
+    const { children } = this.props;
+
+    return children({ count, increase: onButtonClicked });
+  }
+}</code></pre>
+<p>And then use the same <code>Counter</code> component many times:</p>
+<pre><code>function AnotherCounter() {
+  return (
+    &lt;Counter&gt;
+      {
+        ({ count, increase }) =&gt; (
+          &lt;div&gt;
+            &lt;p&gt;You clicked {count} times&lt;/p&gt;
+            &lt;button onClick={increase}&gt;
+              Click me
+            &lt;/button&gt;
+          &lt;/div&gt;
+        )
+      }
+    &lt;/Counter&gt;
+  )
+}</code></pre>
+<p>That&#39;s fine but now we have one more layer in our components tree and sooner or later we will end up with the <em>wrapper hell</em> situation. I do like the function as children pattern but it always looked a little bit off. Passing an expression as a child is not the most natural thing. On the other hand using a simple JavaScript function feels pretty normal.</p>
+<pre><code>function useCounter(initialValue) {
+  const [value, setCount] = useState(initialValue)
+
+  return {
+    value,
+    increase: () =&gt; setCount(value + 1),
+  }
+}
+export default function CounterA() {
+  const counter = useCounter(0)
+
+  return (
+    &lt;div&gt;
+      &lt;p&gt;You clicked {counter.value} times&lt;/p&gt;
+      &lt;button onClick={counter.increase}&gt;Click me&lt;/button&gt;
+    &lt;/div&gt;
+  )
+}</code></pre>
+<p>With hooks it is possible to extract stateful logic to a simple JavaScript function which is just a composition of the basic hooks like <code>useState</code> and <code>useEffect</code>.</p>
+<h2 id="concerns">Concerns</h2>
+<p>So far we saw how beneficial the hooks are. However, I&#39;m a little bit reserved about this feature. The same way as I aws for the higher-order components and function as children patterns. I didn&#39;t quite like them but just a couple of days later I started using them all over my code. I bet it will be the same with the hooks. Till then I will question this approach of writing React and will try to make a fair judgement for myself.</p>
+<p>The first thing which bothers me is changing the mindset for the functional React components. We used to think about them as dumb, short, stateless functions that only render stuff. Of course we can still have them like that but if the hooks became the new way of writing React we can&#39;t continue saying &quot;If it is a function it has no state and it is purely rendering thing&quot;. Especially when using the <code>useEffect</code> hook where we pass a function and that function will probably do an async task. This means that the React component defined as a function is alive even it returns a result. For example:</p>
+<pre><code>function FriendStatus(props) {
+  const [isOnline, setIsOnline] = useState(null);
+
+  useEffect(function onRender() {
+    ChatAPI.subscribeToFriendStatus(
+      props.friend.id,
+      status =&gt; setIsOnline(status.isOnline)
+    );
+  });
+
+  if (isOnline === null) {
+    return &#39;Loading...&#39;;
+  }
+  return isOnline ? &#39;Online&#39; : &#39;Offline&#39;;
+}</code></pre>
+<p>Notice how <code>useEffect</code> receives a function <code>onRender</code> which gets executed at some point in the future. We used to think that such React components are executed, they return something and that&#39;s it. And I think the confusing part is that <code>useEffect</code> handles logic which is not in sync with the rendering cycles of React. I mean it is not like we give data and that data is rendered. We trigger a process that happens in parallel with the rendering. Also we don&#39;t want to have our <code>onRender</code> fired every time when <code>FriendStatus</code> is rendered. There is an API to handle such cases - we may pass an array of variables as a second argument of <code>useEffect</code> which act as list of dependencies.</p>
+<pre><code>useEffect(function componentDidMount() {
+  ChatAPI.subscribeToFriendStatus(
+    props.friend.id,
+    status =&gt; setIsOnline(status.isOnline)
+  );
+}, [numberOfFriends]);</code></pre>
+<p>Let&#39;s say that in this example we subscribe to a friend&#39;s status and that subscription depends for some reason on the number of the friends. We can just pass that number as a second argument and React will skip the effect if it is the same during the next render. So, to wrap up my point here I will say that we have to change our mindset for the dumb components because they may be not so dumb anymore.</p>
+<p>So far for me React was a no-magic library. I didn&#39;t dig into the code but there was no API which made me think &quot;How did they do it?&quot;. When a saw <code>useState</code> for the first time that was the first question which pops up in my head. I kind of felt the same way when I saw the Angular 2 dependency injection. Even though Dan <a href="https://medium.com/@dan_abramov/making-sense-of-react-hooks-fdbde8803889#44b2">explained</a> that there is no really magic behind this feature it feels magical from the outside. I&#39;m not saying that this is a bad thing. It is just something which I didn&#39;t see in React before. There are certain <a href="https://reactjs.org/docs/hooks-rules.html">rules</a> that we have to follow to have the hooks working properly. Like for example we have to define the hooks at the top of the function and avoid placing them in conditional or looping logic. Which I think is anyway going to happen and makes total sense. It is not like we don&#39;t have similar rules even now but this is a bit different.</p>
+<h2 id="conclusion">Conclusion</h2>
+<p>As I said in the beginning of the article, the hooks in React are experimental feature and they are still a proposal. You shouldn&#39;t rewrite your apps using hooks because their API may change. My thinking is that the hooks are a step in the right direction. However, they require some kind of a mindset shift in order to be adopted. That is because they are not just a pattern but a new paradigm that can significantly change how we build React apps. New ways of composition and new ways of share logic. </p>
+<h2 id="resources">Resources</h2>
+<p>If you want to start using hooks and wondering where to start from I&#39;ll suggest first to watch <a href="https://www.youtube.com/watch?v=V-QO-KO90iQ&amp;index=2&amp;list=PLPxbbTqCLbGE5AihOSExAa4wUM-P42EIJ&amp;t=0s">this presentation</a> and then read the <a href="https://reactjs.org/docs/hooks-intro.html">official docs</a>. Once you try how everything works you will probably want to read <a href="https://medium.com/@dan_abramov/making-sense-of-react-hooks-fdbde8803889">Making Sense of React Hooks</a> article and also check the Kent C. Dodds video tutorials <a href="https://egghead.io/playlists/react-hooks-and-suspense-650307f2">here</a>.</p>
