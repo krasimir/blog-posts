@@ -1,0 +1,37 @@
+<p>I had some time during the weekend and decided to work on my slides for an <a href="http://partialconf.com/">event</a> at the end of the month. I reached the part where I have to do a live coding session and I was wondering what tool to use. At the end I created my own called <a href="https://github.com/krasimir/demoit">Demoit</a>. This is a short article explaining how it works.</p>[STOP]
+<p><img src="http://krasimirtsonev.com/blog/articles/demoit/demoit.png" alt="demoit"></p>
+<p><a href="https://github.com/krasimir/demoit">Demoit</a> - a small tool for live coding exercises. Demo <a href="https://krasimir.github.io/demoit/dist">here</a>.</p>
+<h2 id="the-idea">The idea</h2>
+<p>I have to say that I&#39;m not doing a lot of live coding at my talks. I usually create slides with the code so I avoid the stress of writing it in front of people. However, sometimes it feels better if the attendees see how the code actually changes. So, I was going to use one of the popular tools for the purpose - <a href="https://codesandbox.io">CodeSandbox</a>, <a href="https://jsbin.com">JSBin</a> or <a href="http://codePen.io">Codepen</a>. But then I realized that those tools are offering a lot more than I wanted. I was searching for something small that meets my requirements. And, as it often happens with us engineers, I ended up writing my one solution. Here is what I am searching for and what <a href="https://github.com/krasimir/demoit">Demoit</a> does at the moment.</p>
+<ul>
+<li>A nice editor with couple of themes so I feel comfortable writing - I used the well known <a href="https://codemirror.net/">CodeMirror</a>.</li>
+<li>No server - I don&#39;t want to run a node server every time when I want to do a live coding demo. It is just one more thing that may go wrong and when you are in front of other people this may ruin the whole presentation. I also don&#39;t want to use a service that depends on having internet connection. Even though some of the tools that I mention above support offline mode I&#39;m still reserved to such option.</li>
+<li>Built-in transpilation - <a href="https://github.com/krasimir/demoit">Demoit</a> uses Babel as a transpiler. It does the transformation at runtime, in the browser.</li>
+<li>No dependencies. No building process. Just a simple HTML page and static JavaScript and CSS files - my goal with this is to avoid downloading packages and configuring building process. It&#39;s just my code running on top of libraries loaded via <code>&lt;script&gt;</code> tag.</li>
+<li>Flexible configuration - there are two things here - (a) ability to define my own resources and libraries. For example JavaScript and CSS files that my demo needs. And (b) ability to define multiple demos and code snippets so I can switch quickly between them directly from the tool. This is done by filling a single <code>settings.json</code> file.</li>
+<li>Ability to render to html but also print to the console - this is pretty much trivial for such instruments</li>
+</ul>
+<h2 id="the-default-configuration">The default configuration</h2>
+<p>Here is how <code>settings.json</code> looks like when you download Demoit.</p>
+<pre><code>{
+  &quot;editor&quot;: {
+    &quot;&lt;nice themes&gt;&quot;: &quot;dark: material, light: neat&quot;
+  },
+  &quot;resources&quot;: [
+    &quot;./resources/react-16.7.0-alpha.0.js&quot;,
+    &quot;./resources/react-dom.16.7.0-alpha.0.js&quot;,
+    &quot;./resources/styles.css&quot;
+  ],
+  &quot;demos&quot;: [
+    {
+      &quot;snippets&quot;: [
+        &quot;./demos/useHooks.js&quot;,
+        &quot;./demos/HoC.js&quot;,
+        &quot;./demos/FaCC.js&quot;
+      ]
+    }
+  ]
+}</code></pre>
+<p>In this case the files under the <code>resources</code> field are locally saved on my machine but we can easily use CDN URLs or UNPKG links. Those files are injected into the page before the actual code snippet runs.</p>
+<h2 id="final-words">Final words</h2>
+<p>I will be more then happy if you try Demoit and let me know what you think. The demo of this tool for doing demos is available <a href="https://krasimir.github.io/demoit/dist">here</a>. If you want to report a bug or who knows maybe doing a pull request go to <a href="https://github.com/krasimir/demoit">this</a> URL.</p>
