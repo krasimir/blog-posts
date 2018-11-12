@@ -8,27 +8,24 @@
 <li>No server - I don&#39;t want to run a node server every time when I want to do a live coding demo. It is just one more thing that may go wrong and when you are in front of other people this may ruin the whole presentation. I also don&#39;t want to use a service that depends on having internet connection. Even though some of the tools that I mention above support offline mode I&#39;m still reserved to such option.</li>
 <li>Built-in transpilation - <a href="https://github.com/krasimir/demoit">Demoit</a> uses Babel as a transpiler. It does the transformation at runtime, in the browser.</li>
 <li>No dependencies. No building process. Just a simple HTML page and static JavaScript and CSS files - my goal with this is to avoid downloading packages and configuring building process. It&#39;s just my code running on top of libraries loaded via <code>&lt;script&gt;</code> tag.</li>
-<li>Flexible configuration - there are two things here - (a) ability to define my own resources and libraries. For example JavaScript and CSS files that my demo needs. And (b) ability to define multiple demos and code snippets so I can switch quickly between them directly from the tool. This is done by filling a single <code>settings.json</code> file.</li>
+<li>Flexible configuration - ability to define my own resources and libraries. For example JavaScript and CSS files that my demo needs.</li>
 <li>Ability to render to html but also print to the console - this is pretty much trivial for such instruments</li>
 </ul>
 <h2 id="the-default-configuration">The default configuration</h2>
 <p>Here is how <code>settings.json</code> looks like when you download Demoit.</p>
 <pre><code>{
   &quot;editor&quot;: {
-    &quot;&lt;nice themes&gt;&quot;: &quot;dark: material, light: neat&quot;
+    &quot;&lt;theme&gt;&quot;: &quot;material&quot;
   },
-  &quot;resources&quot;: [
+  &quot;dependencies&quot;: [
     &quot;./resources/react-16.7.0-alpha.0.js&quot;,
     &quot;./resources/react-dom.16.7.0-alpha.0.js&quot;,
     &quot;./resources/styles.css&quot;
   ],
-  &quot;demos&quot;: [
+  &quot;files&quot;: [
     {
-      &quot;snippets&quot;: [
-        &quot;./demos/useHooks.js&quot;,
-        &quot;./demos/HoC.js&quot;,
-        &quot;./demos/FaCC.js&quot;
-      ]
+      &quot;filename&quot;: &quot;script.js&quot;,
+      &quot;content&quot;: &quot;console.log('message');&quot;
     }
   ]
 }</code></pre>
